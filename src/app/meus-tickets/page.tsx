@@ -1,7 +1,6 @@
 'use client';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import type { Ticket } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,46 +13,26 @@ import { MessageSquare, ArrowRight } from 'lucide-react';
 export default function MyTicketsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const ticketsRef = useRef<Ticket[]>();
-
+  
   const customerTicketsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'tickets'), where('customerId', '==', user.uid)) : null,
     [user, firestore]
   );
-  const sellerTicketsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'tickets'), where('sellerId', '==', user.uid)) : null,
-    [user, firestore]
-  );
 
   const { data: customerTickets, isLoading: isLoadingCustomer } = useCollection<Ticket>(customerTicketsQuery);
-  const { data: sellerTickets, isLoading: isLoadingSeller } = useCollection<Ticket>(sellerTicketsQuery);
 
-  useEffect(() => {
-    const loading = isUserLoading || isLoadingCustomer || isLoadingSeller;
-    setIsLoading(loading);
-    if (!loading) {
-      const combined = new Map<string, Ticket>();
-      customerTickets?.forEach(t => combined.set(t.id, t));
-      sellerTickets?.forEach(t => combined.set(t.id, t));
-      
-      const sorted = Array.from(combined.values()).sort((a, b) => 
-          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-      );
-      
-      setAllTickets(sorted);
-      ticketsRef.current = sorted; // Update the ref with the new tickets
-    }
-  }, [customerTickets, sellerTickets, isUserLoading, isLoadingCustomer, isLoadingSeller, user]);
+  const isLoading = isUserLoading || isLoadingCustomer;
 
+  const sortedTickets = customerTickets?.sort((a, b) => 
+    new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+  ) || [];
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><MessageSquare /> Meus Tickets</CardTitle>
-          <CardDescription>Conversas sobre suas compras e vendas.</CardDescription>
+          <CardDescription>Conversas sobre suas compras. Para ver tickets de vendas, acesse o painel do vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -61,7 +40,7 @@ export default function MyTicketsPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
-          ) : allTickets.length > 0 ? (
+          ) : sortedTickets.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -72,9 +51,8 @@ export default function MyTicketsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allTickets.map((ticket) => {
-                  const isSeller = user?.uid === ticket.sellerId;
-                  const unreadCount = isSeller ? (ticket.unreadBySellerCount || 0) : (ticket.unreadByCustomerCount || 0);
+                {sortedTickets.map((ticket) => {
+                  const unreadCount = ticket.unreadByCustomerCount || 0;
 
                   return (
                   <TableRow key={ticket.id}>
@@ -108,8 +86,8 @@ export default function MyTicketsPage() {
             </Table>
           ) : (
             <div className="text-center py-12">
-              <p className="text-lg text-muted-foreground">Nenhum ticket encontrado.</p>
-              <p className="text-sm text-muted-foreground">Tickets de suporte para suas compras e vendas aparecerão aqui.</p>
+              <p className="text-lg text-muted-foreground">Nenhum ticket de compra encontrado.</p>
+              <p className="text-sm text-muted-foreground">Tickets de suporte para suas compras aparecerão aqui.</p>
             </div>
           )}
         </CardContent>

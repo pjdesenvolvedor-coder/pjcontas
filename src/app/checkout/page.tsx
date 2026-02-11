@@ -134,6 +134,7 @@ function CheckoutForm() {
             startDate: new Date().toISOString(),
             endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
             paymentMethod: 'Cartão',
+            bannerUrl: plan.bannerUrl, // Denormalize bannerUrl
         };
         const userSubDocRef = await addDoc(userSubscriptionsRef, newSubscriptionData);
 
@@ -158,6 +159,9 @@ function CheckoutForm() {
         };
         await setDoc(newTicketRef, newTicketData);
         
+        // Update the userSubscription with the new ticket ID
+        await updateDoc(userSubDocRef, { ticketId: newTicketRef.id });
+
         // 3. Handle automatic delivery
         const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
         const q = query(

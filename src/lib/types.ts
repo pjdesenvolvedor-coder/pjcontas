@@ -57,6 +57,8 @@ export type UserSubscription = {
   startDate: string;
   endDate: string;
   paymentMethod: string;
+  ticketId?: string;
+  bannerUrl?: string;
 };
 
 

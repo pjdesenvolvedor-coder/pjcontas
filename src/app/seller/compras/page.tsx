@@ -3,39 +3,64 @@
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Tv, Calendar, CheckCircle } from 'lucide-react';
 import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { UserSubscription } from '@/lib/types';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-// Represents a user's subscription enriched with plan details.
-type EnrichedUserSubscription = {
-  id: string;
-  planName: string;
-  serviceName: string;
-  nextBilling: string;
-  logoUrl?: string; // assuming service details will be fetched
-};
+function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
+  if (!purchase.ticketId) {
+    return (
+        <Card className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:shadow-lg group opacity-50">
+           <div className="relative h-32 w-full overflow-hidden bg-muted"></div>
+            <CardContent className="flex flex-1 flex-col justify-between p-4">
+                 <div>
+                    <p className="text-sm font-medium text-primary">{purchase.serviceName}</p>
+                    <h3 className="font-bold text-lg truncate">{purchase.planName}</h3>
+                </div>
+                <p className="p-4 text-sm text-center text-muted-foreground">Ticket ainda não gerado.</p>
+            </CardContent>
+        </Card>
+    );
+  }
+
+  return (
+    <Link href={`/meus-tickets/${purchase.ticketId}`}>
+      <Card className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:shadow-lg group h-full">
+        <div className="relative h-32 w-full overflow-hidden">
+          <Image
+            src={purchase.bannerUrl || 'https://placehold.co/600x400/2196F3/FFFFFF/png?text=Anuncio'}
+            alt={purchase.planName}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
+        <CardContent className="flex flex-1 flex-col justify-between p-4">
+          <div>
+            <p className="text-sm font-medium text-primary">{purchase.serviceName}</p>
+            <h3 className="font-bold text-lg truncate">{purchase.planName}</h3>
+          </div>
+          <div className="mt-2">
+            <Badge variant="outline">
+              Expira em {formatDistanceToNow(new Date(purchase.endDate), { locale: ptBR })}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 
 export default function UserPurchasesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [activeSubscriptions, setActiveSubscriptions] = useState<EnrichedUserSubscription[]>([]);
-  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(true);
 
   // Memoized reference to the user's subscriptions subcollection
   const userSubscriptionsRef = useMemoFirebase(
@@ -44,40 +69,25 @@ export default function UserPurchasesPage() {
   );
   
   // Fetch the user's subscription documents
-  const { data: userSubscriptions, isLoading: isUserSubscriptionsLoading } = useCollection(userSubscriptionsRef);
+  const { data: userSubscriptions, isLoading: isUserSubscriptionsLoading } = useCollection<UserSubscription>(userSubscriptionsRef);
 
-  useEffect(() => {
-    if (isUserLoading) return;
-    if (!user) {
-      setIsLoadingSubscriptions(false);
-      return;
-    }
-    
-    if (userSubscriptions) {
-      const fetchEnrichedData = async () => {
-        setIsLoadingSubscriptions(true);
-        const enriched: EnrichedUserSubscription[] = [];
-
-        for (const sub of userSubscriptions) {
-           enriched.push({
-            id: sub.id,
-            planName: sub.planName || 'Plano',
-            serviceName: sub.serviceName || 'Serviço',
-            nextBilling: sub.endDate,
-          });
-        }
-        
-        setActiveSubscriptions(enriched);
-        setIsLoadingSubscriptions(false);
-      };
-      fetchEnrichedData();
-    } else if (!isUserSubscriptionsLoading) {
-      setIsLoadingSubscriptions(false);
-    }
-  }, [user, isUserLoading, userSubscriptions, isUserSubscriptionsLoading, firestore]);
-
-  const isLoading = isUserLoading || isLoadingSubscriptions;
+  const isLoading = isUserLoading || isUserSubscriptionsLoading;
   
+  const renderSkeletons = (count = 4) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[...Array(count)].map((_, i) => (
+        <Card key={i} className="overflow-hidden rounded-xl">
+          <Skeleton className="h-32 w-full" />
+          <div className="p-4 space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-8 w-full mt-2" />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-8">
       <header>
@@ -85,76 +95,33 @@ export default function UserPurchasesPage() {
           Minhas Compras
         </h1>
         <p className="mt-2 text-base md:text-lg text-muted-foreground">
-          Aqui você pode gerenciar as assinaturas que você comprou.
+          Acesse suas compras para visualizar os detalhes e obter suporte.
         </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Tv className="h-6 w-6" />
-            Assinaturas Ativas
-          </CardTitle>
-          <CardDescription>
-            Gerencie suas assinaturas de serviços de streaming ativas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-           {isLoading ? (
-            <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-            </div>
+      <div className="w-full">
+         {isLoading ? (
+           renderSkeletons()
           ) : !user ? (
              <div className="text-center py-12">
               <p className="text-lg text-muted-foreground">
-                Faça login para ver suas assinaturas.
+                Faça login para ver suas compras.
               </p>
             </div>
-          ) : activeSubscriptions.length === 0 ? (
+          ) : userSubscriptions && userSubscriptions.length > 0 ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {userSubscriptions.map((purchase) => (
+                  <PurchaseCard key={purchase.id} purchase={purchase} />
+                ))}
+              </div>
+          ) : (
             <div className="text-center py-12">
               <p className="text-lg text-muted-foreground">
-                Você ainda não possui assinaturas ativas.
+                Você ainda não fez nenhuma compra.
               </p>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Plano</TableHead>
-                  <TableHead>Próxima Cobrança</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeSubscriptions.map((sub) => (
-                  <TableRow key={sub.id}>
-                    <TableCell className="font-medium flex items-center gap-3">
-                      {sub.serviceName}
-                    </TableCell>
-                    <TableCell>{sub.planName}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {new Date(sub.nextBilling).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="default"
-                        className="bg-green-100 text-green-800 border-green-200"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Ativa
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }
