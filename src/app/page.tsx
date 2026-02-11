@@ -144,13 +144,13 @@ export default function Home() {
             Descubra, agrupe e economize em serviços de streaming. Explore anúncios de vendedores ou deixe nossa IA guiá-lo para o pacote de entretenimento perfeito.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <div className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm">
-              <BadgeCheck className="h-5 w-5 text-primary" />
-              <span className="font-medium text-secondary-foreground">Entrega Garantida</span>
+            <div className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm text-destructive-foreground">
+              <BadgeCheck className="h-5 w-5" />
+              <span className="font-medium">Entrega Garantida</span>
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm">
-              <LifeBuoy className="h-5 w-5 text-primary" />
-              <span className="font-medium text-secondary-foreground">Suporte 24/7</span>
+            <div className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm text-destructive-foreground">
+              <LifeBuoy className="h-5 w-5" />
+              <span className="font-medium">Suporte 24/7</span>
             </div>
           </div>
         </div>
