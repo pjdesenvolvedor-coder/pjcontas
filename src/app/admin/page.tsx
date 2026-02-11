@@ -19,6 +19,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PlusCircle, Edit, Trash, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { SubscriptionService } from '@/lib/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 type UserProfile = {
   role: 'admin' | 'customer';
@@ -252,7 +254,7 @@ function ServiceManagement() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Gerenciar Serviços de Streaming</CardTitle>
+            <CardTitle>Serviços de Streaming</CardTitle>
             <CardDescription>Adicione, edite ou remova os serviços disponíveis no seu marketplace.</CardDescription>
           </div>
           <Button onClick={handleAddNew}>
@@ -361,11 +363,22 @@ export default function AdminPage() {
           Painel do Administrador
         </h1>
         <p className="mt-2 text-base md:text-lg text-muted-foreground">
-          Gerencie os serviços de streaming e outras configurações do marketplace.
+          Gerencie todos os aspectos do seu marketplace.
         </p>
       </header>
       
-      <ServiceManagement />
+      <Tabs defaultValue="services" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="services">Serviços</TabsTrigger>
+          <TabsTrigger value="users" disabled>Usuários</TabsTrigger>
+        </TabsList>
+        <TabsContent value="services" className="mt-6">
+          <ServiceManagement />
+        </TabsContent>
+        <TabsContent value="users">
+          {/* Placeholder for future user management */}
+        </TabsContent>
+      </Tabs>
 
     </div>
   );
