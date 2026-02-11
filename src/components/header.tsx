@@ -98,7 +98,7 @@ export function Header() {
   const isLoading = isUserLoading || isUserDataLoading;
 
   const isAdmin = !isLoading && userData?.role === 'admin';
-  const isSeller = !isLoading && userData?.role === 'seller';
+  const isSeller = !isLoading && (userData?.role === 'seller' || userData?.role === 'admin');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
