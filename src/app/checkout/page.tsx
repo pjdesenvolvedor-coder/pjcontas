@@ -300,9 +300,18 @@ function CheckoutForm() {
               <div className="w-full space-y-2">
                 <Label htmlFor="pix-code">PIX Copia e Cola</Label>
                 <div className="flex items-center gap-2">
-                  <Input id="pix-code" readOnly value={pixDetails.qr_code} className="truncate" />
+                  <Input
+                    id="pix-code"
+                    readOnly
+                    value={pixDetails.qr_code}
+                    className="truncate cursor-pointer"
+                    onClick={() => copyToClipboard(pixDetails.qr_code)}
+                  />
                   <Button variant="outline" size="icon" onClick={() => copyToClipboard(pixDetails.qr_code)}><Copy className="h-4 w-4" /></Button>
                 </div>
+                <p className="text-xs text-destructive text-center pt-1">
+                  Clique no campo acima para copiar o código.
+                </p>
               </div>
             </>
           )}
