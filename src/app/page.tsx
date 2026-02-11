@@ -122,7 +122,7 @@ export default function Home() {
   const regularPlans = React.useMemo(() => subscriptions?.filter(plan => !plan.isBoosted) || [], [subscriptions]);
 
   const renderSkeletons = (count = 3) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(count)].map((_, i) => (
         <Card key={i} className="overflow-hidden rounded-xl">
           <Skeleton className="h-48 w-full" />
@@ -169,7 +169,7 @@ export default function Home() {
              <p className="text-muted-foreground mt-2">Vendedores confiáveis que impulsionaram seus anúncios.</p>
           </div>
           {isLoading ? renderSkeletons() : boostedPlans.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {boostedPlans.map((plan) => <PlanCard key={plan.id} plan={plan} />)}
             </div>
           ) : (
@@ -189,7 +189,7 @@ export default function Home() {
             Outros Anúncios
           </h2>
           {isLoading ? renderSkeletons() : regularPlans.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {regularPlans.map((plan) => <PlanCard key={plan.id} plan={plan} />)}
             </div>
           ) : (
