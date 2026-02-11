@@ -93,10 +93,10 @@ export function Header() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user?.uid]);
 
-  const { data: userData } = useDoc<{ role: string }>(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<{ role: string }>(userDocRef);
 
-  const isAdmin = !isUserLoading && userData?.role === 'admin';
-  const isSeller = !isUserLoading && userData?.role === 'seller';
+  const isAdmin = !isUserLoading && !isUserDataLoading && userData?.role === 'admin';
+  const isSeller = !isUserLoading && !isUserDataLoading && userData?.role === 'seller';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
