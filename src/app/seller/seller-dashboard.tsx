@@ -360,7 +360,7 @@ function SellerSidebar() {
   return (
     <aside className="hidden md:flex w-60 flex-shrink-0 bg-card border-r p-4 flex-col">
       <div className="mb-4 px-3">
-         <p className="text-sm text-muted-foreground">Início > Conta</p>
+         <p className="text-sm text-muted-foreground">Início &gt; Conta</p>
       </div>
       <nav className="flex-grow">
         {menuItems.map((group, groupIndex) => (
@@ -535,7 +535,7 @@ export function SellerDashboard() {
               </AlertDialogContent>
           </AlertDialog>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) setEditingSubscription(null); setIsDialogOpen(isOpen); }}>
               <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                       <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
