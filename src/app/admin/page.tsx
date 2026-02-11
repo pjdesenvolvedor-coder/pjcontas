@@ -26,8 +26,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     const isDataLoaded = !isUserLoading && !isUserDataLoading;
-    if (isDataLoaded && (!user || userData?.role !== 'admin')) {
-      router.push('/dashboard');
+    if (isDataLoaded) {
+      if (!user) {
+        // If user is not logged in at all, always redirect.
+        router.push('/dashboard');
+      } else if (userData && userData.role !== 'admin') {
+        // Only redirect if we have the user's data and their role is NOT admin.
+        // This prevents redirecting when the user document is still being created.
+        router.push('/dashboard');
+      }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router]);
 
@@ -51,7 +58,7 @@ export default function AdminPage() {
   }
   
   if (userData?.role !== 'admin') {
-    // This is a fallback while redirecting
+    // This is a fallback while redirecting or if data is loading
     return null;
   }
 

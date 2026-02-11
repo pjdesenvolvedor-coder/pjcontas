@@ -26,8 +26,15 @@ export default function SellerPage() {
 
   useEffect(() => {
     const isDataLoaded = !isUserLoading && !isUserDataLoading;
-    if (isDataLoaded && (!user || userData?.role !== 'seller')) {
-      router.push('/dashboard');
+    if (isDataLoaded) {
+      if (!user) {
+        // If user is not logged in at all, always redirect.
+        router.push('/dashboard');
+      } else if (userData && userData.role !== 'seller') {
+        // Only redirect if we have the user's data and their role is NOT seller.
+        // This prevents redirecting when the user document is still being created.
+        router.push('/dashboard');
+      }
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router]);
 
@@ -51,7 +58,7 @@ export default function SellerPage() {
   }
   
   if (userData?.role !== 'seller') {
-    // Fallback while redirecting
+    // Fallback while redirecting or if data is loading
     return null;
   }
 
