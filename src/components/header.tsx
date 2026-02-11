@@ -67,7 +67,7 @@ function UserNav({ isAdmin, isSeller }: { isAdmin: boolean, isSeller: boolean })
                     <Link href="/dashboard"><UserIcon className="mr-2" /> Minha Conta</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href="/seller/tickets"><MessageSquare className="mr-2" /> Meus Tickets</Link>
+                    <Link href="/meus-tickets"><MessageSquare className="mr-2" /> Meus Tickets</Link>
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem asChild>
@@ -159,61 +159,8 @@ export function Header() {
             </Link>
           )}
         </nav>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="flex items-center gap-2">
             <UserNav isAdmin={isAdmin} isSeller={isSeller} />
-        </div>
-        <div className="md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <div className="grid gap-4 py-6">
-                <SheetClose asChild>
-                  <Link
-                    href="/"
-                    className="flex w-full items-center py-2 text-lg font-semibold"
-                  >
-                    Home
-                  </Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link
-                    href="/dashboard"
-                    className="flex w-full items-center py-2 text-lg font-semibold"
-                  >
-                    Minha Conta
-                  </Link>
-                </SheetClose>
-                {isAdmin && (
-                  <SheetClose asChild>
-                    <Link
-                      href="/admin"
-                      className="flex w-full items-center py-2 text-lg font-semibold"
-                    >
-                      Admin
-                    </Link>
-                  </SheetClose>
-                )}
-                {isSeller && (
-                  <SheetClose asChild>
-                    <Link
-                      href="/seller"
-                      className="flex w-full items-center py-2 text-lg font-semibold"
-                    >
-                      Vendedor
-                    </Link>
-                  </SheetClose>
-                )}
-                <div className="flex flex-col items-center gap-2 pt-4">
-                    <UserNav isAdmin={isAdmin} isSeller={isSeller} />
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
     </header>
