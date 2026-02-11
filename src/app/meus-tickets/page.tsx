@@ -21,9 +21,8 @@ export default function MyTicketsPage() {
 
   // Initialize the audio element once on component mount.
   useEffect(() => {
-    // A simple, short beep sound as a base64 data URI.
-    // This can be replaced with any other sound file.
-    audioRef.current = new Audio('data:audio/wav;base64,UklGRjIXAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVEJAAAAAAA/gD9AP0A/QD9AP0A/QD9APw==');
+    // A simple, short pling sound as a base64 data URI.
+    audioRef.current = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABgAAABkYXRhAwAAAAA=');
   }, []);
 
   const customerTicketsQuery = useMemoFirebase(
