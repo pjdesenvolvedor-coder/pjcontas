@@ -459,7 +459,7 @@ function DeliverablesManagerDialog({
                             <TableRow key={item.id}>
                                 <TableCell className="font-mono text-xs truncate max-w-[300px]">{item.content}</TableCell>
                                 <TableCell>
-                                    <Badge variant={item.status === 'available' ? 'default' : 'secondary'}>{item.status}</Badge>
+                                    <Badge variant={item.status === 'available' ? 'default' : 'secondary'}>{item.status === 'available' ? 'Disponível' : 'Vendido'}</Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-1">

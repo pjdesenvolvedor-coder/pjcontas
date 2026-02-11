@@ -93,7 +93,7 @@ export default function MyTicketsPage() {
                         </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={ticket.status === 'open' ? 'default' : 'secondary'}>{ticket.status}</Badge>
+                      <Badge variant={ticket.status === 'open' ? 'default' : 'secondary'}>{ticket.status === 'open' ? 'Aberto' : 'Fechado'}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild variant="ghost" size="sm">

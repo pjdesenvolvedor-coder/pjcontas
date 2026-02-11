@@ -13,20 +13,20 @@ export function Footer() {
             </span>
           </Link>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} StreamShare. All rights reserved.
+            © {new Date().getFullYear()} StreamShare. Todos os direitos reservados.
           </p>
           <nav className="flex gap-4 sm:gap-6">
             <Link
               href="#"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Terms of Service
+              Termos de Serviço
             </Link>
             <Link
               href="#"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Privacy Policy
+              Política de Privacidade
             </Link>
           </nav>
         </div>

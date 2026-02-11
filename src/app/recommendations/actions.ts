@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { personalizedSubscriptionRecommendations } from '@/ai/flows/personalized-subscription-recommendations';
 
 const recommendationSchema = z.object({
-  viewingHistory: z.string().min(20, { message: 'Please provide more details about your viewing history to get better recommendations.' }),
-  preferences: z.string().min(20, { message: 'Please provide more details about your preferences to get better recommendations.' }),
+  viewingHistory: z.string().min(20, { message: 'Por favor, forneça mais detalhes sobre seu histórico de visualizações para obter melhores recomendações.' }),
+  preferences: z.string().min(20, { message: 'Por favor, forneça mais detalhes sobre suas preferências para obter melhores recomendações.' }),
 });
 
 type RecommendationState = {
@@ -29,22 +29,22 @@ export async function getRecommendations(
   if (!validatedFields.success) {
     const errors = validatedFields.error.flatten().fieldErrors;
     return {
-      error: errors.viewingHistory?.[0] || errors.preferences?.[0] || "Invalid input."
+      error: errors.viewingHistory?.[0] || errors.preferences?.[0] || "Entrada inválida."
     };
   }
 
   try {
     const result = await personalizedSubscriptionRecommendations(validatedFields.data);
     if (!result.recommendations || result.recommendations.length === 0) {
-      return { error: "We couldn't generate recommendations based on your input. Please try being more specific." };
+      return { error: "Não conseguimos gerar recomendações com base nas suas informações. Tente ser mais específico." };
     }
     return {
       recommendations: result.recommendations,
     };
   } catch (error) {
-    console.error('AI Recommendation Error:', error);
+    console.error('Erro na Recomendação com IA:', error);
     return {
-      error: 'An unexpected error occurred while generating recommendations. Please try again later.',
+      error: 'Ocorreu um erro inesperado ao gerar recomendações. Por favor, tente novamente mais tarde.',
     };
   }
 }

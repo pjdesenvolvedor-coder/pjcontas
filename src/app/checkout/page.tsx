@@ -133,7 +133,7 @@ function CheckoutForm() {
             price: plan.price,
             startDate: new Date().toISOString(),
             endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-            paymentMethod: 'card', // simplified
+            paymentMethod: 'Cartão',
         };
         const userSubDocRef = await addDoc(userSubscriptionsRef, newSubscriptionData);
 
@@ -251,7 +251,7 @@ function CheckoutForm() {
             <div className="flex justify-between border-t pt-4">
               <span className="text-lg font-semibold">Total:</span>
               <span className="text-lg font-bold text-primary">
-                ${plan.price}/mês
+                R$ {plan.price.toFixed(2)}/mês
               </span>
             </div>
           </div>
@@ -337,7 +337,7 @@ function CheckoutForm() {
                 ) : (
                   <Lock className="mr-2 h-4 w-4" />
                 )}
-                Pagar ${plan.price}
+                Pagar R$ {plan.price.toFixed(2)}
               </Button>
             </form>
           </Form>

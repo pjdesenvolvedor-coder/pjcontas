@@ -29,7 +29,7 @@ function SubmitButton() {
       ) : (
         <Sparkles className="mr-2 h-4 w-4" />
       )}
-      Get AI Recommendations
+      Obter Recomendações com IA
     </Button>
   );
 }
@@ -42,39 +42,38 @@ export function RecommendationForm() {
       <Card className="max-w-3xl mx-auto shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold font-headline text-center text-primary">
-            Personalized Subscription Helper
+            Assistente de Assinatura Personalizada
           </CardTitle>
           <CardDescription className="text-center">
-            Tell us what you love to watch, and our AI will recommend the best
-            subscription bundles for you.
+            Diga-nos o que você adora assistir, e nossa IA recomendará os melhores pacotes de assinatura para você.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="viewingHistory" className="font-semibold">
-                Your Viewing History
+                Seu Histórico de Visualizações
               </Label>
               <Textarea
                 id="viewingHistory"
                 name="viewingHistory"
-                placeholder="e.g., I've watched all of 'Stranger Things', love sci-fi movies from the 80s, and enjoy cooking shows..."
+                placeholder="Ex: Assisti a todas as temporadas de 'Stranger Things', adoro filmes de ficção científica dos anos 80 e gosto de programas de culinária..."
                 rows={5}
                 required
                 className="focus:ring-accent"
               />
               <p className="text-xs text-muted-foreground">
-                The more detail, the better the recommendation!
+                Quanto mais detalhes, melhor a recomendação!
               </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="preferences" className="font-semibold">
-                Your Preferences
+                Suas Preferências
               </Label>
               <Textarea
                 id="preferences"
                 name="preferences"
-                placeholder="e.g., Looking for family-friendly content, need 4K streaming, prefer services with original content, on a budget of $20/month..."
+                placeholder="Ex: Procuro conteúdo para a família, preciso de streaming em 4K, prefiro serviços com conteúdo original, com um orçamento de R$ 100/mês..."
                 rows={5}
                 required
                 className="focus:ring-accent"
@@ -88,14 +87,14 @@ export function RecommendationForm() {
       <div className="mt-8 max-w-3xl mx-auto">
         {state?.error && (
             <Alert variant="destructive">
-                <AlertTitle>Error</AlertTitle>
+                <AlertTitle>Erro</AlertTitle>
                 <AlertDescription>{state.error}</AlertDescription>
             </Alert>
         )}
         {state?.recommendations && state.recommendations.length > 0 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-center font-headline">
-              Your AI-Powered Recommendations
+              Suas Recomendações com IA
             </h2>
             {state.recommendations.map((rec, index) => (
               <Card key={index} className="bg-card">
@@ -106,7 +105,7 @@ export function RecommendationForm() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-semibold mb-2 text-muted-foreground">Why we recommend it:</p>
+                  <p className="font-semibold mb-2 text-muted-foreground">Por que recomendamos:</p>
                   <p>{rec.reason}</p>
                 </CardContent>
               </Card>
