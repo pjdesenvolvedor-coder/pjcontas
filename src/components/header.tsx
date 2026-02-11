@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2, User as UserIcon, LogOut, Shield, ShoppingBag, MessageSquare } from 'lucide-react';
+import { Menu, Tv2, LogOut, Shield, ShoppingBag, MessageSquare, Home, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -11,85 +11,14 @@ import {
 } from '@/components/ui/sheet';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { AuthDialog } from '@/components/auth/auth-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc } from 'firebase/firestore';
 import { useEffect } from 'react';
 
-function UserNav({ isAdmin, isSeller }: { isAdmin: boolean, isSeller: boolean }) {
-    const { user, isUserLoading } = useUser();
-    const auth = useAuth();
-
-    const handleLogout = () => {
-        signOut(auth);
-    };
-
-    if (isUserLoading) {
-        return <Skeleton className="h-10 w-10 rounded-full" />;
-    }
-
-    if (!user) {
-        return <AuthDialog />;
-    }
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || ''} />
-                        <AvatarFallback>
-                            {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                            {user.email}
-                        </p>
-                    </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href="/dashboard"><UserIcon className="mr-2" /> Minha Conta</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link href="/meus-tickets"><MessageSquare className="mr-2" /> Meus Tickets</Link>
-                </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem asChild>
-                      <Link href="/admin"><Shield className="mr-2" /> Admin</Link>
-                  </DropdownMenuItem>
-                )}
-                {isSeller && (
-                  <DropdownMenuItem asChild>
-                      <Link href="/seller"><ShoppingBag className="mr-2" /> Painel do Vendedor</Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2" /> Sair
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
-
 export function Header() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => {
@@ -115,6 +44,10 @@ export function Header() {
     }
   }, [user, firestore, userData]);
 
+  const handleLogout = () => {
+    signOut(auth);
+  };
+
   const isLoading = isUserLoading || isUserDataLoading;
 
   const isAdmin = !isLoading && userData?.role === 'admin';
@@ -129,39 +62,97 @@ export function Header() {
             StreamShare
           </span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-          <Link
-            href="/"
-            className="text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Home
-          </Link>
-          <Link
-            href="/dashboard"
-            className="text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Minha Conta
-          </Link>
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="text-foreground/80 hover:text-foreground transition-colors"
-            >
-              Admin
-            </Link>
-          )}
-          {isSeller && (
-            <Link
-              href="/seller"
-              className="text-foreground/80 hover:text-foreground transition-colors"
-            >
-              Vendedor
-            </Link>
-          )}
-        </nav>
-        <div className="flex items-center gap-2">
-            <UserNav isAdmin={isAdmin} isSeller={isSeller} />
-        </div>
+        
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Abrir menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <div className="flex flex-col h-full">
+               <div className="p-4 border-b">
+                 <SheetClose asChild>
+                   <Link href="/" className="flex items-center gap-2">
+                    <Tv2 className="h-7 w-7 text-primary" />
+                    <span className="text-xl font-bold text-primary font-headline">
+                      StreamShare
+                    </span>
+                  </Link>
+                 </SheetClose>
+              </div>
+              
+              <nav className="flex-grow p-4 space-y-2">
+                 <SheetClose asChild>
+                  <Button variant="ghost" className="w-full justify-start text-base" asChild>
+                    <Link href="/">
+                      <Home className="mr-2"/> Home
+                    </Link>
+                  </Button>
+                </SheetClose>
+
+                {isUserLoading ? (
+                  <div className="space-y-2 px-3">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : user ? (
+                  <>
+                    <SheetClose asChild>
+                       <Button variant="ghost" className="w-full justify-start text-base" asChild>
+                          <Link href="/dashboard">
+                            <UserIcon className="mr-2" /> Minha Conta
+                          </Link>
+                       </Button>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button variant="ghost" className="w-full justify-start text-base" asChild>
+                          <Link href="/meus-tickets">
+                            <MessageSquare className="mr-2" /> Meus Tickets
+                          </Link>
+                      </Button>
+                    </SheetClose>
+                    {isSeller && (
+                      <SheetClose asChild>
+                         <Button variant="ghost" className="w-full justify-start text-base" asChild>
+                            <Link href="/seller">
+                               <ShoppingBag className="mr-2"/> Painel do Vendedor
+                            </Link>
+                         </Button>
+                      </SheetClose>
+                    )}
+                     {isAdmin && (
+                      <SheetClose asChild>
+                         <Button variant="ghost" className="w-full justify-start text-base" asChild>
+                            <Link href="/admin">
+                              <Shield className="mr-2" /> Admin
+                            </Link>
+                         </Button>
+                      </SheetClose>
+                    )}
+                  </>
+                ) : null }
+              </nav>
+
+              <div className="p-4 mt-auto border-t">
+                {isUserLoading ? (
+                   <Skeleton className="h-10 w-full" />
+                ) : user ? (
+                  <SheetClose asChild>
+                    <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-base">
+                      <LogOut className="mr-2" /> Sair
+                    </Button>
+                  </SheetClose>
+                ) : (
+                   <SheetClose asChild>
+                    <AuthDialog />
+                   </SheetClose>
+                )}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );
