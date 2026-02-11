@@ -17,26 +17,6 @@ export default function MyTicketsPage() {
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const ticketsRef = useRef<Ticket[]>();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Initialize the audio element once on component mount.
-  useEffect(() => {
-    // A simple, short pling sound as a base64 data URI.
-    audioRef.current = new Audio('data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
-    
-    // Most browsers block audio that is not initiated by user interaction.
-    // To work around this, we can try to "unlock" audio playback on the first click anywhere on the page.
-    const unlockAudio = () => {
-        // Calling load() can be enough to signal user interaction to the browser.
-        audioRef.current?.load();
-        document.body.removeEventListener('click', unlockAudio);
-    };
-    document.body.addEventListener('click', unlockAudio);
-
-    return () => {
-        document.body.removeEventListener('click', unlockAudio);
-    }
-  }, []);
 
   const customerTicketsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'tickets'), where('customerId', '==', user.uid)) : null,
@@ -62,29 +42,6 @@ export default function MyTicketsPage() {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
       );
       
-      // Check for new messages and play notification sound
-      if (ticketsRef.current && user && audioRef.current) {
-        // A flag to ensure we only play the sound once per batch of updates.
-        let soundPlayed = false;
-        sorted.forEach(newTicket => {
-          if (soundPlayed) return;
-
-          const oldTicket = ticketsRef.current!.find(t => t.id === newTicket.id);
-          if (oldTicket) {
-            const isSeller = user.uid === newTicket.sellerId;
-            const isCustomer = user.uid === newTicket.customerId;
-
-            const sellerHasNew = isSeller && (newTicket.unreadBySellerCount || 0) > (oldTicket.unreadBySellerCount || 0);
-            const customerHasNew = isCustomer && (newTicket.unreadByCustomerCount || 0) > (oldTicket.unreadByCustomerCount || 0);
-
-            if (sellerHasNew || customerHasNew) {
-              audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-              soundPlayed = true;
-            }
-          }
-        });
-      }
-
       setAllTickets(sorted);
       ticketsRef.current = sorted; // Update the ref with the new tickets
     }
