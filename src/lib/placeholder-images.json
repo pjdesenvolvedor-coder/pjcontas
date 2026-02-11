@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "netflix-logo",
+      "description": "Netflix logo",
+      "imageUrl": "https://images.unsplash.com/photo-1685440663653-fa3e81dd109c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdHJlYW1pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDc4Nzk4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "streaming service"
+    },
+    {
+      "id": "disney-plus-logo",
+      "description": "Disney+ logo",
+      "imageUrl": "https://images.unsplash.com/photo-1714623297943-ed0ce65eb06a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdHJlYW1pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDc4Nzk4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "streaming service"
+    },
+    {
+      "id": "hbo-max-logo",
+      "description": "HBO Max logo",
+      "imageUrl": "https://images.unsplash.com/photo-1685440663653-fa3e81dd109c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdHJlYW1pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDc4Nzk4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "streaming service"
+    },
+    {
+      "id": "prime-video-logo",
+      "description": "Amazon Prime Video logo",
+      "imageUrl": "https://images.unsplash.com/photo-1714625412083-83a50958d574?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzdHJlYW1pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDc4Nzk4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "streaming service"
+    },
+    {
+      "id": "hulu-logo",
+      "description": "Hulu logo",
+      "imageUrl": "https://images.unsplash.com/photo-1714623297943-ed0ce65eb06a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdHJlYW1pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDc4Nzk4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "streaming service"
+    },
+    {
+      "id": "apple-tv-plus-logo",
+      "description": "Apple TV+ logo",
+      "imageUrl": "https://images.unsplash.com/photo-1714625415221-c67ad6541ca9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzdHJlYW1pbmclMjBzZXJ2aWNlfGVufDB8fHx8MTc3MDc4Nzk4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "streaming service"
+    },
+    {
+      "id": "payment-visa",
+      "description": "Visa logo",
+      "imageUrl": "https://images.unsplash.com/photo-1703206390947-24130b2eaf9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwYXltZW50JTIwY2FyZHxlbnwwfHx8fDE3NzA3ODc5ODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "payment card"
+    },
+    {
+      "id": "payment-mastercard",
+      "description": "Mastercard logo",
+      "imageUrl": "https://images.unsplash.com/photo-1703206390947-24130b2eaf9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwYXltZW50JTIwY2FyZHxlbnwwfHx8fDE3NzA3ODc5ODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "payment card"
+    }
+  ]
 }
