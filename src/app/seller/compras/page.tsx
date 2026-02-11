@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import React from 'react';
 
 function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
   if (!purchase.ticketId) {
@@ -73,6 +74,11 @@ export default function UserPurchasesPage() {
 
   const isLoading = isUserLoading || isUserSubscriptionsLoading;
   
+  const validPurchases = React.useMemo(() => 
+    userSubscriptions?.filter(p => p.ticketId && p.bannerUrl) || [],
+    [userSubscriptions]
+  );
+  
   const renderSkeletons = (count = 4) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(count)].map((_, i) => (
@@ -108,9 +114,9 @@ export default function UserPurchasesPage() {
                 Faça login para ver suas compras.
               </p>
             </div>
-          ) : userSubscriptions && userSubscriptions.length > 0 ? (
+          ) : validPurchases.length > 0 ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {userSubscriptions.map((purchase) => (
+                {validPurchases.map((purchase) => (
                   <PurchaseCard key={purchase.id} purchase={purchase} />
                 ))}
               </div>
