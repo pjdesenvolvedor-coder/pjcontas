@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2 } from 'lucide-react';
+import { Menu, Tv2, User as UserIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -9,6 +9,69 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
+import { useUser, useAuth } from '@/firebase';
+import { AuthDialog } from '@/components/auth/auth-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { signOut } from 'firebase/auth';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function UserNav() {
+    const { user, isUserLoading } = useUser();
+    const auth = useAuth();
+
+    const handleLogout = () => {
+        signOut(auth);
+    };
+
+    if (isUserLoading) {
+        return <Skeleton className="h-10 w-10 rounded-full" />;
+    }
+
+    if (!user) {
+        return <AuthDialog />;
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || ''} />
+                        <AvatarFallback>
+                            {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                            {user.email}
+                        </p>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/dashboard"><UserIcon className="mr-2" /> Minha Conta</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2" /> Sair
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
 export function Header() {
   return (
@@ -31,22 +94,17 @@ export function Header() {
             href="/recommendations"
             className="text-foreground/80 hover:text-foreground transition-colors"
           >
-            Get Recommendation
+            Recomendação
           </Link>
           <Link
             href="/dashboard"
             className="text-foreground/80 hover:text-foreground transition-colors"
           >
-            My Account
+            Minha Conta
           </Link>
         </nav>
         <div className="hidden md:flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Log In</Link>
-          </Button>
-          <Button size="sm" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/signup">Sign Up</Link>
-          </Button>
+            <UserNav />
         </div>
         <div className="md:hidden">
           <Sheet>
@@ -71,7 +129,7 @@ export function Header() {
                     href="/recommendations"
                     className="flex w-full items-center py-2 text-lg font-semibold"
                   >
-                    Get Recommendation
+                    Recomendação
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
@@ -79,20 +137,11 @@ export function Header() {
                     href="/dashboard"
                     className="flex w-full items-center py-2 text-lg font-semibold"
                   >
-                    My Account
+                    Minha Conta
                   </Link>
                 </SheetClose>
-                <div className="flex flex-col gap-2 pt-4">
-                  <SheetClose asChild>
-                    <Button variant="ghost" asChild>
-                      <Link href="/login">Log In</Link>
-                    </Button>
-                  </SheetClose>
-                  <SheetClose asChild>
-                     <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                      <Link href="/signup">Sign Up</Link>
-                    </Button>
-                  </SheetClose>
+                <div className="flex flex-col items-center gap-2 pt-4">
+                    <UserNav />
                 </div>
               </div>
             </SheetContent>
