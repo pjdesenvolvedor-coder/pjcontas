@@ -162,9 +162,7 @@ function CheckoutForm() {
         const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
         const q = query(
             deliverableCollectionRef,
-            where('status', '==', 'available'),
-            orderBy('createdAt', 'asc'),
-            limit(1)
+            where('status', '==', 'available')
         );
         
         const snapshot = await getDocs(q);
@@ -188,8 +186,11 @@ function CheckoutForm() {
                 unreadByCustomerCount: 1,
             });
         } else {
-            // In stock
-            const deliverableDoc = snapshot.docs[0];
+            // In stock - sort on the client to find the oldest one.
+            const sortedDeliverables = snapshot.docs.sort((a, b) => 
+                new Date(a.data().createdAt).getTime() - new Date(b.data().createdAt).getTime()
+            );
+            const deliverableDoc = sortedDeliverables[0];
             const deliverableData = deliverableDoc.data() as Deliverable;
             
             // Mark as sold
