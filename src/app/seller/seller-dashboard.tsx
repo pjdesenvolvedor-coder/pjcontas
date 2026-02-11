@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,7 @@ import {
   useMemoFirebase,
   setDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import type { Plan, SubscriptionService } from '@/lib/types';
@@ -30,6 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -47,6 +49,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
@@ -64,7 +67,8 @@ import {
   Upload,
   Wallet,
   PackageCheck,
-  DollarSign
+  DollarSign,
+  Boxes,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +91,7 @@ const subscriptionSchema = z.object({
   serviceId: z.string({ required_error: "Por favor, selecione um serviço." }),
   accountModel: z.enum(['Capturada', 'Acesso Total'], { required_error: "Por favor, selecione o modelo da conta." }),
   userLimit: z.coerce.number().int().positive("Deve ser um número inteiro positivo."),
+  stock: z.coerce.number().int().nonnegative("O estoque não pode ser negativo."),
   quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
   bannerUrl: z.string().min(1, "É obrigatório selecionar uma imagem para o anúncio."),
@@ -114,6 +119,7 @@ function SubscriptionForm({
       serviceId: subscription?.serviceId || '',
       accountModel: subscription?.accountModel || undefined,
       userLimit: subscription?.userLimit || 1,
+      stock: subscription?.stock ?? 0,
       quality: subscription?.quality || '',
       features: subscription?.features.join('\n') || '',
       bannerUrl: subscription?.bannerUrl || '',
@@ -278,19 +284,34 @@ function SubscriptionForm({
             )}
             />
         </div>
-        <FormField
-          control={form.control}
-          name="userLimit"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Limite de Usuários</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="userLimit"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Limite de Usuários</FormLabel>
+                <FormControl>
+                    <Input type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="stock"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Estoque</FormLabel>
+                <FormControl>
+                    <Input type="number" min="0" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
         <FormField
           control={form.control}
           name="features"
@@ -318,6 +339,52 @@ function SubscriptionForm({
   );
 }
 
+function StockManagerDialog({
+  subscription,
+  onClose,
+  onSave,
+}: {
+  subscription: Plan | null;
+  onClose: () => void;
+  onSave: (newStock: number) => void;
+}) {
+  const [newStock, setNewStock] = useState(subscription?.stock || 0);
+  
+  useEffect(() => {
+    setNewStock(subscription?.stock || 0);
+  }, [subscription]);
+
+  if (!subscription) return null;
+
+  return (
+    <Dialog open={!!subscription} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Gerenciar Estoque: {subscription.name}</DialogTitle>
+          <DialogDescription>
+            Defina o novo valor para o estoque. O valor atual é {subscription.stock}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <Label htmlFor="stock-amount">Novo Estoque</Label>
+          <Input 
+            id="stock-amount"
+            type="number"
+            value={newStock}
+            onChange={(e) => setNewStock(parseInt(e.target.value, 10) || 0)}
+            className="mt-2"
+            min="0"
+          />
+        </div>
+        <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="button" onClick={() => onSave(newStock)}>Salvar Estoque</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export function SellerDashboard() {
   const { user } = useUser();
@@ -327,6 +394,7 @@ export function SellerDashboard() {
   const [editingSubscription, setEditingSubscription] = useState<Plan | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingSubscriptionId, setDeletingSubscriptionId] = useState<string | null>(null);
+  const [managingStockSub, setManagingStockSub] = useState<Plan | null>(null);
 
 
   const servicesRef = useMemoFirebase(
@@ -369,6 +437,27 @@ export function SellerDashboard() {
 
     setIsDeleteDialogOpen(false);
     setDeletingSubscriptionId(null);
+  };
+
+  const handleOpenStockManager = (subscription: Plan) => {
+    setManagingStockSub(subscription);
+  };
+
+  const handleCloseStockManager = () => {
+      setManagingStockSub(null);
+  };
+
+  const handleSaveStock = (newStock: number) => {
+      if (!managingStockSub || !firestore) return;
+
+      const subRef = doc(firestore, 'subscriptions', managingStockSub.id);
+      updateDocumentNonBlocking(subRef, { stock: newStock });
+
+      toast({
+          title: 'Estoque Atualizado!',
+          description: `O estoque de "${managingStockSub.name}" foi atualizado para ${newStock}.`,
+      });
+      handleCloseStockManager();
   };
 
 
@@ -462,6 +551,12 @@ export function SellerDashboard() {
               )}
           </DialogContent>
       </Dialog>
+      
+      <StockManagerDialog 
+        subscription={managingStockSub}
+        onClose={handleCloseStockManager}
+        onSave={handleSaveStock}
+      />
 
       <div className="space-y-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -529,8 +624,7 @@ export function SellerDashboard() {
                         <TableHead>Nome do Anúncio</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Preço</TableHead>
-                        <TableHead>Qualidade</TableHead>
-                        <TableHead>Usuários</TableHead>
+                        <TableHead>Estoque</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                     </TableHeader>
@@ -541,10 +635,13 @@ export function SellerDashboard() {
                         <TableCell>{sub.name}</TableCell>
                         <TableCell>{sub.accountModel}</TableCell>
                         <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
-                        <TableCell>{sub.quality}</TableCell>
-                        <TableCell>{sub.userLimit}</TableCell>
+                        <TableCell>{sub.stock}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenStockManager(sub)}>
+                                    <Boxes className="h-4 w-4" />
+                                    <span className="sr-only">Gerenciar Estoque</span>
+                                </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
                                     <Edit className="h-4 w-4" />
                                     <span className="sr-only">Editar</span>

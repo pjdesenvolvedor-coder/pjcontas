@@ -135,6 +135,10 @@
             "Capturada",
             "Acesso Total"
           ]
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available stock for this subscription plan."
         }
       },
       "required": [
@@ -146,7 +150,8 @@
         "userLimit",
         "quality",
         "features",
-        "accountModel"
+        "accountModel",
+        "stock"
       ]
     },
     "UserSubscription": {

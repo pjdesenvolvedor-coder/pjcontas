@@ -11,6 +11,7 @@ export type Plan = {
   sellerId: string;
   description: string;
   accountModel: 'Capturada' | 'Acesso Total';
+  stock: number;
   // Denormalized from Service
   serviceName?: string;
   bannerUrl?: string;
