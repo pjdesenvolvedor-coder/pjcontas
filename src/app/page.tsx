@@ -86,7 +86,6 @@ function PlanCard({ plan }: { plan: Plan }) {
       </div>
       <div className="flex flex-1 flex-col justify-between p-4">
         <div className="flex-grow">
-            <p className="text-sm font-medium text-primary">{plan.serviceName}</p>
             <h3 className="font-bold text-lg truncate">{plan.name}</h3>
             <p className="text-sm text-muted-foreground mt-1 h-10 overflow-hidden">{plan.description}</p>
         </div>
