@@ -351,7 +351,7 @@ function SellerSidebar() {
       group: 'CONFIGURAÇÕES',
       items: [
         { href: '/dashboard', label: 'Minha conta', icon: Settings },
-        { href: '#', label: 'Segurança', icon: ShieldCheck, disabled: true },
+        { href: '/dashboard', label: 'Minhas compras', icon: PackageCheck },
         { href: '#', label: 'Notificações', icon: Bell, disabled: true },
       ],
     },
