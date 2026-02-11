@@ -3,14 +3,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
-import type { Ticket, ChatMessage } from '@/lib/types';
+import type { Ticket, ChatMessage, UserSubscription, Plan } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import Image from 'next/image';
 
 function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean }) {
     return (
@@ -46,14 +49,37 @@ export default function TicketChatPage() {
     const [newMessage, setNewMessage] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
 
+    // Ticket
     const ticketRef = useMemoFirebase(() => (firestore && ticketId) ? doc(firestore, 'tickets', ticketId) : null, [firestore, ticketId]);
     const { data: ticket, isLoading: isTicketLoading } = useDoc<Ticket>(ticketRef);
 
+    // Messages
     const messagesQuery = useMemoFirebase(
         () => ticketRef ? query(collection(ticketRef, 'messages'), orderBy('timestamp', 'asc')) : null,
         [ticketRef]
     );
     const { data: messages, isLoading: areMessagesLoading } = useCollection<ChatMessage>(messagesQuery);
+
+    // User Subscription (for purchase details)
+    const userSubscriptionRef = useMemoFirebase(() => {
+        if (!firestore || !ticket) return null;
+        return doc(firestore, 'users', ticket.customerId, 'userSubscriptions', ticket.userSubscriptionId);
+    }, [firestore, ticket]);
+    const { data: userSubscription, isLoading: isUserSubscriptionLoading } = useDoc<UserSubscription>(userSubscriptionRef);
+
+    // Seller Info
+    const sellerRef = useMemoFirebase(() => {
+        if (!firestore || !ticket) return null;
+        return doc(firestore, 'users', ticket.sellerId);
+    }, [firestore, ticket]);
+    const { data: sellerData, isLoading: isSellerLoading } = useDoc<{ name: string }>(sellerRef);
+
+    // Plan info (for image)
+    const planRef = useMemoFirebase(() => {
+        if (!firestore || !ticket) return null;
+        return doc(firestore, 'subscriptions', ticket.subscriptionId);
+    }, [firestore, ticket]);
+    const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
     
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -81,14 +107,23 @@ export default function TicketChatPage() {
         setNewMessage('');
     };
     
-    const isLoading = isUserLoading || isTicketLoading || areMessagesLoading;
+    const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading;
 
     if (isLoading) {
-        return <div className="container p-4"><Skeleton className="h-[80vh] w-full" /></div>
+        return (
+            <div className="container mx-auto max-w-4xl py-8 space-y-8">
+                <Skeleton className="h-10 w-1/3" />
+                <div className="grid md:grid-cols-3 gap-6">
+                    <Skeleton className="h-48 md:col-span-1" />
+                    <Skeleton className="h-32 md:col-span-2" />
+                </div>
+                <Skeleton className="h-[70vh] w-full" />
+            </div>
+        )
     }
 
-    if (!ticket) {
-        return <div className="container p-4 text-center">Ticket não encontrado.</div>;
+    if (!ticket || !userSubscription) {
+        return <div className="container p-4 text-center">Pedido não encontrado.</div>;
     }
 
     // Security check
@@ -98,15 +133,84 @@ export default function TicketChatPage() {
     }
     
     return (
-        <div className="container mx-auto max-w-3xl py-8">
-            <Card className="flex flex-col h-[85vh]">
-                <CardHeader className="flex flex-row items-center gap-4 border-b">
+        <div className="container mx-auto max-w-4xl py-8">
+            {/* Purchase Details Section */}
+            <div className="mb-8 space-y-4">
+                <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/meus-tickets')}>
                         <ArrowLeft />
                     </Button>
+                    <h1 className="text-2xl font-bold">Pedido #{ticket.userSubscriptionId.substring(0, 7).toUpperCase()}</h1>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                    <Card className="md:col-span-1">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Detalhes do Pedido</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Pedido:</span>
+                                <span>#{ticket.userSubscriptionId.substring(0, 7).toUpperCase()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Data:</span>
+                                <span>{new Date(userSubscription.startDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Comprador:</span>
+                                <span className="font-medium">{ticket.customerName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Vendedor:</span>
+                                <span className="font-medium">{sellerData?.name || '...'}</span>
+                            </div>
+                            <div className="flex justify-between pt-2 border-t">
+                                <span className="text-muted-foreground">Total:</span>
+                                <span className="font-bold text-base">R$ {userSubscription.price.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Status:</span>
+                                <Badge variant="secondary" className="bg-green-100 text-green-800">Pagamento Aprovado</Badge>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="md:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Produto</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-4">
+                                {plan?.bannerUrl && (
+                                    <div className="relative w-24 h-16 rounded-md overflow-hidden flex-shrink-0">
+                                        <Image
+                                            src={plan.bannerUrl}
+                                            alt={plan.name || 'Banner do plano'}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex-grow">
+                                    <p className="font-semibold">{ticket.serviceName} - {ticket.planName}</p>
+                                    <p className="text-sm text-muted-foreground">{plan?.description}</p>
+                                </div>
+                                <Button asChild size="sm">
+                                    <Link href={`/subscriptions/${userSubscription.serviceId}`}>Ver Anúncio</Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            {/* Chat Section */}
+            <Card className="flex flex-col h-[70vh]">
+                <CardHeader className="flex flex-row items-center gap-4 border-b">
+                    <Info className="h-5 w-5 text-primary" />
                     <div>
-                        <CardTitle>{ticket.serviceName} - {ticket.planName}</CardTitle>
-                        <CardDescription>Ticket #{ticket.id.substring(0, 6)}</CardDescription>
+                        <CardTitle>Chat de Suporte e Entrega</CardTitle>
+                        <CardDescription>Converse com o {user?.uid === ticket.customerId ? 'vendedor' : 'comprador'} aqui.</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">

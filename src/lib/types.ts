@@ -1,4 +1,5 @@
 
+
 // Represents a plan for a streaming service, corresponding to a document in the /subscriptions collection.
 export type Plan = {
   id: string;
@@ -28,6 +29,21 @@ export type SubscriptionService = {
   bannerUrl: string;
   bannerHint: string;
 };
+
+// Represents a user's purchase of a subscription plan, corresponding to a document in the /users/{userId}/userSubscriptions subcollection.
+export type UserSubscription = {
+  id: string;
+  userId: string;
+  subscriptionId: string;
+  serviceId: string;
+  planName: string;
+  serviceName: string;
+  price: number;
+  startDate: string;
+  endDate: string;
+  paymentMethod: string;
+};
+
 
 // Represents an individual, sellable instance of a subscription account (e.g., login credentials).
 export type Deliverable = {
