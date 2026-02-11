@@ -90,13 +90,7 @@ function PlanCard({ plan }: { plan: Plan }) {
             <p className="text-sm text-muted-foreground mt-1 h-10 overflow-hidden">{plan.description}</p>
         </div>
         <div>
-          <SellerInfo 
-            sellerId={plan.sellerId}
-            sellerName={plan.sellerName}
-            sellerUsername={plan.sellerUsername}
-            sellerPhotoURL={plan.sellerPhotoURL}
-          />
-          <Button asChild className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button asChild className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
             <Link href={`/checkout?serviceId=${plan.serviceId}&planId=${plan.id}`}>Comprar Agora</Link>
           </Button>
         </div>
