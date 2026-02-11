@@ -358,7 +358,7 @@ function SellerSidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex w-60 flex-shrink-0 bg-card border-r p-4 flex-col">
+    <aside className="hidden md:flex w-72 flex-shrink-0 bg-card border-r p-4 flex-col">
       <div className="mb-4 px-3">
          <p className="text-sm text-muted-foreground">Início &gt; Conta</p>
       </div>
