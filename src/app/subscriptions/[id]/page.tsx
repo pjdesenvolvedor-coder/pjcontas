@@ -110,7 +110,7 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
         </CardHeader>
         <CardContent className="p-6 md:p-8">
           <h2 className="text-2xl font-bold text-center mb-6 font-headline">
-            Choose Your Plan
+            Escolha Seu Plano
           </h2>
           {plans && plans.length > 0 ? (
             <Tabs defaultValue={plans[0].id} className="w-full">
@@ -178,3 +178,5 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
     </div>
   );
 }
+
+    

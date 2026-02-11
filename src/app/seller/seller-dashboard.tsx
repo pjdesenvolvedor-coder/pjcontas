@@ -137,7 +137,7 @@ function SubscriptionForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome do Plano</FormLabel>
+              <FormLabel>Nome do Anúncio (Plano)</FormLabel>
               <FormControl>
                 <Input placeholder="Ex: Premium, Básico" {...field} />
               </FormControl>
@@ -150,7 +150,7 @@ function SubscriptionForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descrição do Plano</FormLabel>
+              <FormLabel>Descrição do Anúncio</FormLabel>
               <FormControl>
                 <Textarea placeholder="Descreva os detalhes do plano" {...field} />
               </FormControl>
@@ -218,7 +218,7 @@ function SubscriptionForm({
             </DialogClose>
             <Button type="submit" disabled={formState.isSubmitting}>
                 {formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar Plano
+                Salvar Anúncio
             </Button>
         </DialogFooter>
       </form>
@@ -256,12 +256,12 @@ export function SellerDashboard() {
   };
 
   const handleDelete = (subscriptionId: string) => {
-    if(confirm('Tem certeza que deseja apagar este plano? Esta ação não pode ser desfeita.')) {
+    if(confirm('Tem certeza que deseja apagar este anúncio? Esta ação não pode ser desfeita.')) {
         const subRef = doc(firestore, 'subscriptions', subscriptionId);
         deleteDocumentNonBlocking(subRef);
         toast({
-            title: "Plano apagado!",
-            description: "O plano de assinatura foi removido.",
+            title: "Anúncio apagado!",
+            description: "O anúncio de assinatura foi removido.",
         });
     }
   };
@@ -277,8 +277,8 @@ export function SellerDashboard() {
       const updatedData = { ...values, features: featuresArray };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
       toast({
-        title: 'Plano Atualizado!',
-        description: 'As alterações no seu plano foram salvas.',
+        title: 'Anúncio Atualizado!',
+        description: 'As alterações no seu anúncio foram salvas.',
       });
     } else {
       // Create new subscription
@@ -292,8 +292,8 @@ export function SellerDashboard() {
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
       toast({
-        title: 'Plano Criado!',
-        description: 'Seu novo plano de assinatura está agora disponível no marketplace.',
+        title: 'Anúncio Criado!',
+        description: 'Seu novo anúncio de assinatura está agora disponível no marketplace.',
       });
     }
     
@@ -309,13 +309,13 @@ export function SellerDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Meus Planos de Assinatura</CardTitle>
+              <CardTitle>Meus Anúncios de Assinatura</CardTitle>
               <CardDescription>
-                Gerencie os planos que você oferece no marketplace.
+                Gerencie os anúncios de assinatura que você oferece no marketplace.
               </CardDescription>
             </div>
             <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2" /> Adicionar Novo Plano
+              <PlusCircle className="mr-2" /> Criar Novo Anúncio
             </Button>
           </CardHeader>
           <CardContent>
@@ -330,7 +330,7 @@ export function SellerDashboard() {
                     <TableHeader>
                     <TableRow>
                         <TableHead>Serviço</TableHead>
-                        <TableHead>Nome do Plano</TableHead>
+                        <TableHead>Nome do Anúncio</TableHead>
                         <TableHead>Preço</TableHead>
                         <TableHead>Qualidade</TableHead>
                         <TableHead>Usuários</TableHead>
@@ -371,15 +371,15 @@ export function SellerDashboard() {
                 </Table>
             ) : (
               <div className="text-center py-12">
-                <p className="text-lg text-muted-foreground">Você ainda não cadastrou nenhum plano.</p>
-                <p className="text-sm text-muted-foreground">Clique em "Adicionar Novo Plano" para começar a vender.</p>
+                <p className="text-lg text-muted-foreground">Você ainda não cadastrou nenhum anúncio.</p>
+                <p className="text-sm text-muted-foreground">Clique em "Criar Novo Anúncio" para começar a vender.</p>
               </div>
             )}
           </CardContent>
         </Card>
         <DialogContent className="sm:max-w-[625px]">
             <DialogHeader>
-                <DialogTitle>{editingSubscription ? 'Editar Plano' : 'Adicionar Novo Plano'}</DialogTitle>
+                <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
             </DialogHeader>
             {isLoadingServices ? (
                 <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
@@ -396,3 +396,5 @@ export function SellerDashboard() {
     </div>
   );
 }
+
+    
