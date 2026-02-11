@@ -169,7 +169,7 @@ function CheckoutForm() {
         });
         
         // 3. Redirect to the new ticket page
-        router.push(`/meus-tickets/${newTicketRef.id}`);
+        router.push(`/seller/tickets/${newTicketRef.id}`);
 
       }).catch(error => {
         console.error("Checkout process error:", error);

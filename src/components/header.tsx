@@ -67,7 +67,7 @@ function UserNav({ isAdmin, isSeller }: { isAdmin: boolean, isSeller: boolean })
                     <Link href="/dashboard"><UserIcon className="mr-2" /> Minha Conta</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href="/meus-tickets"><MessageSquare className="mr-2" /> Meus Tickets</Link>
+                    <Link href="/seller/tickets"><MessageSquare className="mr-2" /> Meus Tickets</Link>
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem asChild>
@@ -142,12 +142,6 @@ export function Header() {
           >
             Recomendação
           </Link>
-          { user && <Link
-            href="/meus-tickets"
-            className="text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Meus Tickets
-          </Link>}
           <Link
             href="/dashboard"
             className="text-foreground/80 hover:text-foreground transition-colors"
@@ -200,14 +194,6 @@ export function Header() {
                     Recomendação
                   </Link>
                 </SheetClose>
-                 { user && <SheetClose asChild>
-                  <Link
-                    href="/meus-tickets"
-                    className="flex w-full items-center py-2 text-lg font-semibold"
-                  >
-                    Meus Tickets
-                  </Link>
-                </SheetClose>}
                 <SheetClose asChild>
                   <Link
                     href="/dashboard"

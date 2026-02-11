@@ -55,7 +55,7 @@ function SellerInfo({
         <AvatarFallback>{(sellerUsername || sellerName || 'V')?.charAt(0)}</AvatarFallback>
       </Avatar>
       <div className="flex-grow text-sm">
-        <p className="font-medium text-foreground truncate">{sellerUsername || sellerName}</p>
+        <p className="font-medium text-foreground truncate">{sellerUsername || sellerName} <span className="font-normal text-muted-foreground">- Vendedor</span></p>
       </div>
       <div className="flex items-center gap-2" title={isOnline ? 'Online' : 'Offline'}>
         <span className={`relative flex h-3 w-3`}>
