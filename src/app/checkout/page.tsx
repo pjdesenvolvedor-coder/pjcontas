@@ -158,6 +158,8 @@ function CheckoutForm() {
           createdAt: new Date().toISOString(),
           lastMessageAt: new Date().toISOString(),
           lastMessageText: 'Ticket aberto. Aguardando o vendedor.',
+          unreadBySellerCount: 1,
+          unreadByCustomerCount: 0,
         };
         setDocumentNonBlocking(newTicketRef, newTicketData, { merge: false });
         

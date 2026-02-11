@@ -1,7 +1,7 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import type { Ticket, ChatMessage, UserSubscription, Plan } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -85,6 +85,27 @@ export default function TicketChatPage() {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Reset unread counter when chat is opened
+    useEffect(() => {
+        if (!firestore || !ticket || !user || isTicketLoading) return;
+
+        const userIsSeller = user.uid === ticket.sellerId;
+        const userIsCustomer = user.uid === ticket.customerId;
+        let updatePayload: { [key: string]: any } = {};
+        
+        if (userIsSeller && ticket.unreadBySellerCount > 0) {
+            updatePayload = { unreadBySellerCount: 0 };
+        } else if (userIsCustomer && ticket.unreadByCustomerCount > 0) {
+            updatePayload = { unreadByCustomerCount: 0 };
+        }
+        
+        if (Object.keys(updatePayload).length > 0) {
+            const ticketDocRef = doc(firestore, 'tickets', ticket.id);
+            updateDocumentNonBlocking(ticketDocRef, updatePayload);
+        }
+
+    }, [isTicketLoading, ticket, user, firestore]);
+
     const handleSendMessage = () => {
         if (!newMessage.trim() || !user || !ticket || !firestore) return;
 
@@ -99,10 +120,26 @@ export default function TicketChatPage() {
         addDocumentNonBlocking(messagesCollection, messageData);
         
         const ticketDocRef = doc(firestore, 'tickets', ticket.id);
-        updateDocumentNonBlocking(ticketDocRef, {
+
+        const isCustomer = user.uid === ticket.customerId;
+
+        const updatePayload: { 
+            lastMessageText: string; 
+            lastMessageAt: string;
+            unreadBySellerCount?: any;
+            unreadByCustomerCount?: any;
+        } = {
             lastMessageText: newMessage,
             lastMessageAt: new Date().toISOString(),
-        });
+        };
+
+        if (isCustomer) {
+            updatePayload.unreadBySellerCount = increment(1);
+        } else {
+            updatePayload.unreadByCustomerCount = increment(1);
+        }
+
+        updateDocumentNonBlocking(ticketDocRef, updatePayload);
         
         setNewMessage('');
     };

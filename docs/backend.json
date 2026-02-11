@@ -287,6 +287,14 @@
         },
         "lastMessageText": {
           "type": "string"
+        },
+        "unreadBySellerCount": {
+          "type": "number",
+          "description": "Count of unread messages for the seller."
+        },
+        "unreadByCustomerCount": {
+          "type": "number",
+          "description": "Count of unread messages for the customer."
         }
       },
       "required": [

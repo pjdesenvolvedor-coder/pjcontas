@@ -1,7 +1,7 @@
 'use client';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import type { Ticket } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,15 @@ export default function MyTicketsPage() {
   const firestore = useFirestore();
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const ticketsRef = useRef<Ticket[]>();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize the audio element once on component mount.
+  useEffect(() => {
+    // A simple, short beep sound as a base64 data URI.
+    // This can be replaced with any other sound file.
+    audioRef.current = new Audio('data:audio/wav;base64,UklGRjIXAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVEJAAAAAAA/gD9AP0A/QD9AP0A/QD9APw==');
+  }, []);
 
   const customerTicketsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'tickets'), where('customerId', '==', user.uid)) : null,
@@ -37,14 +46,32 @@ export default function MyTicketsPage() {
       customerTickets?.forEach(t => combined.set(t.id, t));
       sellerTickets?.forEach(t => combined.set(t.id, t));
       
-      // Sort after combining
       const sorted = Array.from(combined.values()).sort((a, b) => 
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
       );
       
+      // Check for new messages and play notification sound
+      if (ticketsRef.current && user && audioRef.current) {
+        sorted.forEach(newTicket => {
+          const oldTicket = ticketsRef.current!.find(t => t.id === newTicket.id);
+          if (oldTicket) {
+            const isSeller = user.uid === newTicket.sellerId;
+            const isCustomer = user.uid === newTicket.customerId;
+
+            const sellerHasNew = isSeller && (newTicket.unreadBySellerCount || 0) > (oldTicket.unreadBySellerCount || 0);
+            const customerHasNew = isCustomer && (newTicket.unreadByCustomerCount || 0) > (oldTicket.unreadByCustomerCount || 0);
+
+            if (sellerHasNew || customerHasNew) {
+              audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+            }
+          }
+        });
+      }
+
       setAllTickets(sorted);
+      ticketsRef.current = sorted; // Update the ref with the new tickets
     }
-  }, [customerTickets, sellerTickets, isUserLoading, isLoadingCustomer, isLoadingSeller]);
+  }, [customerTickets, sellerTickets, isUserLoading, isLoadingCustomer, isLoadingSeller, user]);
 
 
   return (
@@ -71,13 +98,26 @@ export default function MyTicketsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allTickets.map((ticket) => (
+                {allTickets.map((ticket) => {
+                  const isSeller = user?.uid === ticket.sellerId;
+                  const unreadCount = isSeller ? (ticket.unreadBySellerCount || 0) : (ticket.unreadByCustomerCount || 0);
+
+                  return (
                   <TableRow key={ticket.id}>
                     <TableCell>
                       <div className="font-medium">{ticket.serviceName}</div>
                       <div className="text-sm text-muted-foreground">{ticket.planName}</div>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">{ticket.lastMessageText}</TableCell>
+                    <TableCell className="max-w-xs">
+                        <div className="flex items-center gap-2">
+                            {unreadCount > 0 && (
+                                <Badge variant="destructive" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full p-0">
+                                    {unreadCount}
+                                </Badge>
+                            )}
+                            <span className="truncate">{ticket.lastMessageText}</span>
+                        </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={ticket.status === 'open' ? 'default' : 'secondary'}>{ticket.status}</Badge>
                     </TableCell>
@@ -89,7 +129,7 @@ export default function MyTicketsPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
               </TableBody>
             </Table>
           ) : (

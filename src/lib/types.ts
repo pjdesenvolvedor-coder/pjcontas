@@ -69,6 +69,8 @@ export type Ticket = {
   createdAt: string;
   lastMessageAt: string;
   lastMessageText: string;
+  unreadBySellerCount: number;
+  unreadByCustomerCount: number;
 };
 
 // Represents a single message within a ticket.
