@@ -1,6 +1,6 @@
 'use client';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Ticket } from '@/lib/types';
@@ -17,11 +17,11 @@ export default function MyTicketsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const customerTicketsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'tickets'), where('customerId', '==', user.uid), orderBy('lastMessageAt', 'desc')) : null,
+    () => user ? query(collection(firestore, 'tickets'), where('customerId', '==', user.uid)) : null,
     [user, firestore]
   );
   const sellerTicketsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'tickets'), where('sellerId', '==', user.uid), orderBy('lastMessageAt', 'desc')) : null,
+    () => user ? query(collection(firestore, 'tickets'), where('sellerId', '==', user.uid)) : null,
     [user, firestore]
   );
 
