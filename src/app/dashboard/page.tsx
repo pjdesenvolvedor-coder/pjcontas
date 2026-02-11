@@ -116,7 +116,8 @@ function SellerProfileCard({
       (values.photoURL !== user.photoURL ||
         values.sellerUsername !== userProfile.sellerUsername)
     ) {
-      updateProfile(user, { photoURL: values.photoURL });
+      const displayName = `${userProfile.firstName} ${userProfile.lastName}`;
+      updateProfile(user, { photoURL: values.photoURL, displayName });
     }
 
     toast({
@@ -140,7 +141,7 @@ function SellerProfileCard({
               <div className="flex flex-col items-center gap-2">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={imagePreview || user?.photoURL || undefined} />
-                  <AvatarFallback>{userProfile.name?.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{userProfile.firstName?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <Input
                   id="photo-upload"

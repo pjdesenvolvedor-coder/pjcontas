@@ -15,9 +15,17 @@
           "description": "Email address of the user.",
           "format": "email"
         },
-        "name": {
+        "firstName": {
           "type": "string",
-          "description": "The user's full name."
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's contact phone number."
         },
         "photoURL": {
           "type": "string",
@@ -51,7 +59,8 @@
       "required": [
         "id",
         "email",
-        "name",
+        "firstName",
+        "lastName",
         "registrationDate",
         "role"
       ]

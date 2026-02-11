@@ -16,6 +16,14 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Loader2, QrCode, CheckCircle } from 'lucide-react';
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { LoginForm } from '@/components/auth/login-form';
+import { SignupForm } from '@/components/auth/signup-form';
+import {
   useUser,
   useDoc,
   useFirestore,
@@ -241,11 +249,24 @@ function CheckoutForm() {
 
   if (!user) {
     return (
-      <Card>
-        <CardHeader><CardTitle>Acesso Negado</CardTitle></CardHeader>
+      <Card className="max-w-md mx-auto">
+        <CardHeader className="text-center">
+            <CardTitle>Acesse sua Conta</CardTitle>
+            <CardDescription>Faça login ou cadastre-se para continuar a compra.</CardDescription>
+        </CardHeader>
         <CardContent>
-          <p className="text-center">Você precisa fazer login para finalizar a compra.</p>
-          <Button asChild className="w-full mt-4"><Link href="/">Voltar para a página inicial</Link></Button>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="register">Cadastrar</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login" className="pt-4">
+              <LoginForm />
+            </TabsContent>
+            <TabsContent value="register" className="pt-4">
+              <SignupForm />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     );

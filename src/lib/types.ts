@@ -2,7 +2,9 @@
 export type UserProfile = {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
   registrationDate: string;
   role: 'admin' | 'customer' | 'seller';
   sellerUsername?: string;

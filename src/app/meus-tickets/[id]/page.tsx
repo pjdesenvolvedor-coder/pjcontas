@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -70,7 +70,7 @@ function SellerStatus({ seller }: { seller: UserProfile }) {
 
     return (
         <div className="flex items-center gap-2">
-            <span className="font-medium">{seller.sellerUsername || seller.name}</span>
+            <span className="font-medium">{seller.sellerUsername || seller.firstName}</span>
             {statusElement}
         </div>
     );
@@ -103,6 +103,10 @@ export default function TicketChatPage() {
         return doc(firestore, 'users', ticket.customerId, 'userSubscriptions', ticket.userSubscriptionId);
     }, [firestore, ticket]);
     const { data: userSubscription, isLoading: isUserSubscriptionLoading } = useDoc<UserSubscription>(userSubscriptionRef);
+
+    // Customer Info
+    const customerRef = useMemoFirebase(() => (ticket ? doc(firestore, 'users', ticket.customerId) : null), [ticket, firestore]);
+    const { data: customerData, isLoading: isCustomerLoading } = useDoc<UserProfile>(customerRef);
 
     // Seller Info
     const sellerRef = useMemoFirebase(() => {
@@ -181,7 +185,7 @@ export default function TicketChatPage() {
         setNewMessage('');
     };
     
-    const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading;
+    const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading || isCustomerLoading;
 
     if (isLoading) {
         return (
@@ -206,6 +210,8 @@ export default function TicketChatPage() {
         return <div className="container p-4 text-center">Acesso negado. Redirecionando...</div>;
     }
     
+    const isSellerView = user?.uid === ticket.sellerId;
+
     return (
         <div className="container mx-auto max-w-4xl py-8">
             {/* Purchase Details Section */}
@@ -235,6 +241,12 @@ export default function TicketChatPage() {
                                 <span className="text-muted-foreground">Comprador:</span>
                                 <span className="font-medium">{ticket.customerName}</span>
                             </div>
+                             {isSellerView && customerData?.phoneNumber && (
+                                <div className="flex justify-between items-center text-primary font-medium pt-2 border-t mt-2">
+                                    <span className="flex items-center gap-1"><Phone className="h-4 w-4" /> Contato:</span>
+                                    <span>{customerData.phoneNumber}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Vendedor:</span>
                                 {sellerData ? <SellerStatus seller={sellerData} /> : '...'}

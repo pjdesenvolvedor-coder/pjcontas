@@ -25,7 +25,7 @@ const formSchema = z.object({
 });
 
 interface LoginFormProps {
-  setOpen: (open: boolean) => void;
+  setOpen?: (open: boolean) => void;
 }
 
 export function LoginForm({ setOpen }: LoginFormProps) {
@@ -46,7 +46,7 @@ export function LoginForm({ setOpen }: LoginFormProps) {
       title: 'Fazendo login...',
       description: "Verificando suas credenciais.",
     });
-    setOpen(false);
+    setOpen?.(false);
   }
 
   return (

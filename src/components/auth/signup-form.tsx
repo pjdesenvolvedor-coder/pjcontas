@@ -18,21 +18,19 @@ import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
+  firstName: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
+  lastName: z.string().min(2, { message: 'O sobrenome deve ter pelo menos 2 caracteres.' }),
+  phoneNumber: z.string().min(10, { message: 'Por favor, insira um número de contato válido.' }),
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
   password: z
     .string()
     .min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['customer', 'seller', 'admin'], {
-    required_error: "Você precisa selecionar um tipo de conta.",
-  }),
 });
 
 interface SignupFormProps {
-  setOpen: (open: boolean) => void;
+  setOpen?: (open: boolean) => void;
 }
 
 export function SignupForm({ setOpen }: SignupFormProps) {
@@ -43,10 +41,11 @@ export function SignupForm({ setOpen }: SignupFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
       email: '',
       password: '',
-      role: 'customer',
     },
   });
 
@@ -56,17 +55,20 @@ export function SignupForm({ setOpen }: SignupFormProps) {
       if (newUser && newUser.email === values.email && !newUser.displayName) {
         unsubscribe(); // Unsubscribe to avoid running this for other auth state changes
         
-        // 1. Update user profile
-        updateProfile(newUser, { displayName: values.name }).catch(err => console.error("Update profile error", err));
+        const displayName = `${values.firstName} ${values.lastName}`;
+        // 1. Update user profile in Auth
+        updateProfile(newUser, { displayName }).catch(err => console.error("Update profile error", err));
 
         // 2. Create user document in Firestore
         const userRef = doc(firestore, 'users', newUser.uid);
         const userData = {
             id: newUser.uid,
             email: values.email,
-            name: values.name,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            phoneNumber: values.phoneNumber,
             registrationDate: new Date().toISOString(),
-            role: values.role,
+            role: 'customer',
         };
         setDocumentNonBlocking(userRef, userData, { merge: false });
         
@@ -75,7 +77,7 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             description: 'Você já pode usar a PJ Contas.',
         });
         
-        setOpen(false);
+        setOpen?.(false);
       }
     });
 
@@ -85,14 +87,42 @@ export function SignupForm({ setOpen }: SignupFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-        <FormField
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <Input placeholder="Seu Nome" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sobrenome</FormLabel>
+                <FormControl>
+                  <Input placeholder="Seu Sobrenome" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+         <FormField
           control={form.control}
-          name="name"
+          name="phoneNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome</FormLabel>
+              <FormLabel>Número para Contato</FormLabel>
               <FormControl>
-                <Input placeholder="Seu Nome" {...field} />
+                <Input type="tel" placeholder="(00) 00000-0000" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -123,48 +153,6 @@ export function SignupForm({ setOpen }: SignupFormProps) {
               <FormLabel>Senha</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Tipo de Conta</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-2"
-                >
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="customer" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Sou um cliente
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="seller" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Sou um vendedor
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="admin" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Sou um administrador
-                    </FormLabel>
-                  </FormItem>
-                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>
