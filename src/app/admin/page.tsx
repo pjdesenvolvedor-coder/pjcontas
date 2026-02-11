@@ -18,8 +18,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { SubscriptionService } from '@/lib/types';
+import type { SubscriptionService, UserProfile as UserProfileType } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 
 type UserProfile = {
@@ -398,6 +399,69 @@ function ServiceManagement() {
   );
 }
 
+function UserManagement() {
+  const firestore = useFirestore();
+  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading } = useCollection<UserProfileType>(usersRef);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Gerenciamento de Usuários</CardTitle>
+        <CardDescription>Visualize e gerencie todos os usuários do sistema.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : users && users.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Função</TableHead>
+                <TableHead>Data de Registro</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.firstName}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      user.role === 'admin' ? 'destructive' :
+                      user.role === 'seller' ? 'secondary' : 'outline'
+                    }>
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(user.registrationDate).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" disabled>
+                      <Edit className="h-4 w-4" />
+                       <span className="sr-only">Editar Usuário</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-lg text-muted-foreground">Nenhum usuário encontrado.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 export default function AdminPage() {
   const { user, isUserLoading } = useUser();
@@ -459,13 +523,13 @@ export default function AdminPage() {
       <Tabs defaultValue="services" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="services">Serviços</TabsTrigger>
-          <TabsTrigger value="users" disabled>Usuários</TabsTrigger>
+          <TabsTrigger value="users">Usuários</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="mt-6">
           <ServiceManagement />
         </TabsContent>
-        <TabsContent value="users">
-          {/* Placeholder for future user management */}
+        <TabsContent value="users" className="mt-6">
+          <UserManagement />
         </TabsContent>
       </Tabs>
 
