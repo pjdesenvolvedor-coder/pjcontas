@@ -64,7 +64,17 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const subscriptionSchema = z.object({
@@ -75,6 +85,7 @@ const subscriptionSchema = z.object({
   userLimit: z.coerce.number().int().positive("Deve ser um número inteiro positivo."),
   quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
+  bannerUrl: z.string().url("Por favor, insira uma URL de imagem válida.").optional().or(z.literal('')),
 });
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
@@ -100,6 +111,7 @@ function SubscriptionForm({
       userLimit: subscription?.userLimit || 1,
       quality: subscription?.quality || '',
       features: subscription?.features.join('\n') || '',
+      bannerUrl: subscription?.bannerUrl || '',
     },
   });
 
@@ -153,6 +165,19 @@ function SubscriptionForm({
               <FormLabel>Descrição do Anúncio</FormLabel>
               <FormControl>
                 <Textarea placeholder="Descreva os detalhes do plano" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="bannerUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL da Imagem do Anúncio (Opcional)</FormLabel>
+              <FormControl>
+                <Input placeholder="https://exemplo.com/imagem.png" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -232,6 +257,9 @@ export function SellerDashboard() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<Plan | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingSubscriptionId, setDeletingSubscriptionId] = useState<string | null>(null);
+
 
   const servicesRef = useMemoFirebase(
     () => (firestore ? collection(firestore, 'services') : null),
@@ -255,16 +283,26 @@ export function SellerDashboard() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (subscriptionId: string) => {
-    if(confirm('Tem certeza que deseja apagar este anúncio? Esta ação não pode ser desfeita.')) {
-        const subRef = doc(firestore, 'subscriptions', subscriptionId);
-        deleteDocumentNonBlocking(subRef);
-        toast({
-            title: "Anúncio apagado!",
-            description: "O anúncio de assinatura foi removido.",
-        });
-    }
+  const handleDeleteRequest = (subscriptionId: string) => {
+    setDeletingSubscriptionId(subscriptionId);
+    setIsDeleteDialogOpen(true);
   };
+
+  const handleConfirmDelete = () => {
+    if (!deletingSubscriptionId || !firestore) return;
+    
+    const subRef = doc(firestore, 'subscriptions', deletingSubscriptionId);
+    deleteDocumentNonBlocking(subRef);
+
+    toast({
+        title: "Anúncio apagado!",
+        description: "O anúncio de assinatura foi removido.",
+    });
+
+    setIsDeleteDialogOpen(false);
+    setDeletingSubscriptionId(null);
+  };
+
 
   const handleSave = (values: SubscriptionFormData) => {
     if (!user || !firestore) return;
@@ -281,6 +319,8 @@ export function SellerDashboard() {
         return;
     }
 
+    const bannerUrl = values.bannerUrl || service.bannerUrl;
+
     if (editingSubscription) {
       // Update existing subscription
       const subRef = doc(firestore, 'subscriptions', editingSubscription.id);
@@ -288,7 +328,7 @@ export function SellerDashboard() {
           ...values, 
           features: featuresArray,
           serviceName: service.name, // Denormalized
-          bannerUrl: service.bannerUrl, // Denormalized
+          bannerUrl: bannerUrl, // Denormalized from seller input or service
           bannerHint: service.bannerHint, // Denormalized
       };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
@@ -306,7 +346,7 @@ export function SellerDashboard() {
         features: featuresArray,
         sellerId: user.uid,
         serviceName: service.name, // Denormalized
-        bannerUrl: service.bannerUrl, // Denormalized
+        bannerUrl: bannerUrl, // Denormalized from seller input or service
         bannerHint: service.bannerHint, // Denormalized
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
@@ -323,6 +363,22 @@ export function SellerDashboard() {
   const isLoading = isLoadingServices || isLoadingSubscriptions;
 
   return (
+    <>
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Isso irá apagar permanentemente o seu anúncio.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeletingSubscriptionId(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Apagar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     <div className="container mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <Card>
@@ -377,7 +433,7 @@ export function SellerDashboard() {
                                     <Edit className="mr-2 h-4 w-4" />
                                     Editar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDelete(sub.id)} className="text-red-600">
+                                <DropdownMenuItem onClick={() => handleDeleteRequest(sub.id)} className="text-red-600">
                                     <Trash className="mr-2 h-4 w-4" />
                                     Apagar
                                 </DropdownMenuItem>
@@ -413,5 +469,6 @@ export function SellerDashboard() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
