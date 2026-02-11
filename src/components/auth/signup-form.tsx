@@ -18,6 +18,7 @@ import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
@@ -25,6 +26,9 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
+  role: z.enum(['customer', 'seller'], {
+    required_error: "Você precisa selecionar um tipo de conta.",
+  }),
 });
 
 interface SignupFormProps {
@@ -42,6 +46,7 @@ export function SignupForm({ setOpen }: SignupFormProps) {
       name: '',
       email: '',
       password: '',
+      role: 'customer',
     },
   });
 
@@ -61,7 +66,7 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             email: values.email,
             name: values.name,
             registrationDate: new Date().toISOString(),
-            role: 'customer',
+            role: values.role,
         };
         setDocumentNonBlocking(userRef, userData, { merge: false });
         
@@ -118,6 +123,40 @@ export function SignupForm({ setOpen }: SignupFormProps) {
               <FormLabel>Senha</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Tipo de Conta</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-2"
+                >
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="customer" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Sou um cliente
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="seller" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Sou um vendedor
+                    </FormLabel>
+                  </FormItem>
+                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>

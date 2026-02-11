@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2, User as UserIcon, LogOut, Shield } from 'lucide-react';
+import { Menu, Tv2, User as UserIcon, LogOut, Shield, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -24,7 +24,7 @@ import { signOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc } from 'firebase/firestore';
 
-function UserNav({ isAdmin }: { isAdmin: boolean }) {
+function UserNav({ isAdmin, isSeller }: { isAdmin: boolean, isSeller: boolean }) {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
 
@@ -70,6 +70,11 @@ function UserNav({ isAdmin }: { isAdmin: boolean }) {
                       <Link href="/admin"><Shield className="mr-2" /> Admin</Link>
                   </DropdownMenuItem>
                 )}
+                {isSeller && (
+                  <DropdownMenuItem asChild>
+                      <Link href="/seller"><ShoppingBag className="mr-2" /> Painel do Vendedor</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2" /> Sair
@@ -91,6 +96,7 @@ export function Header() {
   const { data: userData } = useDoc<{ role: string }>(userDocRef);
 
   const isAdmin = !isUserLoading && userData?.role === 'admin';
+  const isSeller = !isUserLoading && userData?.role === 'seller';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -128,9 +134,17 @@ export function Header() {
               Admin
             </Link>
           )}
+          {isSeller && (
+            <Link
+              href="/seller"
+              className="text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Vendedor
+            </Link>
+          )}
         </nav>
         <div className="hidden md:flex items-center gap-2">
-            <UserNav isAdmin={isAdmin} />
+            <UserNav isAdmin={isAdmin} isSeller={isSeller} />
         </div>
         <div className="md:hidden">
           <Sheet>
@@ -176,8 +190,18 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 )}
+                {isSeller && (
+                  <SheetClose asChild>
+                    <Link
+                      href="/seller"
+                      className="flex w-full items-center py-2 text-lg font-semibold"
+                    >
+                      Vendedor
+                    </Link>
+                  </SheetClose>
+                )}
                 <div className="flex flex-col items-center gap-2 pt-4">
-                    <UserNav isAdmin={isAdmin} />
+                    <UserNav isAdmin={isAdmin} isSeller={isSeller} />
                 </div>
               </div>
             </SheetContent>
