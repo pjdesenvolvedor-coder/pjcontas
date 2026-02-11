@@ -271,10 +271,26 @@ export function SellerDashboard() {
 
     const featuresArray = values.features.split('\n').filter(f => f.trim() !== '');
 
+    const service = services?.find(s => s.id === values.serviceId);
+    if (!service) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Validação",
+            description: "Por favor, selecione um serviço válido.",
+        });
+        return;
+    }
+
     if (editingSubscription) {
       // Update existing subscription
       const subRef = doc(firestore, 'subscriptions', editingSubscription.id);
-      const updatedData = { ...values, features: featuresArray };
+      const updatedData = { 
+          ...values, 
+          features: featuresArray,
+          serviceName: service.name, // Denormalized
+          bannerUrl: service.bannerUrl, // Denormalized
+          bannerHint: service.bannerHint, // Denormalized
+      };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
       toast({
         title: 'Anúncio Atualizado!',
@@ -289,6 +305,9 @@ export function SellerDashboard() {
         id: newSubRef.id,
         features: featuresArray,
         sellerId: user.uid,
+        serviceName: service.name, // Denormalized
+        bannerUrl: service.bannerUrl, // Denormalized
+        bannerHint: service.bannerHint, // Denormalized
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
       toast({
@@ -340,7 +359,7 @@ export function SellerDashboard() {
                     <TableBody>
                     {subscriptions.map((sub) => (
                         <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</TableCell>
                         <TableCell>{sub.name}</TableCell>
                         <TableCell>${sub.price.toFixed(2)}</TableCell>
                         <TableCell>{sub.quality}</TableCell>
@@ -396,5 +415,3 @@ export function SellerDashboard() {
     </div>
   );
 }
-
-    

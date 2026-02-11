@@ -10,6 +10,10 @@ export type Plan = {
   serviceId: string;
   sellerId: string;
   description: string;
+  // Denormalized from Service
+  serviceName?: string;
+  bannerUrl?: string;
+  bannerHint?: string;
 };
 
 // Represents a streaming service provider, corresponding to a document in the /services collection.
