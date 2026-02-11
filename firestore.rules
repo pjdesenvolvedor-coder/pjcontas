@@ -118,7 +118,7 @@ service cloud.firestore {
       // ATENÇÃO: Regras abertas para depuração.
       // Isso permite que qualquer pessoa leia e escreva em todos os tickets.
       // A segurança adequada DEVE ser restaurada antes da produção.
-      allow read, write: if true;
+      allow list, get, create, update, delete: if true;
 
       match /messages/{messageId} {
         // ATENÇÃO: Regras abertas para depuração.
