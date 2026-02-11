@@ -5,11 +5,67 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, limit } from 'firebase/firestore';
-import type { Plan } from '@/lib/types';
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, limit, doc } from 'firebase/firestore';
+import type { Plan, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+
+function SellerInfo({ 
+  sellerId, 
+  sellerName,
+  sellerUsername,
+  sellerPhotoURL 
+}: { 
+  sellerId: string, 
+  sellerName?: string, 
+  sellerUsername?: string, 
+  sellerPhotoURL?: string 
+}) {
+  const firestore = useFirestore();
+  const [isOnline, setIsOnline] = useState(false);
+
+  const sellerDocRef = useMemoFirebase(
+    () => (firestore && sellerId ? doc(firestore, 'users', sellerId) : null),
+    [firestore, sellerId]
+  );
+  const { data: sellerData } = useDoc<UserProfile>(sellerDocRef);
+
+  useEffect(() => {
+    if (sellerData?.lastSeen) {
+      const lastSeenDate = new Date(sellerData.lastSeen);
+      const now = new Date();
+      // less than 5 minutes ago
+      const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
+      setIsOnline(diffMinutes < 5);
+    } else {
+      setIsOnline(false);
+    }
+  }, [sellerData]);
+
+  if (!sellerId) return null;
+
+  return (
+    <div className="mt-4 pt-4 border-t flex items-center gap-3">
+      <Avatar className="h-8 w-8">
+        <AvatarImage src={sellerPhotoURL} />
+        <AvatarFallback>{(sellerUsername || sellerName || 'V')?.charAt(0)}</AvatarFallback>
+      </Avatar>
+      <div className="flex-grow text-sm">
+        <p className="font-medium text-foreground truncate">{sellerUsername || sellerName}</p>
+      </div>
+      <div className="flex items-center gap-2" title={isOnline ? 'Online' : 'Offline'}>
+        <span className={`relative flex h-3 w-3`}>
+          {isOnline && <span className={`absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping`}></span>}
+          <span className={`relative inline-flex rounded-full h-3 w-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        </span>
+      </div>
+    </div>
+  )
+}
 
 function SubscriptionList() {
   const firestore = useFirestore();
@@ -72,14 +128,22 @@ function SubscriptionList() {
             </Badge>
           </div>
           <div className="flex flex-1 flex-col justify-between p-4">
-            <div>
+            <div className="flex-grow">
                 <p className="text-sm font-medium text-primary">{plan.serviceName}</p>
                 <h3 className="font-bold text-lg truncate">{plan.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1 h-10 overflow-hidden">{plan.description}</p>
             </div>
-            <Button asChild className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link href={`/checkout?serviceId=${plan.serviceId}&planId=${plan.id}`}>Comprar Agora</Link>
-            </Button>
+            <div>
+              <SellerInfo 
+                sellerId={plan.sellerId}
+                sellerName={plan.sellerName}
+                sellerUsername={plan.sellerUsername}
+                sellerPhotoURL={plan.sellerPhotoURL}
+              />
+              <Button asChild className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
+                <Link href={`/checkout?serviceId=${plan.serviceId}&planId=${plan.id}`}>Comprar Agora</Link>
+              </Button>
+            </div>
           </div>
         </Card>
       ))}

@@ -24,6 +24,7 @@ import {
   useMemoFirebase,
   useDoc,
   updateDocumentNonBlocking,
+  useAuth,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -43,6 +44,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { updateProfile } from 'firebase/auth';
 
 // Represents a user's subscription enriched with plan details.
 type EnrichedUserSubscription = {
@@ -58,6 +61,7 @@ const sellerProfileSchema = z.object({
     .string()
     .min(3, 'O nome de usuário deve ter pelo menos 3 caracteres.')
     .max(20, 'O nome de usuário não pode ter mais de 20 caracteres.'),
+  photoURL: z.string().optional(),
 });
 
 function SellerProfileCard({
@@ -68,23 +72,56 @@ function SellerProfileCard({
   userId: string;
 }) {
   const firestore = useFirestore();
+  const auth = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    userProfile.photoURL || null
+  );
+
   const form = useForm<z.infer<typeof sellerProfileSchema>>({
     resolver: zodResolver(sellerProfileSchema),
     defaultValues: {
       sellerUsername: userProfile.sellerUsername || '',
+      photoURL: userProfile.photoURL || '',
     },
   });
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setImagePreview(result);
+        form.setValue('photoURL', result, { shouldValidate: true });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   function onSubmit(values: z.infer<typeof sellerProfileSchema>) {
-    if (!firestore || !userId) return;
+    if (!firestore || !userId || !user) return;
     const userRef = doc(firestore, 'users', userId);
+
+    // Update Firestore document
     updateDocumentNonBlocking(userRef, {
       sellerUsername: values.sellerUsername,
+      photoURL: values.photoURL,
     });
+
+    // Update Auth profile
+    if (
+      user &&
+      (values.photoURL !== user.photoURL ||
+        values.sellerUsername !== userProfile.sellerUsername)
+    ) {
+      updateProfile(user, { photoURL: values.photoURL });
+    }
+
     toast({
       title: 'Perfil atualizado!',
-      description: 'Seu nome de vendedor foi salvo.',
+      description: 'Seu perfil de vendedor foi salvo.',
     });
   }
 
@@ -93,33 +130,68 @@ function SellerProfileCard({
       <CardHeader>
         <CardTitle>Perfil de Vendedor</CardTitle>
         <CardDescription>
-          Defina seu nome de usuário público. Ele será exibido aos compradores.
+          Defina seu nome de usuário público e sua foto de perfil.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex items-end gap-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex flex-col items-center gap-2">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={imagePreview || user?.photoURL || undefined} />
+                  <AvatarFallback>{userProfile.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <Input
+                  id="photo-upload"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('photo-upload')?.click()}
+                >
+                  Alterar Foto
+                </Button>
+              </div>
+              <FormField
+                control={form.control}
+                name="sellerUsername"
+                render={({ field }) => (
+                  <FormItem className="flex-grow w-full">
+                    <FormLabel>Nome de Usuário</FormLabel>
+                    <FormControl>
+                      <Input placeholder="SeuNomeDeVendedor" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
-              name="sellerUsername"
+              name="photoURL"
               render={({ field }) => (
-                <FormItem className="flex-grow">
-                  <FormLabel>Nome de Usuário</FormLabel>
+                <FormItem className="hidden">
                   <FormControl>
-                    <Input placeholder="SeuNomeDeVendedor" {...field} />
+                    <Input {...field} />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {form.formState.isSubmitting ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                'Salvar'
+                'Salvar Perfil'
               )}
             </Button>
           </form>

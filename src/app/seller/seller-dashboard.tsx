@@ -12,11 +12,11 @@ import {
   useMemoFirebase,
   setDocumentNonBlocking,
   deleteDocumentNonBlocking,
-  updateDocumentNonBlocking,
   addDocumentNonBlocking,
+  useDoc,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import type { Plan, SubscriptionService, Deliverable } from '@/lib/types';
+import type { Plan, SubscriptionService, Deliverable, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -478,6 +478,11 @@ export function SellerDashboard() {
   const [deletingSubscriptionId, setDeletingSubscriptionId] = useState<string | null>(null);
   const [managingDeliverablesFor, setManagingDeliverablesFor] = useState<Plan | null>(null);
 
+  const userDocRef = useMemoFirebase(
+    () => (user ? doc(firestore, `users/${user.uid}`) : null),
+    [user?.uid, firestore]
+  );
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const servicesRef = useMemoFirebase(
     () => (firestore ? collection(firestore, 'services') : null),
@@ -526,7 +531,7 @@ export function SellerDashboard() {
   };
 
   const handleSave = (values: SubscriptionFormData) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !userProfile) return;
 
     const featuresArray = values.features.split('\n').filter(f => f.trim() !== '');
 
@@ -550,6 +555,10 @@ export function SellerDashboard() {
           serviceName: service.name,
           bannerUrl: bannerUrl,
           bannerHint: service.bannerHint,
+          sellerId: user.uid,
+          sellerName: user.displayName,
+          sellerUsername: userProfile.sellerUsername,
+          sellerPhotoURL: userProfile.photoURL,
       };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
       toast({
@@ -567,6 +576,9 @@ export function SellerDashboard() {
         serviceName: service.name,
         bannerUrl: bannerUrl,
         bannerHint: service.bannerHint,
+        sellerName: user.displayName,
+        sellerUsername: userProfile.sellerUsername,
+        sellerPhotoURL: userProfile.photoURL,
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
       toast({

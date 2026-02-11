@@ -7,6 +7,7 @@ export type UserProfile = {
   role: 'admin' | 'customer' | 'seller';
   sellerUsername?: string;
   lastSeen?: string;
+  photoURL?: string;
 };
 
 // Represents a plan for a streaming service, corresponding to a document in the /subscriptions collection.
@@ -25,6 +26,10 @@ export type Plan = {
   serviceName?: string;
   bannerUrl?: string;
   bannerHint?: string;
+  // Denormalized from User
+  sellerName?: string;
+  sellerUsername?: string;
+  sellerPhotoURL?: string;
 };
 
 // Represents a streaming service provider, corresponding to a document in the /services collection.

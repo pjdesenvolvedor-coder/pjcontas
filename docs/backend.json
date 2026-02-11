@@ -19,6 +19,11 @@
           "type": "string",
           "description": "The user's full name."
         },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
         "sellerUsername": {
           "type": "string",
           "description": "The seller's public display name in the marketplace."
