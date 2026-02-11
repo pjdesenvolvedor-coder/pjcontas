@@ -30,12 +30,10 @@ import {
   useDoc,
   useFirestore,
   useMemoFirebase,
-  addDocumentNonBlocking,
-  setDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, addDoc, setDoc, getDocs, updateDoc, query, where, orderBy, limit, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Plan, SubscriptionService } from '@/lib/types';
+import type { Plan, SubscriptionService, Deliverable } from '@/lib/types';
 import Link from 'next/link';
 
 const paymentSchema = z.object({
@@ -120,27 +118,24 @@ function CheckoutForm() {
     );
   }
 
-  const onSubmit = (values: z.infer<typeof paymentSchema>) => {
+  const onSubmit = async (values: z.infer<typeof paymentSchema>) => {
     if (!user || !plan || !service || !firestore) return;
     
-    // 1. Create the user's subscription record
-    const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
-    
-    const newSubscriptionData = {
-        userId: user.uid,
-        subscriptionId: plan.id,
-        serviceId: service.id,
-        planName: plan.name,
-        serviceName: service.name,
-        price: plan.price,
-        startDate: new Date().toISOString(),
-        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-        paymentMethod: 'card', // simplified
-    };
-
-    addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData)
-      .then(userSubDocRef => {
-        if (!userSubDocRef) throw new Error("Falha ao criar a assinatura do usuário.");
+    try {
+        // 1. Create the user's subscription record
+        const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
+        const newSubscriptionData = {
+            userId: user.uid,
+            subscriptionId: plan.id,
+            serviceId: service.id,
+            planName: plan.name,
+            serviceName: service.name,
+            price: plan.price,
+            startDate: new Date().toISOString(),
+            endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+            paymentMethod: 'card', // simplified
+        };
+        const userSubDocRef = await addDoc(userSubscriptionsRef, newSubscriptionData);
 
         // 2. Create the associated support ticket
         const ticketsCollection = collection(firestore, 'tickets');
@@ -161,24 +156,79 @@ function CheckoutForm() {
           unreadBySellerCount: 1,
           unreadByCustomerCount: 0,
         };
-        setDocumentNonBlocking(newTicketRef, newTicketData, { merge: false });
+        await setDoc(newTicketRef, newTicketData);
+        
+        // 3. Handle automatic delivery
+        const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
+        const q = query(
+            deliverableCollectionRef,
+            where('status', '==', 'available'),
+            orderBy('createdAt', 'asc'),
+            limit(1)
+        );
+        
+        const snapshot = await getDocs(q);
+        const chatMessagesCollection = collection(firestore, 'tickets', newTicketRef.id, 'messages');
+
+        if (snapshot.empty) {
+            // Out of stock
+            const stockOutMessage = {
+                ticketId: newTicketRef.id,
+                senderId: plan.sellerId,
+                senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
+                text: 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.',
+                timestamp: new Date().toISOString(),
+            };
+            await addDoc(chatMessagesCollection, stockOutMessage);
+            
+            // Update ticket to notify seller and customer
+            await updateDoc(newTicketRef, {
+                lastMessageText: 'ATENÇÃO: Venda realizada sem estoque! Repor e entregar manualmente.',
+                unreadBySellerCount: increment(1),
+                unreadByCustomerCount: 1,
+            });
+        } else {
+            // In stock
+            const deliverableDoc = snapshot.docs[0];
+            const deliverableData = deliverableDoc.data() as Deliverable;
+            
+            // Mark as sold
+            await updateDoc(deliverableDoc.ref, { status: 'sold' });
+
+            // Send delivery message
+            const deliveryMessage = {
+                ticketId: newTicketRef.id,
+                senderId: plan.sellerId,
+                senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
+                text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n${deliverableData.content}`,
+                timestamp: new Date().toISOString(),
+            };
+            await addDoc(chatMessagesCollection, deliveryMessage);
+            
+            // Update ticket's last message for customer
+            await updateDoc(newTicketRef, {
+                lastMessageText: 'Produto entregue automaticamente.',
+                unreadBySellerCount: 0, // Reset initial sale notification since it's handled
+                unreadByCustomerCount: 1, // Customer has a new message
+            });
+        }
         
         toast({
           title: 'Pagamento bem-sucedido!',
           description: `Sua assinatura do ${service.name} está ativa. Um ticket foi aberto.`,
         });
         
-        // 3. Redirect to the new ticket page
+        // 4. Redirect to the new ticket page
         router.push(`/meus-tickets/${newTicketRef.id}`);
 
-      }).catch(error => {
+      } catch (error) {
         console.error("Checkout process error:", error);
         toast({
           variant: "destructive",
           title: "Uh oh! Algo deu errado.",
           description: "Não foi possível processar sua compra. Tente novamente.",
         });
-      });
+      }
   };
 
   return (
