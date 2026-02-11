@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2, User as UserIcon, LogOut } from 'lucide-react';
+import { Menu, Tv2, User as UserIcon, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -9,7 +9,7 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc } from 'firebase/firestore';
 
-function UserNav() {
+function UserNav({ isAdmin }: { isAdmin: boolean }) {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
 
@@ -64,6 +65,11 @@ function UserNav() {
                 <DropdownMenuItem asChild>
                     <Link href="/dashboard"><UserIcon className="mr-2" /> Minha Conta</Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                      <Link href="/admin"><Shield className="mr-2" /> Admin</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2" /> Sair
@@ -74,6 +80,18 @@ function UserNav() {
 }
 
 export function Header() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: userData } = useDoc<{ role: string }>(userDocRef);
+
+  const isAdmin = !isUserLoading && userData?.role === 'admin';
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
@@ -102,9 +120,17 @@ export function Header() {
           >
             Minha Conta
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Admin
+            </Link>
+          )}
         </nav>
         <div className="hidden md:flex items-center gap-2">
-            <UserNav />
+            <UserNav isAdmin={isAdmin} />
         </div>
         <div className="md:hidden">
           <Sheet>
@@ -140,8 +166,18 @@ export function Header() {
                     Minha Conta
                   </Link>
                 </SheetClose>
+                {isAdmin && (
+                  <SheetClose asChild>
+                    <Link
+                      href="/admin"
+                      className="flex w-full items-center py-2 text-lg font-semibold"
+                    >
+                      Admin
+                    </Link>
+                  </SheetClose>
+                )}
                 <div className="flex flex-col items-center gap-2 pt-4">
-                    <UserNav />
+                    <UserNav isAdmin={isAdmin} />
                 </div>
               </div>
             </SheetContent>

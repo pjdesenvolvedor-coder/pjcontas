@@ -61,6 +61,7 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             email: values.email,
             name: values.name,
             registrationDate: new Date().toISOString(),
+            role: 'customer',
         };
         setDocumentNonBlocking(userRef, userData, { merge: false });
         
