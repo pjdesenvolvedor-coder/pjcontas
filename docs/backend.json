@@ -135,10 +135,6 @@
             "Capturada",
             "Acesso Total"
           ]
-        },
-        "stock": {
-          "type": "number",
-          "description": "Available stock for this subscription plan."
         }
       },
       "required": [
@@ -150,8 +146,7 @@
         "userLimit",
         "quality",
         "features",
-        "accountModel",
-        "stock"
+        "accountModel"
       ]
     },
     "UserSubscription": {
@@ -193,6 +188,49 @@
         "subscriptionId",
         "startDate",
         "endDate"
+      ]
+    },
+    "Deliverable": {
+      "title": "Deliverable",
+      "description": "Represents an individual, sellable instance of a subscription account (e.g., login credentials).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the deliverable item."
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "Reference to the Subscription this item belongs to."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Reference to the User (seller) who owns this item."
+        },
+        "content": {
+          "type": "string",
+          "description": "The actual content to be delivered to the buyer (e.g., 'user:pass')."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the deliverable item.",
+          "enum": [
+            "available",
+            "sold"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "subscriptionId",
+        "sellerId",
+        "content",
+        "status",
+        "createdAt"
       ]
     }
   },
@@ -268,6 +306,26 @@
             {
               "name": "userSubscriptionId",
               "description": "The unique identifier of the user subscription."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscriptions/{subscriptionId}/deliverables/{deliverableId}",
+        "definition": {
+          "entityName": "Deliverable",
+          "schema": {
+            "$ref": "#/backend/entities/Deliverable"
+          },
+          "description": "Stores the individual, sellable items (e.g., account credentials) for a specific subscription plan. Only the seller who owns the parent subscription can manage these items.",
+          "params": [
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier of the subscription plan."
+            },
+            {
+              "name": "deliverableId",
+              "description": "The unique identifier of the deliverable item."
             }
           ]
         }

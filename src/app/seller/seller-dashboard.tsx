@@ -13,9 +13,10 @@ import {
   setDocumentNonBlocking,
   deleteDocumentNonBlocking,
   updateDocumentNonBlocking,
+  addDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import type { Plan, SubscriptionService } from '@/lib/types';
+import type { Plan, SubscriptionService, Deliverable } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -68,7 +69,9 @@ import {
   Wallet,
   PackageCheck,
   DollarSign,
-  Boxes,
+  PackagePlus,
+  Copy,
+  Trash2,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -82,6 +85,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 
 
 const subscriptionSchema = z.object({
@@ -91,7 +95,6 @@ const subscriptionSchema = z.object({
   serviceId: z.string({ required_error: "Por favor, selecione um serviço." }),
   accountModel: z.enum(['Capturada', 'Acesso Total'], { required_error: "Por favor, selecione o modelo da conta." }),
   userLimit: z.coerce.number().int().positive("Deve ser um número inteiro positivo."),
-  stock: z.coerce.number().int().nonnegative("O estoque não pode ser negativo."),
   quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
   bannerUrl: z.string().min(1, "É obrigatório selecionar uma imagem para o anúncio."),
@@ -119,7 +122,6 @@ function SubscriptionForm({
       serviceId: subscription?.serviceId || '',
       accountModel: subscription?.accountModel || undefined,
       userLimit: subscription?.userLimit || 1,
-      stock: subscription?.stock ?? 0,
       quality: subscription?.quality || '',
       features: subscription?.features.join('\n') || '',
       bannerUrl: subscription?.bannerUrl || '',
@@ -298,19 +300,6 @@ function SubscriptionForm({
                 </FormItem>
             )}
             />
-            <FormField
-            control={form.control}
-            name="stock"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Estoque</FormLabel>
-                <FormControl>
-                    <Input type="number" min="0" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
         </div>
         <FormField
           control={form.control}
@@ -339,46 +328,139 @@ function SubscriptionForm({
   );
 }
 
-function StockManagerDialog({
+function DeliverablesManagerDialog({
   subscription,
   onClose,
-  onSave,
 }: {
   subscription: Plan | null;
   onClose: () => void;
-  onSave: (newStock: number) => void;
 }) {
-  const [newStock, setNewStock] = useState(subscription?.stock || 0);
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [newDeliverableContent, setNewDeliverableContent] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  const deliverablesQuery = useMemoFirebase(() => {
+    if (!firestore || !subscription) return null;
+    // Order by creation date to show newest first
+    return query(collection(firestore, `subscriptions/${subscription.id}/deliverables`));
+  }, [firestore, subscription]);
+
+  const { data: deliverables, isLoading } = useCollection<Deliverable>(deliverablesQuery);
+
+  const handleAddDeliverable = async () => {
+    if (!newDeliverableContent.trim() || !subscription || !user || !firestore) return;
+    setIsAdding(true);
+    
+    const deliverablesCollection = collection(firestore, `subscriptions/${subscription.id}/deliverables`);
+    const newDeliverableData = {
+        subscriptionId: subscription.id,
+        sellerId: user.uid,
+        content: newDeliverableContent.trim(),
+        status: 'available' as const,
+        createdAt: new Date().toISOString(),
+    };
+
+    const newDocRef = await addDocumentNonBlocking(deliverablesCollection, newDeliverableData);
+
+    if (newDocRef) {
+        toast({ title: "Entregável adicionado!" });
+        setNewDeliverableContent('');
+    } else {
+        toast({ 
+            variant: 'destructive', 
+            title: "Falha ao adicionar",
+            description: "Verifique as permissões ou tente novamente."
+        });
+    }
+    
+    setIsAdding(false);
+  };
+
+  const handleDeleteDeliverable = (deliverableId: string) => {
+    if (!firestore || !subscription) return;
+    const deliverableRef = doc(firestore, `subscriptions/${subscription.id}/deliverables`, deliverableId);
+    deleteDocumentNonBlocking(deliverableRef);
+    toast({ title: "Entregável removido." });
+  };
   
-  useEffect(() => {
-    setNewStock(subscription?.stock || 0);
-  }, [subscription]);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado para a área de transferência!" });
+  };
 
   if (!subscription) return null;
 
+  const availableCount = deliverables?.filter(d => d.status === 'available').length || 0;
+
   return (
     <Dialog open={!!subscription} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[725px]">
         <DialogHeader>
-          <DialogTitle>Gerenciar Estoque: {subscription.name}</DialogTitle>
+          <DialogTitle>Gerenciar Entregáveis: {subscription.name}</DialogTitle>
           <DialogDescription>
-            Defina o novo valor para o estoque. O valor atual é {subscription.stock}.
+            Adicione ou remova os itens a serem entregues para este anúncio. Itens disponíveis: {availableCount}.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          <Label htmlFor="stock-amount">Novo Estoque</Label>
-          <Input 
-            id="stock-amount"
-            type="number"
-            value={newStock}
-            onChange={(e) => setNewStock(parseInt(e.target.value, 10) || 0)}
-            className="mt-2"
-            min="0"
-          />
+        
+        <div className="flex flex-col gap-4 py-4">
+            <div className="flex gap-2">
+                <Textarea 
+                    placeholder="Cole ou digite o conteúdo a ser entregue (ex: login:senha, link, código...)"
+                    value={newDeliverableContent}
+                    onChange={(e) => setNewDeliverableContent(e.target.value)}
+                    className="flex-grow"
+                    rows={3}
+                />
+                <Button onClick={handleAddDeliverable} disabled={isAdding || !newDeliverableContent.trim()}>
+                    {isAdding ? <Loader2 className="animate-spin" /> : <PackagePlus />}
+                    <span className="ml-2 hidden sm:inline">Adicionar</span>
+                </Button>
+            </div>
+
+            <div className="max-h-[40vh] overflow-y-auto pr-2">
+              {isLoading && <div className="text-center p-4"><Loader2 className="animate-spin" /></div>}
+              {!isLoading && deliverables && deliverables.length > 0 ? (
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Conteúdo</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {deliverables.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell className="font-mono text-xs truncate max-w-[300px]">{item.content}</TableCell>
+                                <TableCell>
+                                    <Badge variant={item.status === 'available' ? 'default' : 'secondary'}>{item.status}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(item.content)}>
+                                            <Copy className="h-4 w-4"/>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteDeliverable(item.id)} className="text-destructive hover:text-destructive/90">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                 </Table>
+              ) : (
+                !isLoading && <p className="text-center text-muted-foreground p-4">Nenhum item entregável adicionado ainda.</p>
+              )}
+            </div>
         </div>
+
         <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="button" onClick={() => onSave(newStock)}>Salvar Estoque</Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -394,7 +476,7 @@ export function SellerDashboard() {
   const [editingSubscription, setEditingSubscription] = useState<Plan | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingSubscriptionId, setDeletingSubscriptionId] = useState<string | null>(null);
-  const [managingStockSub, setManagingStockSub] = useState<Plan | null>(null);
+  const [managingDeliverablesFor, setManagingDeliverablesFor] = useState<Plan | null>(null);
 
 
   const servicesRef = useMemoFirebase(
@@ -439,27 +521,9 @@ export function SellerDashboard() {
     setDeletingSubscriptionId(null);
   };
 
-  const handleOpenStockManager = (subscription: Plan) => {
-    setManagingStockSub(subscription);
+  const handleManageDeliverables = (subscription: Plan) => {
+    setManagingDeliverablesFor(subscription);
   };
-
-  const handleCloseStockManager = () => {
-      setManagingStockSub(null);
-  };
-
-  const handleSaveStock = (newStock: number) => {
-      if (!managingStockSub || !firestore) return;
-
-      const subRef = doc(firestore, 'subscriptions', managingStockSub.id);
-      updateDocumentNonBlocking(subRef, { stock: newStock });
-
-      toast({
-          title: 'Estoque Atualizado!',
-          description: `O estoque de "${managingStockSub.name}" foi atualizado para ${newStock}.`,
-      });
-      handleCloseStockManager();
-  };
-
 
   const handleSave = (values: SubscriptionFormData) => {
     if (!user || !firestore) return;
@@ -552,10 +616,9 @@ export function SellerDashboard() {
           </DialogContent>
       </Dialog>
       
-      <StockManagerDialog 
-        subscription={managingStockSub}
-        onClose={handleCloseStockManager}
-        onSave={handleSaveStock}
+      <DeliverablesManagerDialog
+        subscription={managingDeliverablesFor}
+        onClose={() => setManagingDeliverablesFor(null)}
       />
 
       <div className="space-y-8">
@@ -624,7 +687,6 @@ export function SellerDashboard() {
                         <TableHead>Nome do Anúncio</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Preço</TableHead>
-                        <TableHead>Estoque</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                     </TableHeader>
@@ -635,18 +697,17 @@ export function SellerDashboard() {
                         <TableCell>{sub.name}</TableCell>
                         <TableCell>{sub.accountModel}</TableCell>
                         <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
-                        <TableCell>{sub.stock}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenStockManager(sub)}>
-                                    <Boxes className="h-4 w-4" />
-                                    <span className="sr-only">Gerenciar Estoque</span>
+                                <Button variant="ghost" size="icon" onClick={() => handleManageDeliverables(sub)}>
+                                    <PackagePlus className="h-4 w-4" />
+                                    <span className="sr-only">Gerenciar Entregáveis</span>
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
                                     <Edit className="h-4 w-4" />
                                     <span className="sr-only">Editar</span>
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive/90">
                                     <Trash className="h-4 w-4" />
                                     <span className="sr-only">Apagar</span>
                                 </Button>

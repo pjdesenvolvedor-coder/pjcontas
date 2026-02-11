@@ -11,7 +11,6 @@ export type Plan = {
   sellerId: string;
   description: string;
   accountModel: 'Capturada' | 'Acesso Total';
-  stock: number;
   // Denormalized from Service
   serviceName?: string;
   bannerUrl?: string;
@@ -29,3 +28,13 @@ export type SubscriptionService = {
   bannerUrl: string;
   bannerHint: string;
 };
+
+// Represents an individual, sellable instance of a subscription account (e.g., login credentials).
+export type Deliverable = {
+  id: string;
+  subscriptionId: string;
+  sellerId: string;
+  content: string;
+  status: 'available' | 'sold';
+  createdAt: string;
+}
