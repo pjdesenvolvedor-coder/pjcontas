@@ -26,7 +26,7 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['customer', 'seller'], {
+  role: z.enum(['customer', 'seller', 'admin'], {
     required_error: "Você precisa selecionar um tipo de conta.",
   }),
 });
@@ -154,6 +154,14 @@ export function SignupForm({ setOpen }: SignupFormProps) {
                     </FormControl>
                     <FormLabel className="font-normal">
                       Sou um vendedor
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="admin" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Sou um administrador
                     </FormLabel>
                   </FormItem>
                 </RadioGroup>

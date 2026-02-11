@@ -167,6 +167,88 @@ function ServiceManagement() {
   const servicesRef = useMemoFirebase(() => collection(firestore, 'services'), [firestore]);
   const { data: services, isLoading } = useCollection<SubscriptionService>(servicesRef);
 
+  const defaultServices: Omit<SubscriptionService, 'id'>[] = [
+    {
+      name: 'Netflix',
+      description: 'Filmes, séries e muito mais.',
+      longDescription: 'Ampla variedade de séries, filmes e documentários premiados.',
+      logoUrl: 'https://picsum.photos/seed/netflixlogo/200/100',
+      imageHint: 'streaming service logo',
+      bannerUrl: 'https://picsum.photos/seed/netflixbanner/600/400',
+      bannerHint: 'movie collage',
+    },
+    {
+      name: 'Disney+',
+      description: 'O melhor da Disney, Pixar, Marvel.',
+      longDescription: 'O serviço de streaming para fãs da Disney, Pixar, Marvel, Star Wars e National Geographic.',
+      logoUrl: 'https://picsum.photos/seed/disneylogo/200/100',
+      imageHint: 'streaming service logo',
+      bannerUrl: 'https://picsum.photos/seed/disneybanner/600/400',
+      bannerHint: 'fantasy castle',
+    },
+    {
+      name: 'Max',
+      description: 'Todo o conteúdo da HBO e mais.',
+      longDescription: 'Max combina todo o conteúdo da HBO com ainda mais filmes, séries e Max Originals.',
+      logoUrl: 'https://picsum.photos/seed/maxlogo/200/100',
+      imageHint: 'streaming service logo',
+      bannerUrl: 'https://picsum.photos/seed/maxbanner/600/400',
+      bannerHint: 'dragon fire',
+    },
+    {
+        name: 'Paramount+',
+        description: 'Um mundo de entretenimento.',
+        longDescription: 'Milhares de horas de entretenimento com sucessos de bilheteria, séries originais e programas aclamados.',
+        logoUrl: 'https://picsum.photos/seed/paramountlogo/200/100',
+        imageHint: 'streaming service logo',
+        bannerUrl: 'https://picsum.photos/seed/paramountbanner/600/400',
+        bannerHint: 'mountain peak',
+    },
+    {
+      name: 'Prime Video',
+      description: 'Da Amazon, para você.',
+      longDescription: 'Desfrute de filmes e séries populares, incluindo os premiados Amazon Originals.',
+      logoUrl: 'https://picsum.photos/seed/primelogo/200/100',
+      imageHint: 'streaming service logo',
+      bannerUrl: 'https://picsum.photos/seed/primebanner/600/400',
+      bannerHint: 'action explosion',
+    },
+    {
+      name: 'Globo Play',
+      description: 'O conteúdo da Globo, ao vivo e online.',
+      longDescription: 'Assista à programação da Globo, canais ao vivo, filmes, séries brasileiras e conteúdos exclusivos.',
+      logoUrl: 'https://picsum.photos/seed/globologo/200/100',
+      imageHint: 'brazilian flag',
+      bannerUrl: 'https://picsum.photos/seed/globobanner/600/400',
+      bannerHint: 'brazilian culture',
+    },
+    {
+      name: 'Spotify',
+      description: 'Música para todos.',
+      longDescription: 'Um serviço de streaming de música, podcast e vídeo que dá acesso a milhões de músicas e outros conteúdos.',
+      logoUrl: 'https://picsum.photos/seed/spotifylogo/200/100',
+      imageHint: 'music notes',
+      bannerUrl: 'https://picsum.photos/seed/spotifybanner/600/400',
+      bannerHint: 'audio waveform',
+    },
+  ];
+
+  const handleSeedServices = () => {
+    if (!firestore) return;
+    const servicesCollection = collection(firestore, 'services');
+
+    defaultServices.forEach(serviceData => {
+        const newServiceRef = doc(servicesCollection);
+        const newService = { ...serviceData, id: newServiceRef.id };
+        setDocumentNonBlocking(newServiceRef, newService, { merge: false });
+    });
+
+    toast({
+        title: "Serviços adicionados!",
+        description: "Os serviços de streaming padrão foram adicionados ao marketplace.",
+    });
+  };
+
   const handleAddNew = () => {
     setEditingService(null);
     setIsDialogOpen(true);
@@ -257,9 +339,16 @@ function ServiceManagement() {
             <CardTitle>Serviços de Streaming</CardTitle>
             <CardDescription>Adicione, edite ou remova os serviços disponíveis no seu marketplace.</CardDescription>
           </div>
-          <Button onClick={handleAddNew}>
-            <PlusCircle className="mr-2" /> Adicionar Serviço
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isLoading && services?.length === 0 && (
+              <Button onClick={handleSeedServices} variant="secondary">
+                Adicionar Serviços Padrão
+              </Button>
+            )}
+            <Button onClick={handleAddNew}>
+              <PlusCircle className="mr-2" /> Adicionar Serviço
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -300,7 +389,7 @@ function ServiceManagement() {
           ) : (
             <div className="text-center py-12">
               <p className="text-lg text-muted-foreground">Nenhum serviço cadastrado.</p>
-              <p className="text-sm text-muted-foreground">Clique em "Adicionar Serviço" para começar.</p>
+              <p className="text-sm text-muted-foreground">Clique em "Adicionar Serviço" ou "Adicionar Serviços Padrão" para começar.</p>
             </div>
           )}
         </CardContent>
