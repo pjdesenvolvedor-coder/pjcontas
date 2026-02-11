@@ -157,7 +157,7 @@ function CheckoutForm() {
           status: 'open' as const,
           createdAt: new Date().toISOString(),
           lastMessageAt: new Date().toISOString(),
-          lastMessageText: 'Ticket aberto. Aguardando o vendedor.',
+          lastMessageText: 'Sua compra foi concluída. O ticket foi aberto para entrega e suporte.',
           unreadBySellerCount: 1,
           unreadByCustomerCount: 0,
         };
@@ -169,7 +169,7 @@ function CheckoutForm() {
         });
         
         // 3. Redirect to the new ticket page
-        router.push(`/seller/tickets/${newTicketRef.id}`);
+        router.push(`/meus-tickets/${newTicketRef.id}`);
 
       }).catch(error => {
         console.error("Checkout process error:", error);

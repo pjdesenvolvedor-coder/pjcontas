@@ -288,6 +288,10 @@ export default function TicketChatPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
+                        <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
+                        <p>O suporte será prestado por esse chat!</p>
+                    </div>
                     {messages?.map(msg => (
                         <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
                     ))}
