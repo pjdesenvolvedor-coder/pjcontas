@@ -147,11 +147,6 @@ export default function Home() {
             <Button size="lg" asChild>
               <Link href="#anuncios">Explorar Anúncios</Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/recommendations">
-                Recomendação com IA <ArrowRight className="ml-2" />
-              </Link>
-            </Button>
           </div>
         </div>
       </section>
