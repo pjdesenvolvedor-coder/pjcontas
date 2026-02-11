@@ -1,10 +1,7 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,38 +12,37 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { CreditCard, Lock, Loader2 } from 'lucide-react';
+import { Copy, Loader2, QrCode, CheckCircle } from 'lucide-react';
 import {
   useUser,
   useDoc,
   useFirestore,
   useMemoFirebase,
+  addDocumentNonBlocking,
+  setDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, addDoc, setDoc, getDocs, updateDoc, query, where, orderBy, limit, increment } from 'firebase/firestore';
+import {
+  doc,
+  collection,
+  getDocs,
+  updateDoc,
+  query,
+  where,
+  increment,
+} from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Plan, SubscriptionService, Deliverable } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
+import { generatePixAction, checkPixStatusAction } from './actions';
 
-const paymentSchema = z.object({
-  cardholderName: z.string().min(3, 'O nome é obrigatório'),
-  cardNumber: z
-    .string()
-    .length(16, 'O número do cartão deve ter 16 dígitos'),
-  expiryDate: z
-    .string()
-    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Data de validade inválida (MM/AA)'),
-  cvc: z.string().length(3, 'CVC deve ter 3 dígitos'),
-});
+type PixDetails = {
+  id: string;
+  qr_code: string;
+  qr_code_base64: string;
+};
 
 function CheckoutForm() {
   const router = useRouter();
@@ -57,6 +53,11 @@ function CheckoutForm() {
 
   const serviceId = searchParams.get('serviceId');
   const planId = searchParams.get('planId');
+
+  const [pixDetails, setPixDetails] = useState<PixDetails | null>(null);
+  const [isGeneratingPix, setIsGeneratingPix] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState<string>('pending');
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   const serviceRef = useMemoFirebase(
     () => (firestore && serviceId ? doc(firestore, 'services', serviceId) : null),
@@ -71,17 +72,164 @@ function CheckoutForm() {
   );
   const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
 
-  const form = useForm<z.infer<typeof paymentSchema>>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      cardholderName: '',
-      cardNumber: '',
-      expiryDate: '',
-      cvc: '',
-    },
-  });
-  
-  if (isUserLoading || isServiceLoading || isPlanLoading) {
+  const handleSuccessfulPayment = useCallback(async () => {
+    if (isProcessingOrder || !user || !plan || !service || !firestore) return;
+
+    setIsProcessingOrder(true);
+
+    try {
+      const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
+      const newSubscriptionData = {
+        userId: user.uid,
+        subscriptionId: plan.id,
+        serviceId: service.id,
+        planName: plan.name,
+        serviceName: service.name,
+        price: plan.price,
+        startDate: new Date().toISOString(),
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+        paymentMethod: 'PIX',
+        bannerUrl: plan.bannerUrl,
+      };
+      const userSubDocRef = await addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData);
+
+      const ticketsCollection = collection(firestore, 'tickets');
+      const newTicketRef = doc(ticketsCollection);
+      const newTicketData = {
+        id: newTicketRef.id,
+        userSubscriptionId: userSubDocRef.id,
+        customerId: user.uid,
+        customerName: user.displayName || 'Cliente',
+        sellerId: plan.sellerId,
+        subscriptionId: plan.id,
+        serviceName: service.name,
+        planName: plan.name,
+        status: 'open' as const,
+        createdAt: new Date().toISOString(),
+        lastMessageAt: new Date().toISOString(),
+        lastMessageText: 'Sua compra foi concluída. O ticket foi aberto para entrega e suporte.',
+        unreadBySellerCount: 1,
+        unreadByCustomerCount: 0,
+      };
+      setDocumentNonBlocking(newTicketRef, newTicketData, { merge: false });
+      
+      updateDocumentNonBlocking(userSubDocRef, { ticketId: newTicketRef.id });
+
+      const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
+      const q = query(deliverableCollectionRef, where('status', '==', 'available'));
+      const snapshot = await getDocs(q);
+      const chatMessagesCollection = collection(firestore, 'tickets', newTicketRef.id, 'messages');
+
+      if (snapshot.empty) {
+        const stockOutMessage = {
+          ticketId: newTicketRef.id,
+          senderId: plan.sellerId,
+          senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
+          text: 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.',
+          timestamp: new Date().toISOString(),
+        };
+        addDocumentNonBlocking(chatMessagesCollection, stockOutMessage);
+        
+        updateDocumentNonBlocking(newTicketRef, {
+          lastMessageText: 'ATENÇÃO: Venda realizada sem estoque! Repor e entregar manualmente.',
+          unreadBySellerCount: increment(1),
+          unreadByCustomerCount: 1,
+        });
+      } else {
+        const sortedDeliverables = snapshot.docs.sort((a, b) => new Date(a.data().createdAt).getTime() - new Date(b.data().createdAt).getTime());
+        const deliverableDoc = sortedDeliverables[0];
+        const deliverableData = deliverableDoc.data() as Deliverable;
+        
+        updateDocumentNonBlocking(deliverableDoc.ref, { status: 'sold' });
+
+        const deliveryMessage = {
+          ticketId: newTicketRef.id,
+          senderId: plan.sellerId,
+          senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
+          text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${deliverableData.content}\'\'\'`,
+          timestamp: new Date().toISOString(),
+        };
+        addDocumentNonBlocking(chatMessagesCollection, deliveryMessage);
+        
+        updateDocumentNonBlocking(newTicketRef, {
+          lastMessageText: 'Produto entregue automaticamente.',
+          unreadBySellerCount: 0,
+          unreadByCustomerCount: 1,
+        });
+      }
+      
+      toast({
+        title: 'Pagamento bem-sucedido!',
+        description: `Sua assinatura do ${service.name} está ativa. Um ticket foi aberto.`,
+      });
+      
+      router.push(`/meus-tickets/${newTicketRef.id}`);
+
+    } catch (error) {
+      console.error("Checkout process error:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Algo deu errado.",
+        description: "Não foi possível processar sua compra. Tente novamente.",
+      });
+      setIsProcessingOrder(false);
+    }
+  }, [user, plan, service, firestore, toast, router, isProcessingOrder]);
+
+  useEffect(() => {
+    if (plan && !pixDetails && isGeneratingPix) {
+      const valueInCents = Math.round(plan.price * 100);
+      generatePixAction(valueInCents)
+        .then(details => {
+          setPixDetails(details);
+          setIsGeneratingPix(false);
+        })
+        .catch(err => {
+          console.error("PIX Generation Error:", err);
+          toast({
+            variant: "destructive",
+            title: "Erro ao Gerar PIX",
+            description: "Não foi possível gerar o código PIX. Por favor, recarregue a página.",
+          });
+          setIsGeneratingPix(false);
+        });
+    }
+  }, [plan, pixDetails, isGeneratingPix, toast]);
+
+  useEffect(() => {
+    if (paymentStatus === 'paid' && !isProcessingOrder) {
+      handleSuccessfulPayment();
+    }
+  }, [paymentStatus, isProcessingOrder, handleSuccessfulPayment]);
+
+  useEffect(() => {
+    if (!pixDetails || paymentStatus === 'paid' || isProcessingOrder) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      checkPixStatusAction(pixDetails.id)
+        .then(result => {
+          if (result.status === 'paid') {
+            setPaymentStatus('paid');
+          }
+        })
+        .catch(err => {
+          console.error("PIX Status Check Error:", err);
+        });
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [pixDetails, paymentStatus, isProcessingOrder]);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Código PIX copiado!" });
+  };
+
+  const isLoading = isUserLoading || isServiceLoading || isPlanLoading;
+
+  if (isLoading) {
     return (
       <div className="grid md:grid-cols-2 gap-8">
         <Card><CardHeader><Skeleton className="h-64 w-full" /></CardHeader></Card>
@@ -91,16 +239,12 @@ function CheckoutForm() {
   }
 
   if (!user) {
-     return (
+    return (
       <Card>
-        <CardHeader>
-          <CardTitle>Acesso Negado</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Acesso Negado</CardTitle></CardHeader>
         <CardContent>
           <p className="text-center">Você precisa fazer login para finalizar a compra.</p>
-           <Button asChild className="w-full mt-4">
-            <Link href="/">Voltar para a página inicial</Link>
-          </Button>
+          <Button asChild className="w-full mt-4"><Link href="/">Voltar para a página inicial</Link></Button>
         </CardContent>
       </Card>
     );
@@ -109,251 +253,74 @@ function CheckoutForm() {
   if (!service || !plan) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Erro</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Plano de assinatura inválido. Por favor, volte e tente novamente.</p>
-        </CardContent>
+        <CardHeader><CardTitle>Erro</CardTitle></CardHeader>
+        <CardContent><p>Plano de assinatura inválido. Por favor, volte e tente novamente.</p></CardContent>
       </Card>
     );
   }
 
-  const onSubmit = async (values: z.infer<typeof paymentSchema>) => {
-    if (!user || !plan || !service || !firestore) return;
-    
-    try {
-        // 1. Create the user's subscription record
-        const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
-        const newSubscriptionData = {
-            userId: user.uid,
-            subscriptionId: plan.id,
-            serviceId: service.id,
-            planName: plan.name,
-            serviceName: service.name,
-            price: plan.price,
-            startDate: new Date().toISOString(),
-            endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-            paymentMethod: 'Cartão',
-            bannerUrl: plan.bannerUrl, // Denormalize bannerUrl
-        };
-        const userSubDocRef = await addDoc(userSubscriptionsRef, newSubscriptionData);
-
-        // 2. Create the associated support ticket
-        const ticketsCollection = collection(firestore, 'tickets');
-        const newTicketRef = doc(ticketsCollection);
-        const newTicketData = {
-          id: newTicketRef.id,
-          userSubscriptionId: userSubDocRef.id,
-          customerId: user.uid,
-          customerName: user.displayName || 'Cliente',
-          sellerId: plan.sellerId,
-          subscriptionId: plan.id,
-          serviceName: service.name,
-          planName: plan.name,
-          status: 'open' as const,
-          createdAt: new Date().toISOString(),
-          lastMessageAt: new Date().toISOString(),
-          lastMessageText: 'Sua compra foi concluída. O ticket foi aberto para entrega e suporte.',
-          unreadBySellerCount: 1,
-          unreadByCustomerCount: 0,
-        };
-        await setDoc(newTicketRef, newTicketData);
-        
-        // Update the userSubscription with the new ticket ID
-        await updateDoc(userSubDocRef, { ticketId: newTicketRef.id });
-
-        // 3. Handle automatic delivery
-        const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
-        const q = query(
-            deliverableCollectionRef,
-            where('status', '==', 'available')
-        );
-        
-        const snapshot = await getDocs(q);
-        const chatMessagesCollection = collection(firestore, 'tickets', newTicketRef.id, 'messages');
-
-        if (snapshot.empty) {
-            // Out of stock
-            const stockOutMessage = {
-                ticketId: newTicketRef.id,
-                senderId: plan.sellerId,
-                senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
-                text: 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.',
-                timestamp: new Date().toISOString(),
-            };
-            await addDoc(chatMessagesCollection, stockOutMessage);
-            
-            // Update ticket to notify seller and customer
-            await updateDoc(newTicketRef, {
-                lastMessageText: 'ATENÇÃO: Venda realizada sem estoque! Repor e entregar manualmente.',
-                unreadBySellerCount: increment(1),
-                unreadByCustomerCount: 1,
-            });
-        } else {
-            // In stock - sort on the client to find the oldest one.
-            const sortedDeliverables = snapshot.docs.sort((a, b) => 
-                new Date(a.data().createdAt).getTime() - new Date(b.data().createdAt).getTime()
-            );
-            const deliverableDoc = sortedDeliverables[0];
-            const deliverableData = deliverableDoc.data() as Deliverable;
-            
-            // Mark as sold
-            await updateDoc(deliverableDoc.ref, { status: 'sold' });
-
-            // Send delivery message
-            const deliveryMessage = {
-                ticketId: newTicketRef.id,
-                senderId: plan.sellerId,
-                senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
-                text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n${'\'\'\''}${deliverableData.content}${'\'\'\''}`,
-                timestamp: new Date().toISOString(),
-            };
-            await addDoc(chatMessagesCollection, deliveryMessage);
-            
-            // Update ticket's last message for customer
-            await updateDoc(newTicketRef, {
-                lastMessageText: 'Produto entregue automaticamente.',
-                unreadBySellerCount: 0, // Reset initial sale notification since it's handled
-                unreadByCustomerCount: 1, // Customer has a new message
-            });
-        }
-        
-        toast({
-          title: 'Pagamento bem-sucedido!',
-          description: `Sua assinatura do ${service.name} está ativa. Um ticket foi aberto.`,
-        });
-        
-        // 4. Redirect to the new ticket page
-        router.push(`/meus-tickets/${newTicketRef.id}`);
-
-      } catch (error) {
-        console.error("Checkout process error:", error);
-        toast({
-          variant: "destructive",
-          title: "Uh oh! Algo deu errado.",
-          description: "Não foi possível processar sua compra. Tente novamente.",
-        });
-      }
-  };
-
   return (
     <div className="grid md:grid-cols-2 gap-8">
       <Card className="flex flex-col">
-        <CardHeader>
-          <CardTitle>Resumo do Pedido</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Resumo do Pedido</CardTitle></CardHeader>
         <CardContent className="flex-grow space-y-6">
           {plan.bannerUrl && (
             <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-              <Image
-                src={plan.bannerUrl}
-                alt={plan.name}
-                fill
-                className="object-cover"
-                data-ai-hint={plan.bannerHint || 'subscription service'}
-              />
+              <Image src={plan.bannerUrl} alt={plan.name} fill className="object-cover" data-ai-hint={plan.bannerHint || 'subscription service'} />
             </div>
           )}
           <div className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Plano:</span>
-              <span className="font-semibold">{plan.name}</span>
-            </div>
-            <div className="flex justify-between border-t pt-4">
-              <span className="text-lg font-semibold">Total:</span>
-              <span className="text-lg font-bold text-primary">
-                R$ {plan.price.toFixed(2)}/mês
-              </span>
-            </div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Plano:</span><span className="font-semibold">{plan.name}</span></div>
+            <div className="flex justify-between border-t pt-4"><span className="text-lg font-semibold">Total:</span><span className="text-lg font-bold text-primary">R$ {plan.price.toFixed(2)}</span></div>
           </div>
         </CardContent>
-        <CardFooter>
-          <p className="text-xs text-muted-foreground">
-            A cobrança será mensal. Você pode cancelar a qualquer momento.
-          </p>
-        </CardFooter>
+        <CardFooter><p className="text-xs text-muted-foreground">A cobrança será mensal. Você pode cancelar a qualquer momento.</p></CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-6 w-6" /> Pagamento Seguro
-          </CardTitle>
-          <CardDescription>Insira os detalhes do seu pagamento.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><QrCode className="h-6 w-6" /> Pagamento com PIX</CardTitle>
+          <CardDescription>Escaneie o QR Code ou copie o código abaixo.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="cardholderName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome no Cartão</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="cardNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número do Cartão</FormLabel>
-                    <FormControl>
-                      <Input placeholder="•••• •••• •••• ••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="expiryDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Validade</FormLabel>
-                      <FormControl>
-                        <Input placeholder="MM/AA" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cvc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CVC</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <CardContent className="flex flex-col items-center justify-center gap-6">
+          {isGeneratingPix && (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-muted-foreground">Gerando seu PIX...</p>
+            </div>
+          )}
+
+          {pixDetails && paymentStatus !== 'paid' && (
+            <>
+              <div className="p-4 bg-white rounded-lg border">
+                <Image src={`data:image/png;base64,${pixDetails.qr_code_base64}`} alt="PIX QR Code" width={256} height={256} />
               </div>
-              <Button
-                type="submit"
-                className="w-full bg-accent hover:bg-accent/90"
-                disabled={form.formState.isSubmitting}
-              >
-                {form.formState.isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Lock className="mr-2 h-4 w-4" />
-                )}
-                Pagar R$ {plan.price.toFixed(2)}
-              </Button>
-            </form>
-          </Form>
+              <p className="text-muted-foreground text-sm">Aguardando pagamento...</p>
+              <div className="w-full space-y-2">
+                <Label htmlFor="pix-code">PIX Copia e Cola</Label>
+                <div className="flex items-center gap-2">
+                  <Input id="pix-code" readOnly value={pixDetails.qr_code} className="truncate" />
+                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(pixDetails.qr_code)}><Copy className="h-4 w-4" /></Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {paymentStatus === 'paid' && (
+            <div className="flex flex-col items-center gap-4 py-8 text-center">
+              <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-10 w-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold">Pagamento Aprovado!</h3>
+              <p className="text-muted-foreground">Estamos processando seu pedido. Você será redirecionado em breve.</p>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mt-4" />
+            </div>
+          )}
         </CardContent>
+        <CardFooter className="flex-col items-center text-center">
+          <p className="text-xs text-muted-foreground">Após o pagamento, o acesso é liberado em instantes.</p>
+          <p className="text-xs text-muted-foreground mt-1">Esta cobrança expira em 1 hora.</p>
+        </CardFooter>
       </Card>
     </div>
   );
