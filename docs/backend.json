@@ -26,10 +26,11 @@
         },
         "role": {
           "type": "string",
-          "description": "The role of the user, defaults to customer.",
+          "description": "The role of the user.",
           "enum": [
             "admin",
-            "customer"
+            "customer",
+            "seller"
           ]
         }
       },
@@ -41,11 +42,52 @@
         "role"
       ]
     },
+    "Service": {
+      "title": "Service",
+      "description": "Represents a streaming service provider like Netflix or Disney+.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "longDescription": {
+          "type": "string"
+        },
+        "logoUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "imageHint": {
+          "type": "string"
+        },
+        "bannerUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "bannerHint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "longDescription",
+        "logoUrl",
+        "bannerUrl"
+      ]
+    },
     "Subscription": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Subscription",
       "type": "object",
-      "description": "Represents a streaming service subscription (e.g., Netflix Premium).",
+      "description": "Represents a purchasable subscription plan for a service, created by a seller.",
       "properties": {
         "id": {
           "type": "string",
@@ -53,39 +95,56 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the subscription (e.g., Netflix Premium)."
+          "description": "Name of the subscription plan (e.g., Premium)."
         },
         "description": {
           "type": "string",
-          "description": "Detailed description of the subscription."
+          "description": "Detailed description of the subscription plan."
         },
         "price": {
           "type": "number",
-          "description": "Monthly price of the subscription."
+          "description": "Monthly price of the subscription plan."
         },
-        "service": {
+        "serviceId": {
           "type": "string",
-          "description": "Streaming service associated with the subscription (e.g., Netflix, Disney+)."
+          "description": "Reference to the Service this plan belongs to."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Reference to the User (seller) who created this plan."
         },
         "userLimit": {
           "type": "number",
-          "description": "Maximum number of users allowed on the subscription."
+          "description": "Maximum number of users allowed on the plan."
+        },
+        "quality": {
+          "type": "string",
+          "description": "Streaming quality of the plan (e.g., 4K, 1080p)."
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of features included in the plan."
         }
       },
       "required": [
         "id",
         "name",
-        "description",
         "price",
-        "service",
-        "userLimit"
+        "serviceId",
+        "sellerId",
+        "userLimit",
+        "quality",
+        "features"
       ]
     },
     "UserSubscription": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserSubscription",
       "type": "object",
-      "description": "Represents the association between a user and a subscription.",
+      "description": "Represents the association between a customer and a subscription plan they purchased.",
       "properties": {
         "id": {
           "type": "string",
@@ -93,11 +152,11 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N UserSubscription)"
+          "description": "Reference to User (customer). (Relationship: User 1:N UserSubscription)"
         },
         "subscriptionId": {
           "type": "string",
-          "description": "Reference to Subscription. (Relationship: Subscription 1:N UserSubscription)"
+          "description": "Reference to Subscription plan. (Relationship: Subscription 1:N UserSubscription)"
         },
         "startDate": {
           "type": "string",
@@ -119,8 +178,7 @@
         "userId",
         "subscriptionId",
         "startDate",
-        "endDate",
-        "paymentMethod"
+        "endDate"
       ]
     }
   },
@@ -139,7 +197,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information. Path-based ownership ensures only the authenticated user can access their own data.",
+          "description": "Stores user profile information (customers, sellers, and admins). Path-based ownership ensures only the authenticated user can access their own data, while admins have elevated privileges.",
           "params": [
             {
               "name": "userId",
@@ -149,21 +207,17 @@
         }
       },
       {
-        "path": "/users/{userId}/userSubscriptions/{userSubscriptionId}",
+        "path": "/services/{serviceId}",
         "definition": {
-          "entityName": "UserSubscription",
+          "entityName": "Service",
           "schema": {
-            "$ref": "#/backend/entities/UserSubscription"
+            "$ref": "#/backend/entities/Service"
           },
-          "description": "Stores the subscriptions of a user. Path-based ownership, nested under /users/{userId}, ensures only the authenticated user can access their own subscriptions.",
+          "description": "Stores details about streaming service providers (e.g., Netflix). Publicly readable, but only writable by admins.",
           "params": [
             {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "userSubscriptionId",
-              "description": "The unique identifier of the user subscription."
+              "name": "serviceId",
+              "description": "The unique identifier of the service."
             }
           ]
         }
@@ -175,16 +229,36 @@
           "schema": {
             "$ref": "#/backend/entities/Subscription"
           },
-          "description": "Stores available subscription plans (e.g., Netflix Premium, Disney+ Basic).",
+          "description": "Stores all available subscription plans created by sellers. Publicly readable, but sellers can only manage their own plans.",
           "params": [
             {
               "name": "subscriptionId",
-              "description": "The unique identifier of the subscription."
+              "description": "The unique identifier of the subscription plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/userSubscriptions/{userSubscriptionId}",
+        "definition": {
+          "entityName": "UserSubscription",
+          "schema": {
+            "$ref": "#/backend/entities/UserSubscription"
+          },
+          "description": "Stores the subscriptions a customer has purchased. Path-based ownership ensures only the customer can access their own purchase history.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "userSubscriptionId",
+              "description": "The unique identifier of the user subscription."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support user authentication and subscription management for StreamShare. It prioritizes Authorization Independence, DBAC (Database-Based Access Control), and QAPs (Rules Are Not Filters) to ensure security and scalability. User data is stored in `/users/{userId}`. User Subscriptions, representing the association between users and subscriptions, are stored in a subcollection `/users/{userId}/userSubscriptions/{userSubscriptionId}` for clear ownership and easy querying. This structure leverages path-based ownership for private user data and simplifies security rules. The structure inherently supports QAPs since `list` operations on `/users/{userId}/userSubscriptions` are naturally scoped to the user. There is no denormalization needed in this case, the structure provides authorization independence, as security rules can be based solely on `request.auth.uid` matching the `userId` path parameter."
+    "reasoning": "The Firestore structure is designed for a marketplace model. It separates Users, Services (streaming providers), and Subscriptions (plans sold by sellers). Users can be customers, sellers, or admins, determined by their role. The `/services` collection is a catalog managed by admins. The `/subscriptions` collection is a global pool of all plans offered by all sellers. Security rules ensure that sellers can only manage their own subscriptions. Customers purchase subscriptions, which are recorded in the `/users/{userId}/userSubscriptions` subcollection, ensuring private and scalable purchase histories. This maintains Authorization Independence, as rules are based on user roles and document ownership (`sellerId`, `userId`)."
   }
 }

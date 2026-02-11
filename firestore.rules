@@ -1,24 +1,25 @@
 /**
- * Core Philosophy: This ruleset enforces a strict user-ownership model. A user can only access
- * data within their own document tree. Publicly accessible data, like the catalog of available
- * subscriptions, is explicitly marked as read-only for all clients to prevent unauthorized
- * modification.
+ * Core Philosophy: This ruleset enforces a multi-role marketplace model (admin, seller, customer).
+ * It grants permissions based on a user's role and their ownership of documents.
  *
- * Data Structure: User-specific data is organized hierarchically. A top-level `/users` collection
- * contains documents for each user. Nested within each user's document is a `userSubscriptions`
- * subcollection. This structure ensures that queries for a user's private data are naturally
- * and securely scoped. A separate top-level `/subscriptions` collection holds public information
- * about available subscription plans.
+ * Data Structure:
+ * - /users/{userId}: Stores all user profiles. A user's role is defined here.
+ * - /services/{serviceId}: A public catalog of streaming service providers, managed by admins.
+ * - /subscriptions/{subscriptionId}: All available subscription plans (products). These are created
+ *   and managed by sellers.
+ * - /users/{userId}/userSubscriptions/{userSubscriptionId}: A customer's purchase history. This
+ *   is private to each customer.
  *
  * Key Security Decisions:
- * - User Enumeration is Disallowed: Listing the top-level `/users` collection is forbidden to
- *   protect user privacy and prevent data scraping.
- * - Strict Ownership: All operations within a `/users/{userId}` path are restricted to the
- *   authenticated user whose UID matches `userId`.
- * - Read-Only Public Catalog: The `/subscriptions` collection is readable by anyone (including
- *   unauthenticated users) but is not writable by any client. This data is expected to be
- *   managed by a trusted backend or admin process.
- * - Default Deny: Access is denied by default and must be explicitly granted.
+ * - Role-Based Access: A user's capabilities (creating products, modifying users) are
+ *   determined by the 'role' field in their user document.
+ * - Seller Ownership: Sellers can only create, update, or delete subscriptions where the
+ *   subscription's `sellerId` matches their own UID.
+ * - Admin Privileges: Admins have elevated access to manage user roles and the `/services` catalog.
+ * - Public Readability: The product catalog (`/subscriptions`) and service list (`/services`) are
+ *   publicly readable to allow all users to browse the marketplace.
+ * - Strict Data-Privacy: A user's subscription history and personal profile are private and can
+ *   only be accessed by the user themselves.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -26,80 +27,50 @@ service cloud.firestore {
 
     // Helper Functions for authentication and authorization checks.
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's UID matches the requested document's user ID.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Verifies ownership for an existing document, preventing updates or deletes on non-existent data.
-     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * On create, validates that the user document's internal 'id' field matches the user's auth UID.
-     * This enforces relational integrity and ownership from the moment of creation.
-     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isSeller() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller';
+    }
+
     function hasValidUserDataForCreate(userId) {
       return request.resource.data.id == userId;
     }
 
-    /**
-     * On update, ensures the user document's internal 'id' field cannot be changed.
-     * This protects the fundamental ownership link of the document.
-     */
     function isUserDataImmutable() {
       return request.resource.data.id == resource.data.id;
     }
 
-    /**
-     * On create, validates that the user subscription's internal 'userId' field matches the path.
-     * This ensures a subscription is correctly linked to its parent user document.
-     */
     function hasValidUserSubscriptionDataForCreate(userId) {
       return request.resource.data.userId == userId;
     }
 
-    /**
-     * On update, ensures the user subscription's internal 'userId' field cannot be changed.
-     * This prevents reassigning a subscription to a different user.
-     */
     function isUserSubscriptionDataImmutable() {
       return request.resource.data.userId == resource.data.userId;
     }
 
-    /**
-     * @description Rules for a user's own profile document.
-     * @path /users/{userId}
-     * @allow A user (auth.uid='user123') can (get) their own document at `/users/user123`.
-     * @deny Another user (auth.uid='user456') is denied (get) access to `/users/user123`.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false; // Disallow listing all users to protect privacy.
       allow create: if isOwner(userId) && hasValidUserDataForCreate(userId);
-      allow update: if isExistingOwner(userId) && isUserDataImmutable();
+      // A user can update their own data (but not their role). An admin can update any user document.
+      allow update: if (isOwner(userId) && isUserDataImmutable() && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if isExistingOwner(userId);
 
-      /**
-       * @description Rules for the subscriptions belonging to a specific user.
-       * @path /users/{userId}/userSubscriptions/{userSubscriptionId}
-       * @allow A user (auth.uid='user123') can (list) their subscriptions at `/users/user123/userSubscriptions`.
-       * @deny Another user (auth.uid='user456') is denied (get) access to a document at `/users/user123/userSubscriptions/sub_abc`.
-       * @principle Enforces document ownership for all operations within a user's private subcollection.
-       */
       match /userSubscriptions/{userSubscriptionId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
@@ -108,20 +79,22 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
     }
+    
+    match /services/{serviceId} {
+      allow get: if true;
+      allow list: if true;
+      // Services catalog is managed by admins only.
+      allow write: if isAdmin();
+    }
 
-    /**
-     * @description Rules for the public catalog of available subscription plans.
-     * @path /subscriptions/{subscriptionId}
-     * @allow Any user, including unauthenticated ones, can (get) or (list) subscription plans.
-     * @deny Any client, authenticated or not, is denied from writing (create, update, delete) to this collection.
-     * @principle Provides public read access for catalog data while protecting it from client-side modification.
-     */
     match /subscriptions/{subscriptionId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false; // Managed by backend/admin only.
-      allow update: if false; // Managed by backend/admin only.
-      allow delete: if false; // Managed by backend/admin only.
+      // Sellers can create subscriptions and must set themselves as the seller.
+      allow create: if isSeller() && request.resource.data.sellerId == request.auth.uid;
+      // Only the seller who owns the subscription can update or delete it.
+      allow update: if isSeller() && get(/databases/$(database)/documents/subscriptions/$(subscriptionId)).data.sellerId == request.auth.uid;
+      allow delete: if isSeller() && get(/databases/$(database)/documents/subscriptions/$(subscriptionId)).data.sellerId == request.auth.uid;
     }
   }
 }

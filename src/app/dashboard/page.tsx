@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Card,
   CardContent,
@@ -14,34 +16,83 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tv, Calendar, CheckCircle } from 'lucide-react';
-import Image from 'next/image';
-import { subscriptionServices } from '@/lib/data';
+import { Tv, Calendar, CheckCircle, Loader2 } from 'lucide-react';
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { Plan } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Represents a user's subscription enriched with plan details.
+type EnrichedUserSubscription = {
+  id: string;
+  planName: string;
+  serviceName: string;
+  nextBilling: string;
+  logoUrl?: string; // assuming service details will be fetched
+};
 
 export default function DashboardPage() {
-  // Mock active subscriptions
-  const activeSubscriptions = [
-    {
-      ...subscriptionServices[0], // Netflix
-      plan: subscriptionServices[0].plans[2], // Premium
-      nextBilling: '2024-08-15',
-    },
-    {
-      ...subscriptionServices[1], // Disney+
-      plan: subscriptionServices[1].plans[1], // Premium
-      nextBilling: '2024-08-22',
-    },
-  ];
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const [activeSubscriptions, setActiveSubscriptions] = useState<EnrichedUserSubscription[]>([]);
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(true);
 
+  // Memoized reference to the user's subscriptions subcollection
+  const userSubscriptionsRef = useMemoFirebase(
+    () => (user ? collection(firestore, `users/${user.uid}/userSubscriptions`) : null),
+    [user, firestore]
+  );
+  
+  // Fetch the user's subscription documents
+  const { data: userSubscriptions, isLoading: isUserSubscriptionsLoading } = useCollection(userSubscriptionsRef);
+
+  useEffect(() => {
+    if (isUserLoading) return;
+    if (!user) {
+      setIsLoadingSubscriptions(false);
+      return;
+    }
+    
+    if (userSubscriptions) {
+      // Once user subscriptions are loaded, we can't display them yet.
+      // We need to fetch the details for each subscription from the main /subscriptions collection.
+      // This is a common pattern: fetch relational data.
+      const fetchEnrichedData = async () => {
+        setIsLoadingSubscriptions(true);
+        const enriched: EnrichedUserSubscription[] = [];
+
+        for (const sub of userSubscriptions) {
+           // Create a placeholder for now
+           enriched.push({
+            id: sub.id,
+            planName: sub.planName || 'Plano',
+            serviceName: sub.serviceName || 'Serviço',
+            nextBilling: sub.endDate,
+          });
+        }
+        
+        setActiveSubscriptions(enriched);
+        setIsLoadingSubscriptions(false);
+      };
+      fetchEnrichedData();
+    } else if (!isUserSubscriptionsLoading) {
+      // If loading is finished and there are no subscriptions
+      setIsLoadingSubscriptions(false);
+    }
+  }, [user, isUserLoading, userSubscriptions, isUserSubscriptionsLoading, firestore]);
+
+  const isLoading = isUserLoading || isLoadingSubscriptions;
+  
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
       <div className="space-y-8">
         <header>
           <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">
-            My Account
+            Minha Conta
           </h1>
           <p className="mt-2 text-base md:text-lg text-muted-foreground">
-            Welcome back! Here you can manage your subscriptions.
+            Bem-vindo de volta! Aqui você pode gerenciar suas assinaturas.
           </p>
         </header>
 
@@ -49,51 +100,66 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tv className="h-6 w-6" />
-              Active Subscriptions
+              Assinaturas Ativas
             </CardTitle>
             <CardDescription>
-              Manage your active streaming service subscriptions.
+              Gerencie suas assinaturas de serviços de streaming ativas.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Next Billing Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeSubscriptions.map((sub) => (
-                  <TableRow key={sub.id}>
-                    <TableCell className="font-medium flex items-center gap-3">
-                      <Image
-                        src={sub.logoUrl}
-                        alt={sub.name}
-                        width={80}
-                        height={40}
-                        className="object-contain"
-                        data-ai-hint={sub.imageHint}
-                      />
-                      {sub.name}
-                    </TableCell>
-                    <TableCell>{sub.plan.name}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {new Date(sub.nextBilling).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Active
-                      </Badge>
-                    </TableCell>
+             {isLoading ? (
+              <div className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+              </div>
+            ) : !user ? (
+               <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground">
+                  Faça login para ver suas assinaturas.
+                </p>
+              </div>
+            ) : activeSubscriptions.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground">
+                  Você ainda não possui assinaturas ativas.
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Próxima Cobrança</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {activeSubscriptions.map((sub) => (
+                    <TableRow key={sub.id}>
+                      <TableCell className="font-medium flex items-center gap-3">
+                        {sub.serviceName}
+                      </TableCell>
+                      <TableCell>{sub.planName}</TableCell>
+                      <TableCell className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {new Date(sub.nextBilling).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="default"
+                          className="bg-green-100 text-green-800 border-green-200"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Ativa
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { subscriptionServices } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -25,25 +24,52 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { CreditCard, Lock } from 'lucide-react';
+import { CreditCard, Lock, Loader2 } from 'lucide-react';
+import {
+  useUser,
+  useDoc,
+  useFirestore,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+} from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { Plan, SubscriptionService } from '@/lib/types';
+import Link from 'next/link';
 
 const paymentSchema = z.object({
-  cardholderName: z.string().min(3, 'Name is required'),
-  cardNumber: z.string().length(16, 'Card number must be 16 digits'),
-  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Invalid expiry date (MM/YY)'),
-  cvc: z.string().length(3, 'CVC must be 3 digits'),
+  cardholderName: z.string().min(3, 'O nome é obrigatório'),
+  cardNumber: z
+    .string()
+    .length(16, 'O número do cartão deve ter 16 dígitos'),
+  expiryDate: z
+    .string()
+    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Data de validade inválida (MM/AA)'),
+  cvc: z.string().length(3, 'CVC deve ter 3 dígitos'),
 });
 
 function CheckoutForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const serviceId = searchParams.get('serviceId');
   const planId = searchParams.get('planId');
 
-  const service = subscriptionServices.find((s) => s.id === serviceId);
-  const plan = service?.plans.find((p) => p.id === planId);
+  const serviceRef = useMemoFirebase(
+    () => (firestore && serviceId ? doc(firestore, 'services', serviceId) : null),
+    [firestore, serviceId]
+  );
+  const { data: service, isLoading: isServiceLoading } =
+    useDoc<SubscriptionService>(serviceRef);
+
+  const planRef = useMemoFirebase(
+    () => (firestore && planId ? doc(firestore, 'subscriptions', planId) : null),
+    [firestore, planId]
+  );
+  const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
 
   const form = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
@@ -54,25 +80,68 @@ function CheckoutForm() {
       cvc: '',
     },
   });
+  
+  if (isUserLoading || isServiceLoading || isPlanLoading) {
+    return (
+      <div className="grid md:grid-cols-2 gap-8">
+        <Card><CardHeader><Skeleton className="h-64 w-full" /></CardHeader></Card>
+        <Card><CardHeader><Skeleton className="h-64 w-full" /></CardHeader></Card>
+      </div>
+    );
+  }
+
+  if (!user) {
+     return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Acesso Negado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center">Você precisa fazer login para finalizar a compra.</p>
+           <Button asChild className="w-full mt-4">
+            <Link href="/">Voltar para a página inicial</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!service || !plan) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Error</CardTitle>
+          <CardTitle>Erro</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Invalid subscription plan selected. Please go back and try again.</p>
+          <p>Plano de assinatura inválido. Por favor, volte e tente novamente.</p>
         </CardContent>
       </Card>
     );
   }
 
   const onSubmit = (values: z.infer<typeof paymentSchema>) => {
-    console.log('Payment details:', values);
+    if (!user || !plan) return;
+    
+    const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
+    
+    const newSubscriptionData = {
+        userId: user.uid,
+        subscriptionId: plan.id,
+        serviceId: service.id,
+        planName: plan.name,
+        serviceName: service.name,
+        price: plan.price,
+        startDate: new Date().toISOString(),
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+        paymentMethod: 'card', // simplified
+    };
+
+    // We don't block the UI while writing to the database.
+    addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData);
+
     toast({
-      title: 'Payment Successful!',
-      description: `Your subscription to ${service.name} (${plan.name}) is now active.`,
+      title: 'Pagamento bem-sucedido!',
+      description: `Sua assinatura do ${service.name} (${plan.name}) está ativa.`,
     });
     router.push('/dashboard');
   };
@@ -81,35 +150,39 @@ function CheckoutForm() {
     <div className="grid md:grid-cols-2 gap-8">
       <Card className="flex flex-col">
         <CardHeader>
-          <CardTitle>Order Summary</CardTitle>
+          <CardTitle>Resumo do Pedido</CardTitle>
         </CardHeader>
         <CardContent className="flex-grow">
           <div className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Service:</span>
+              <span className="text-muted-foreground">Serviço:</span>
               <span className="font-semibold">{service.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Plan:</span>
+              <span className="text-muted-foreground">Plano:</span>
               <span className="font-semibold">{plan.name}</span>
             </div>
             <div className="flex justify-between border-t pt-4">
               <span className="text-lg font-semibold">Total:</span>
-              <span className="text-lg font-bold text-primary">${plan.price}/month</span>
+              <span className="text-lg font-bold text-primary">
+                ${plan.price}/mês
+              </span>
             </div>
           </div>
         </CardContent>
         <CardFooter>
           <p className="text-xs text-muted-foreground">
-            You will be billed monthly. You can cancel at any time.
+            A cobrança será mensal. Você pode cancelar a qualquer momento.
           </p>
         </CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CreditCard className="h-6 w-6" /> Secure Payment</CardTitle>
-          <CardDescription>Enter your payment details below.</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-6 w-6" /> Pagamento Seguro
+          </CardTitle>
+          <CardDescription>Insira os detalhes do seu pagamento.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -119,7 +192,7 @@ function CheckoutForm() {
                 name="cardholderName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cardholder Name</FormLabel>
+                    <FormLabel>Nome no Cartão</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" {...field} />
                     </FormControl>
@@ -132,7 +205,7 @@ function CheckoutForm() {
                 name="cardNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Card Number</FormLabel>
+                    <FormLabel>Número do Cartão</FormLabel>
                     <FormControl>
                       <Input placeholder="•••• •••• •••• ••••" {...field} />
                     </FormControl>
@@ -141,20 +214,20 @@ function CheckoutForm() {
                 )}
               />
               <div className="grid grid-cols-2 gap-4">
-                 <FormField
+                <FormField
                   control={form.control}
                   name="expiryDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Expiry Date</FormLabel>
+                      <FormLabel>Data de Validade</FormLabel>
                       <FormControl>
-                        <Input placeholder="MM/YY" {...field} />
+                        <Input placeholder="MM/AA" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                 <FormField
+                <FormField
                   control={form.control}
                   name="cvc"
                   render={({ field }) => (
@@ -168,8 +241,17 @@ function CheckoutForm() {
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
-                <Lock className="mr-2 h-4 w-4" /> Pay ${plan.price}
+              <Button
+                type="submit"
+                className="w-full bg-accent hover:bg-accent/90"
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" />
+                )}
+                Pagar ${plan.price}
               </Button>
             </form>
           </Form>
@@ -180,11 +262,11 @@ function CheckoutForm() {
 }
 
 export default function CheckoutPage() {
-    return (
-        <div className="container mx-auto max-w-4xl py-12 px-4 sm:px-6 lg:px-8">
-            <Suspense fallback={<div>Loading...</div>}>
-                <CheckoutForm />
-            </Suspense>
-        </div>
-    )
+  return (
+    <div className="container mx-auto max-w-4xl py-12 px-4 sm:px-6 lg:px-8">
+      <Suspense fallback={<div>Carregando...</div>}>
+        <CheckoutForm />
+      </Suspense>
+    </div>
+  );
 }
