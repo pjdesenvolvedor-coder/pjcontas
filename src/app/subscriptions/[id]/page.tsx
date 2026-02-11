@@ -30,8 +30,8 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
     <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
       <Card className="overflow-hidden">
         <CardHeader className="p-0">
-          <div className="bg-card p-8">
-            <div className="flex flex-col md:flex-row items-center gap-8">
+          <div className="bg-card p-6 md:p-8">
+            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
               <div className="relative w-48 h-24 flex-shrink-0">
                 <Image
                   src={service.logoUrl}
@@ -43,17 +43,17 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
                 />
               </div>
               <div className="text-center md:text-left">
-                <h1 className="text-4xl font-bold font-headline text-primary">
+                <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">
                   {service.name}
                 </h1>
-                <p className="mt-2 text-lg text-muted-foreground">
+                <p className="mt-2 text-base md:text-lg text-muted-foreground">
                   {service.longDescription}
                 </p>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-8">
+        <CardContent className="p-6 md:p-8">
           <h2 className="text-2xl font-bold text-center mb-6 font-headline">
             Choose Your Plan
           </h2>
