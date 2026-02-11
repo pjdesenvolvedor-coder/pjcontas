@@ -116,7 +116,7 @@ function SellerProfileCard({
       (values.photoURL !== user.photoURL ||
         values.sellerUsername !== userProfile.sellerUsername)
     ) {
-      const displayName = `${userProfile.firstName} ${userProfile.lastName}`;
+      const displayName = `${userProfile.firstName} ${userProfile.lastName || ''}`.trim();
       updateProfile(user, { photoURL: values.photoURL, displayName });
     }
 

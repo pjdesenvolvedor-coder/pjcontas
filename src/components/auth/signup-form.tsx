@@ -21,7 +21,6 @@ import { doc } from 'firebase/firestore';
 
 const formSchema = z.object({
   firstName: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
-  lastName: z.string().min(2, { message: 'O sobrenome deve ter pelo menos 2 caracteres.' }),
   phoneNumber: z.string().min(10, { message: 'Por favor, insira um número de contato válido.' }),
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
   password: z
@@ -42,7 +41,6 @@ export function SignupForm({ setOpen }: SignupFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '',
-      lastName: '',
       phoneNumber: '',
       email: '',
       password: '',
@@ -55,7 +53,7 @@ export function SignupForm({ setOpen }: SignupFormProps) {
       if (newUser && newUser.email === values.email && !newUser.displayName) {
         unsubscribe(); // Unsubscribe to avoid running this for other auth state changes
         
-        const displayName = `${values.firstName} ${values.lastName}`;
+        const displayName = values.firstName;
         // 1. Update user profile in Auth
         updateProfile(newUser, { displayName }).catch(err => console.error("Update profile error", err));
 
@@ -65,7 +63,6 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             id: newUser.uid,
             email: values.email,
             firstName: values.firstName,
-            lastName: values.lastName,
             phoneNumber: values.phoneNumber,
             registrationDate: new Date().toISOString(),
             role: 'customer',
@@ -87,34 +84,19 @@ export function SignupForm({ setOpen }: SignupFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome</FormLabel>
-                <FormControl>
-                  <Input placeholder="Seu Nome" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sobrenome</FormLabel>
-                <FormControl>
-                  <Input placeholder="Seu Sobrenome" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="firstName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome</FormLabel>
+              <FormControl>
+                <Input placeholder="Seu Nome" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
          <FormField
           control={form.control}
           name="phoneNumber"

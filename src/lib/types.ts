@@ -3,7 +3,7 @@ export type UserProfile = {
   id: string;
   email: string;
   firstName: string;
-  lastName: string;
+  lastName?: string;
   phoneNumber?: string;
   registrationDate: string;
   role: 'admin' | 'customer' | 'seller';

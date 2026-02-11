@@ -17,11 +17,7 @@
         },
         "firstName": {
           "type": "string",
-          "description": "The user's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The user's last name."
+          "description": "The user's name."
         },
         "phoneNumber": {
           "type": "string",
@@ -60,7 +56,6 @@
         "id",
         "email",
         "firstName",
-        "lastName",
         "registrationDate",
         "role"
       ]
