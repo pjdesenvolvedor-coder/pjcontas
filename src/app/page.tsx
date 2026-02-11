@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, LifeBuoy } from 'lucide-react';
+import { ArrowRight, BadgeCheck, LifeBuoy, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -145,6 +145,11 @@ export default function Home() {
               <LifeBuoy className="h-5 w-5" />
               <span className="font-medium">Suporte 24/7</span>
             </div>
+          </div>
+          <div className="mt-12 flex justify-center">
+            <a href="#anuncios" aria-label="Rolar para anúncios">
+              <ArrowDown className="h-8 w-8 text-primary animate-bounce" />
+            </a>
           </div>
         </div>
       </section>
