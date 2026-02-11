@@ -406,23 +406,40 @@ export function SellerDashboard() {
 
   return (
     <>
-    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso irá apagar permanentemente o seu anúncio.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setDeletingSubscriptionId(null)}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Apagar</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso irá apagar permanentemente o seu anúncio.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeletingSubscriptionId(null)}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Apagar</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
 
-    <div className="container mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                  <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
+              </DialogHeader>
+              {isLoadingServices ? (
+                  <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+              ) : (
+                  <SubscriptionForm 
+                      services={services || []} 
+                      onSave={handleSave} 
+                      onClose={() => setIsDialogOpen(false)} 
+                      subscription={editingSubscription}
+                  />
+              )}
+          </DialogContent>
+      </Dialog>
+
+      <div className="container mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -471,11 +488,11 @@ export function SellerDashboard() {
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEdit(sub)}>
+                                <DropdownMenuItem onSelect={() => handleEdit(sub)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Editar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteRequest(sub.id)} className="text-red-600">
+                                <DropdownMenuItem onSelect={() => handleDeleteRequest(sub.id)} className="text-red-600">
                                     <Trash className="mr-2 h-4 w-4" />
                                     Apagar
                                 </DropdownMenuItem>
@@ -494,23 +511,7 @@ export function SellerDashboard() {
             )}
           </CardContent>
         </Card>
-        <DialogContent className="sm:max-w-[625px]">
-            <DialogHeader>
-                <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
-            </DialogHeader>
-            {isLoadingServices ? (
-                <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-            ) : (
-                <SubscriptionForm 
-                    services={services || []} 
-                    onSave={handleSave} 
-                    onClose={() => setIsDialogOpen(false)} 
-                    subscription={editingSubscription}
-                />
-            )}
-        </DialogContent>
-      </Dialog>
-    </div>
+      </div>
     </>
   );
 }
