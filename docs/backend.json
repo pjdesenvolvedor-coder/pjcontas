@@ -127,6 +127,14 @@
             "type": "string"
           },
           "description": "A list of features included in the plan."
+        },
+        "accountModel": {
+          "type": "string",
+          "description": "The model of the account being sold.",
+          "enum": [
+            "Capturada",
+            "Acesso Total"
+          ]
         }
       },
       "required": [
@@ -137,7 +145,8 @@
         "sellerId",
         "userLimit",
         "quality",
-        "features"
+        "features",
+        "accountModel"
       ]
     },
     "UserSubscription": {

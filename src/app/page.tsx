@@ -67,6 +67,9 @@ function SubscriptionList() {
             <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
               R$ {plan.price.toFixed(2)}/mês
             </Badge>
+            <Badge variant="secondary" className="absolute top-2 left-2">
+              {plan.accountModel}
+            </Badge>
           </div>
           <div className="flex flex-1 flex-col justify-between p-4">
             <div>

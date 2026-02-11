@@ -10,6 +10,7 @@ export type Plan = {
   serviceId: string;
   sellerId: string;
   description: string;
+  accountModel: 'Capturada' | 'Acesso Total';
   // Denormalized from Service
   serviceName?: string;
   bannerUrl?: string;

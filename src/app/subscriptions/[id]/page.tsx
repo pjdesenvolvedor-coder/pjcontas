@@ -127,14 +127,18 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
                     <CardHeader>
                       <CardTitle>{plan.name}</CardTitle>
                       <CardDescription className="text-3xl font-bold text-primary">
-                        ${plan.price}
+                        R$ {plan.price}
                         <span className="text-sm font-normal text-muted-foreground">
-                          /month
+                          /mês
                         </span>
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-3">
+                        <li className="flex items-center">
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                          <span>Modelo: {plan.accountModel}</span>
+                        </li>
                         {plan.features.map((feature, index) => (
                           <li key={index} className="flex items-center">
                             <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
@@ -143,11 +147,11 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
                         ))}
                         <li className="flex items-center">
                           <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Up to {plan.userLimit} users</span>
+                          <span>Até {plan.userLimit} usuários</span>
                         </li>
                         <li className="flex items-center">
                           <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>{plan.quality} quality</span>
+                          <span>Qualidade {plan.quality}</span>
                         </li>
                       </ul>
                       <Button
@@ -158,7 +162,7 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
                         <Link
                           href={`/checkout?serviceId=${service.id}&planId=${plan.id}`}
                         >
-                          Subscribe Now <ArrowRight className="ml-2" />
+                          Assinar Agora <ArrowRight className="ml-2" />
                         </Link>
                       </Button>
                     </CardContent>

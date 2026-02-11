@@ -77,6 +77,7 @@ const subscriptionSchema = z.object({
   description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres."),
   price: z.coerce.number().positive("O preço deve ser um número positivo."),
   serviceId: z.string({ required_error: "Por favor, selecione um serviço." }),
+  accountModel: z.enum(['Capturada', 'Acesso Total'], { required_error: "Por favor, selecione o modelo da conta." }),
   userLimit: z.coerce.number().int().positive("Deve ser um número inteiro positivo."),
   quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
@@ -103,6 +104,7 @@ function SubscriptionForm({
       description: subscription?.description || '',
       price: subscription?.price || 0,
       serviceId: subscription?.serviceId || '',
+      accountModel: subscription?.accountModel || undefined,
       userLimit: subscription?.userLimit || 1,
       quality: subscription?.quality || '',
       features: subscription?.features.join('\n') || '',
@@ -147,6 +149,27 @@ function SubscriptionForm({
                       {service.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="accountModel"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Modelo da Conta</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o modelo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                    <SelectItem value="Capturada">Capturada</SelectItem>
+                    <SelectItem value="Acesso Total">Acesso Total</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -459,6 +482,7 @@ export function SellerDashboard() {
                     <TableRow>
                         <TableHead>Serviço</TableHead>
                         <TableHead>Nome do Anúncio</TableHead>
+                        <TableHead>Modelo</TableHead>
                         <TableHead>Preço</TableHead>
                         <TableHead>Qualidade</TableHead>
                         <TableHead>Usuários</TableHead>
@@ -470,7 +494,8 @@ export function SellerDashboard() {
                         <TableRow key={sub.id}>
                         <TableCell className="font-medium">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</TableCell>
                         <TableCell>{sub.name}</TableCell>
-                        <TableCell>${sub.price.toFixed(2)}</TableCell>
+                        <TableCell>{sub.accountModel}</TableCell>
+                        <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
                         <TableCell>{sub.quality}</TableCell>
                         <TableCell>{sub.userLimit}</TableCell>
                         <TableCell className="text-right">
@@ -479,8 +504,8 @@ export function SellerDashboard() {
                                     <Edit className="h-4 w-4" />
                                     <span className="sr-only">Editar</span>
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="hover:bg-destructive/10">
-                                    <Trash className="h-4 w-4 text-destructive" />
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                    <Trash className="h-4 w-4" />
                                     <span className="sr-only">Apagar</span>
                                 </Button>
                             </div>
