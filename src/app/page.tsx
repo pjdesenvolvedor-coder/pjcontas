@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, LifeBuoy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -143,10 +143,15 @@ export default function Home() {
           <p className="mx-auto mt-4 max-w-3xl text-base md:text-lg text-foreground/80">
             Descubra, agrupe e economize em serviços de streaming. Explore anúncios de vendedores ou deixe nossa IA guiá-lo para o pacote de entretenimento perfeito.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <Button size="lg" asChild>
-              <Link href="#anuncios">Explorar Anúncios</Link>
-            </Button>
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+            <div className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm">
+              <BadgeCheck className="h-5 w-5 text-primary" />
+              <span className="font-medium text-secondary-foreground">Entrega Garantida</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm">
+              <LifeBuoy className="h-5 w-5 text-primary" />
+              <span className="font-medium text-secondary-foreground">Suporte 24/7</span>
+            </div>
           </div>
         </div>
       </section>
