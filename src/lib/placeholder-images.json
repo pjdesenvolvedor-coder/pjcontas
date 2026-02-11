@@ -47,6 +47,42 @@
       "description": "Mastercard logo",
       "imageUrl": "https://images.unsplash.com/photo-1703206390947-24130b2eaf9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwYXltZW50JTIwY2FyZHxlbnwwfHx8fDE3NzA3ODc5ODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "payment card"
+    },
+    {
+      "id": "netflix-banner",
+      "description": "Netflix banner",
+      "imageUrl": "https://images.unsplash.com/photo-1596972811652-11d30aa10342?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtb3ZpZSUyMGNvbGxhZ2V8ZW58MHx8fHwxNzcwNzg4NTk4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "movie collage"
+    },
+    {
+      "id": "disney-plus-banner",
+      "description": "Disney+ banner",
+      "imageUrl": "https://images.unsplash.com/photo-1544037943-afd8fa64efbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmYW50YXN5JTIwY2FzdGxlfGVufDB8fHx8MTc3MDcxNzk5N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy castle"
+    },
+    {
+      "id": "hbo-max-banner",
+      "description": "HBO Max banner",
+      "imageUrl": "https://images.unsplash.com/photo-1746793473825-e09194ad142e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkcmFnb24lMjBmaXJlfGVufDB8fHx8MTc3MDc4ODQwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dragon fire"
+    },
+    {
+      "id": "prime-video-banner",
+      "description": "Prime Video banner",
+      "imageUrl": "https://images.unsplash.com/photo-1768328591735-4b28d850b42c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxhY3Rpb24lMjBleHBsb3Npb258ZW58MHx8fHwxNzcwNzQ2ODUxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "action explosion"
+    },
+    {
+      "id": "hulu-banner",
+      "description": "Hulu banner",
+      "imageUrl": "https://images.unsplash.com/photo-1747979029543-be26879b5007?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx0diUyMHNob3clMjBjaGFyYWN0ZXJzfGVufDB8fHx8MTc3MDc4ODU5OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tv show characters"
+    },
+    {
+      "id": "apple-tv-plus-banner",
+      "description": "Apple TV+ banner",
+      "imageUrl": "https://images.unsplash.com/photo-1566345984367-fa2ba5cedc17?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzcGFjZSUyMGdhbGF4eXxlbnwwfHx8fDE3NzA3MjA2MzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "space galaxy"
     }
   ]
 }

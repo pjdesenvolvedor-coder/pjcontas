@@ -14,5 +14,7 @@ export type SubscriptionService = {
   longDescription: string;
   logoUrl: string;
   imageHint: string;
+  bannerUrl: string;
+  bannerHint: string;
   plans: Plan[];
 };
