@@ -722,7 +722,7 @@ export function SellerDashboard() {
                         <TableHead>Anúncio</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Preço</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Tipo Anúncio</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                     </TableHeader>
