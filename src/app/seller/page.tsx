@@ -30,9 +30,8 @@ export default function SellerPage() {
       if (!user) {
         // If user is not logged in at all, always redirect.
         router.push('/dashboard');
-      } else if (userData && userData.role !== 'seller') {
-        // Only redirect if we have the user's data and their role is NOT seller.
-        // This prevents redirecting when the user document is still being created.
+      } else if (userData && userData.role !== 'seller' && userData.role !== 'admin') {
+        // Only redirect if we have the user's data and their role is NOT seller or admin.
         router.push('/dashboard');
       }
     }
@@ -57,7 +56,7 @@ export default function SellerPage() {
     );
   }
   
-  if (userData?.role !== 'seller') {
+  if (userData?.role !== 'seller' && userData?.role !== 'admin') {
     // Fallback while redirecting or if data is loading
     return null;
   }
