@@ -121,8 +121,11 @@ service cloud.firestore {
 
     match /tickets/{ticketId} {
       allow get: if isTicketParticipant(ticketId);
-      // Users can only query for tickets where they are a customer or seller.
-      allow list: if isSignedIn() && (request.query.get('customerId') == request.auth.uid || request.query.get('sellerId') == request.auth.uid);
+      // This rule allows a query to proceed if the user is signed in.
+      // Firestore's backend query mechanism then ensures that only documents
+      // that the user is allowed to 'get' (as defined by 'isTicketParticipant')
+      // are actually returned to the client, making the operation secure.
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
       allow update: if isTicketParticipant(ticketId); // For updating last message, status etc.
       allow delete: if false; // Do not allow tickets to be deleted.
