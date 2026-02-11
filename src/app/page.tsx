@@ -72,7 +72,7 @@ function PlanCard({ plan }: { plan: Plan }) {
     <Card
       className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:shadow-lg group"
     >
-      <div className="relative h-36 w-full overflow-hidden">
+      <div className="relative h-32 w-full overflow-hidden">
         <Image
           src={plan.bannerUrl || 'https://placehold.co/600x400/2196F3/FFFFFF/png?text=Anuncio'}
           alt={plan.name}
@@ -82,9 +82,6 @@ function PlanCard({ plan }: { plan: Plan }) {
         />
         <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
           R$ {plan.price.toFixed(2)}/mês
-        </Badge>
-        <Badge variant="secondary" className="absolute top-2 left-2">
-          {plan.accountModel}
         </Badge>
       </div>
       <div className="flex flex-1 flex-col justify-between p-4">
@@ -125,7 +122,7 @@ export default function Home() {
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(count)].map((_, i) => (
         <Card key={i} className="overflow-hidden rounded-xl">
-          <Skeleton className="h-36 w-full" />
+          <Skeleton className="h-32 w-full" />
           <div className="p-4 space-y-2">
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-6 w-2/3" />
@@ -169,7 +166,7 @@ export default function Home() {
              <p className="text-muted-foreground mt-2">Vendedores confiáveis que impulsionaram seus anúncios.</p>
           </div>
           {isLoading ? renderSkeletons() : boostedPlans.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
               {boostedPlans.map((plan) => <PlanCard key={plan.id} plan={plan} />)}
             </div>
           ) : (
@@ -189,7 +186,7 @@ export default function Home() {
             Outros Anúncios
           </h2>
           {isLoading ? renderSkeletons(6) : regularPlans.length > 0 ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
               {regularPlans.map((plan) => <PlanCard key={plan.id} plan={plan} />)}
             </div>
           ) : (
