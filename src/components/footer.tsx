@@ -9,11 +9,11 @@ export function Footer() {
           <Link href="/" className="flex items-center gap-2">
             <Tv2 className="h-6 w-6 text-primary" />
             <span className="text-lg font-semibold text-primary">
-              StreamShare
+              PJ Contas
             </span>
           </Link>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} StreamShare. Todos os direitos reservados.
+            © {new Date().getFullYear()} PJ Contas. Todos os direitos reservados.
           </p>
           <nav className="flex gap-4 sm:gap-6">
             <Link

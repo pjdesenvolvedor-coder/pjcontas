@@ -72,7 +72,7 @@ export function SignupForm({ setOpen }: SignupFormProps) {
         
         toast({
             title: 'Conta Criada!',
-            description: 'Você já pode usar o StreamShare.',
+            description: 'Você já pode usar a PJ Contas.',
         });
         
         setOpen(false);

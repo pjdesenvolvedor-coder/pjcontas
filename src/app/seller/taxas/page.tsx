@@ -53,7 +53,7 @@ export default function TaxasPage() {
           <CardContent>
             <div className="text-4xl font-bold text-primary">9,90%</div>
             <p className="text-xs text-muted-foreground mt-2">
-              Esta taxa é a comissão padrão da StreamShare sobre o valor de cada transação. Se o anúncio for impulsionado, a taxa de impulsionamento é somada a esta.
+              Esta taxa é a comissão padrão da PJ Contas sobre o valor de cada transação. Se o anúncio for impulsionado, a taxa de impulsionamento é somada a esta.
             </p>
           </CardContent>
         </Card>

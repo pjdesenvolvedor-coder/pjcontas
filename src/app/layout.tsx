@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'StreamShare',
-  description: 'Seus streams, sua maneira.',
+  title: 'PJ Contas',
+  description: 'As melhores contas, em um só lugar.',
 };
 
 export default function RootLayout({

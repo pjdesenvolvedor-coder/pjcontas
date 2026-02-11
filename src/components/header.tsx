@@ -59,7 +59,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2">
           <Tv2 className="h-7 w-7 text-primary" />
           <span className="text-xl font-bold text-primary font-headline">
-            StreamShare
+            PJ Contas
           </span>
         </Link>
         
@@ -77,7 +77,7 @@ export function Header() {
                    <Link href="/" className="flex items-center gap-2">
                     <Tv2 className="h-7 w-7 text-primary" />
                     <span className="text-xl font-bold text-primary font-headline">
-                      StreamShare
+                      PJ Contas
                     </span>
                   </Link>
                  </SheetClose>
