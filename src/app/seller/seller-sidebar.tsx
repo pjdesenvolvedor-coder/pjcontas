@@ -13,6 +13,7 @@ import {
   Bell,
   LifeBuoy,
   PackageCheck,
+  Percent,
 } from 'lucide-react';
 
 export function SellerSidebar() {
@@ -26,6 +27,7 @@ export function SellerSidebar() {
         { href: '/seller', label: 'Meus anúncios', icon: Store },
         { href: '#', label: 'Minhas vendas', icon: CreditCard, disabled: true },
         { href: '/seller/tickets', label: 'Tickets Suporte', icon: LifeBuoy, disabled: false },
+        { href: '/seller/taxas', label: 'Taxas', icon: Percent, disabled: false },
       ],
     },
     {
