@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { MessageSquare, ArrowRight } from 'lucide-react';
 
 export default function MyTicketsPage() {
@@ -35,10 +36,16 @@ export default function MyTicketsPage() {
       const combined = new Map<string, Ticket>();
       customerTickets?.forEach(t => combined.set(t.id, t));
       sellerTickets?.forEach(t => combined.set(t.id, t));
-      const sorted = Array.from(combined.values()).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+      
+      // Sort after combining
+      const sorted = Array.from(combined.values()).sort((a, b) => 
+          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
+      
       setAllTickets(sorted);
     }
-  }, [customerTickets, sellerTickets, isLoadingCustomer, isLoadingSeller, isUserLoading]);
+  }, [customerTickets, sellerTickets, isUserLoading, isLoadingCustomer, isLoadingSeller]);
+
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
