@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,7 +57,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, MoreHorizontal, Edit, Trash, Loader2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Edit, Trash, Loader2, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -85,7 +86,7 @@ const subscriptionSchema = z.object({
   userLimit: z.coerce.number().int().positive("Deve ser um número inteiro positivo."),
   quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
-  bannerUrl: z.string().url("Por favor, insira uma URL de imagem válida.").optional().or(z.literal('')),
+  bannerUrl: z.string().min(1, "É obrigatório selecionar uma imagem para o anúncio."),
 });
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
@@ -116,6 +117,20 @@ function SubscriptionForm({
   });
 
   const { formState } = form;
+  const [imagePreview, setImagePreview] = useState<string | null>(subscription?.bannerUrl || null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setImagePreview(result);
+        form.setValue('bannerUrl', result, { shouldValidate: true });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <Form {...form}>
@@ -171,17 +186,44 @@ function SubscriptionForm({
           )}
         />
         <FormField
-          control={form.control}
-          name="bannerUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL da Imagem do Anúncio (Opcional)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://exemplo.com/imagem.png" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+            control={form.control}
+            name="bannerUrl"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Imagem do Anúncio</FormLabel>
+                    <FormControl>
+                        <>
+                            <Input
+                                id="file-upload"
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => document.getElementById('file-upload')?.click()}
+                            >
+                                <Upload className="mr-2 h-4 w-4" />
+                                Selecionar Imagem
+                            </Button>
+                            {imagePreview && (
+                                <div className="mt-4 relative w-full h-48 border rounded-md overflow-hidden">
+                                    <Image
+                                        src={imagePreview}
+                                        alt="Preview da Imagem"
+                                        fill
+                                        style={{ objectFit: 'contain' }}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+            )}
         />
         <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -319,7 +361,7 @@ export function SellerDashboard() {
         return;
     }
 
-    const bannerUrl = values.bannerUrl || service.bannerUrl;
+    const bannerUrl = values.bannerUrl;
 
     if (editingSubscription) {
       // Update existing subscription
@@ -328,7 +370,7 @@ export function SellerDashboard() {
           ...values, 
           features: featuresArray,
           serviceName: service.name, // Denormalized
-          bannerUrl: bannerUrl, // Denormalized from seller input or service
+          bannerUrl: bannerUrl,
           bannerHint: service.bannerHint, // Denormalized
       };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
@@ -346,7 +388,7 @@ export function SellerDashboard() {
         features: featuresArray,
         sellerId: user.uid,
         serviceName: service.name, // Denormalized
-        bannerUrl: bannerUrl, // Denormalized from seller input or service
+        bannerUrl: bannerUrl,
         bannerHint: service.bannerHint, // Denormalized
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
