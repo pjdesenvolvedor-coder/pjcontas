@@ -14,59 +14,6 @@ import React, { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
-function SellerInfo({ 
-  sellerId, 
-  sellerName,
-  sellerUsername,
-  sellerPhotoURL 
-}: { 
-  sellerId: string, 
-  sellerName?: string, 
-  sellerUsername?: string, 
-  sellerPhotoURL?: string 
-}) {
-  const firestore = useFirestore();
-  const [isOnline, setIsOnline] = useState(false);
-
-  const sellerDocRef = useMemoFirebase(
-    () => (firestore && sellerId ? doc(firestore, 'users', sellerId) : null),
-    [firestore, sellerId]
-  );
-  const { data: sellerData } = useDoc<UserProfile>(sellerDocRef);
-
-  useEffect(() => {
-    if (sellerData?.lastSeen) {
-      const lastSeenDate = new Date(sellerData.lastSeen);
-      const now = new Date();
-      // less than 5 minutes ago
-      const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
-      setIsOnline(diffMinutes < 5);
-    } else {
-      setIsOnline(false);
-    }
-  }, [sellerData]);
-
-  if (!sellerId) return null;
-
-  return (
-    <div className="mt-4 pt-4 border-t flex items-center gap-3">
-      <Avatar className="h-8 w-8">
-        <AvatarImage src={sellerPhotoURL} />
-        <AvatarFallback>{(sellerUsername || sellerName || 'V')?.charAt(0)}</AvatarFallback>
-      </Avatar>
-      <div className="flex-grow text-sm">
-        <p className="font-medium text-foreground truncate">{sellerUsername || sellerName}</p>
-      </div>
-      <div className="flex items-center gap-2" title={isOnline ? 'Online' : 'Offline'}>
-        <span className={`relative flex h-3 w-3`}>
-          {isOnline && <span className={`absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping`}></span>}
-          <span className={`relative inline-flex rounded-full h-3 w-3 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></span>
-        </span>
-      </div>
-    </div>
-  )
-}
-
 function PlanCard({ plan }: { plan: Plan }) {
   return (
     <Card
@@ -90,7 +37,7 @@ function PlanCard({ plan }: { plan: Plan }) {
             <p className="text-sm text-muted-foreground mt-1 h-10 overflow-hidden">{plan.description}</p>
         </div>
         <div>
-          <Button asChild className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button asChild className="w-full mt-4 bg-blue-600 text-white hover:bg-blue-700">
             <Link href={`/checkout?serviceId=${plan.serviceId}&planId=${plan.id}`}>Comprar Agora</Link>
           </Button>
         </div>
@@ -128,7 +75,7 @@ export default function Home() {
 
   return (
     <div>
-      <section className="py-16 md:py-24 bg-card">
+      <section className="pt-16 md:pt-24 pb-8 bg-card">
         <div className="container mx-auto text-center px-4 md:px-6">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-primary font-headline">
             Seus Streams Favoritos, Um Marketplace Simples
@@ -137,11 +84,11 @@ export default function Home() {
             Descubra, agrupe e economize em serviços de streaming. Explore anúncios de vendedores ou deixe nossa IA guiá-lo para o pacote de entretenimento perfeito.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <div className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm text-destructive-foreground">
+            <div className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
               <BadgeCheck className="h-5 w-5" />
               <span className="font-medium">Entrega Garantida</span>
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm text-destructive-foreground">
+            <div className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
               <LifeBuoy className="h-5 w-5" />
               <span className="font-medium">Suporte 24/7</span>
             </div>
@@ -155,7 +102,7 @@ export default function Home() {
       </section>
 
       {/* Featured Listings Section */}
-      <section id="anuncios" className="py-12 md:py-20">
+      <section id="anuncios" className="pt-8 md:pt-12 pb-12 md:pb-20">
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold font-headline flex items-center justify-center gap-3">
