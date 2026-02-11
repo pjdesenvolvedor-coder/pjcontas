@@ -5,7 +5,7 @@ import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { SellerDashboard } from './seller-dashboard';
 
 type UserProfile = {
@@ -28,10 +28,8 @@ export default function SellerPage() {
     const isDataLoaded = !isUserLoading && !isUserDataLoading;
     if (isDataLoaded) {
       if (!user) {
-        // If user is not logged in at all, always redirect.
         router.push('/dashboard');
       } else if (userData && userData.role !== 'seller' && userData.role !== 'admin') {
-        // Only redirect if we have the user's data and their role is NOT seller or admin.
         router.push('/dashboard');
       }
     }
@@ -41,24 +39,18 @@ export default function SellerPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8 space-y-4">
-        <Skeleton className="h-10 w-1/3" />
-        <Skeleton className="h-6 w-1/2" />
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-1/4" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
+      <div className="flex h-screen w-full items-center justify-center">
+        <Skeleton className="h-full w-full" />
       </div>
     );
   }
   
   if (userData?.role !== 'seller' && userData?.role !== 'admin') {
-    // Fallback while redirecting or if data is loading
-    return null;
+    return (
+       <div className="flex h-screen w-full items-center justify-center">
+            <p>Redirecionando...</p>
+        </div>
+    );
   }
 
   return <SellerDashboard />;

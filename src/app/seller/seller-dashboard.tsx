@@ -12,6 +12,7 @@ import {
   useMemoFirebase,
   setDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  useAuth,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import type { Plan, SubscriptionService } from '@/lib/types';
@@ -28,7 +29,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -57,7 +57,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Edit, Trash, Loader2, Upload } from 'lucide-react';
+import {
+  PlusCircle,
+  Edit,
+  Trash,
+  Loader2,
+  Upload,
+  LayoutDashboard,
+  Store,
+  CreditCard,
+  Settings,
+  LogOut,
+  ShieldCheck,
+  Bell,
+  ArrowLeftRight,
+  Wallet,
+  PackageCheck,
+  DollarSign
+} from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -69,7 +86,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { signOut } from 'firebase/auth';
 
 
 const subscriptionSchema = z.object({
@@ -310,6 +331,81 @@ function SubscriptionForm({
   );
 }
 
+function SellerSidebar() {
+  const pathname = usePathname();
+  const auth = useAuth();
+  
+  // For this simplified version, we'll keep the logic simple.
+  // "Resumo" will just be this page, and "Meus Anúncios" will be this page too.
+  const menuItems = [
+    {
+      group: 'MENU',
+      items: [
+        { href: '/seller', label: 'Resumo', icon: LayoutDashboard, disabled: true },
+        { href: '/seller', label: 'Meus anúncios', icon: Store },
+        { href: '#', label: 'Minhas vendas', icon: CreditCard, disabled: true },
+        { href: '#', label: 'Transações', icon: ArrowLeftRight, disabled: true },
+      ],
+    },
+    {
+      group: 'CONFIGURAÇÕES',
+      items: [
+        { href: '/dashboard', label: 'Minha conta', icon: Settings },
+        { href: '#', label: 'Segurança', icon: ShieldCheck, disabled: true },
+        { href: '#', label: 'Notificações', icon: Bell, disabled: true },
+      ],
+    },
+  ];
+
+  return (
+    <aside className="hidden md:flex w-60 flex-shrink-0 bg-card border-r p-4 flex-col">
+      <div className="mb-4 px-3">
+         <p className="text-sm text-muted-foreground">Início > Conta</p>
+      </div>
+      <nav className="flex-grow">
+        {menuItems.map((group, groupIndex) => (
+          <div key={groupIndex} className="mb-6">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+              {group.group}
+            </h3>
+            <ul>
+              {group.items.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      pathname === item.href && !item.disabled
+                        ? 'bg-secondary text-primary font-semibold'
+                        : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                      item.disabled && 'opacity-50 cursor-not-allowed'
+                    )}
+                    aria-disabled={item.disabled}
+                    onClick={(e) => item.disabled && e.preventDefault()}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+      <div className="mt-auto">
+        <Button
+          onClick={() => signOut(auth)}
+          variant="ghost"
+          className="flex w-full justify-start items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair</span>
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
 export function SellerDashboard() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -381,14 +477,13 @@ export function SellerDashboard() {
     const bannerUrl = values.bannerUrl;
 
     if (editingSubscription) {
-      // Update existing subscription
       const subRef = doc(firestore, 'subscriptions', editingSubscription.id);
       const updatedData = { 
           ...values, 
           features: featuresArray,
-          serviceName: service.name, // Denormalized
+          serviceName: service.name,
           bannerUrl: bannerUrl,
-          bannerHint: service.bannerHint, // Denormalized
+          bannerHint: service.bannerHint,
       };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
       toast({
@@ -396,7 +491,6 @@ export function SellerDashboard() {
         description: 'As alterações no seu anúncio foram salvas.',
       });
     } else {
-      // Create new subscription
       const subsCollection = collection(firestore, 'subscriptions');
       const newSubRef = doc(subsCollection);
       const newSubscriptionData = {
@@ -404,9 +498,9 @@ export function SellerDashboard() {
         id: newSubRef.id,
         features: featuresArray,
         sellerId: user.uid,
-        serviceName: service.name, // Denormalized
+        serviceName: service.name,
         bannerUrl: bannerUrl,
-        bannerHint: service.bannerHint, // Denormalized
+        bannerHint: service.bannerHint,
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
       toast({
@@ -422,107 +516,150 @@ export function SellerDashboard() {
   const isLoading = isLoadingServices || isLoadingSubscriptions;
 
   return (
-    <>
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Isso irá apagar permanentemente o seu anúncio.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeletingSubscriptionId(null)}>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Apagar</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
+    <div className="flex min-h-[calc(100vh-4rem)] bg-background text-foreground">
+      <SellerSidebar />
+      <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
+        <>
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. Isso irá apagar permanentemente o seu anúncio.
+                      </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setDeletingSubscriptionId(null)}>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Apagar</AlertDialogAction>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                  <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
-              </DialogHeader>
-              {isLoadingServices ? (
-                  <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-              ) : (
-                  <SubscriptionForm 
-                      services={services || []} 
-                      onSave={handleSave} 
-                      onClose={() => setIsDialogOpen(false)} 
-                      subscription={editingSubscription}
-                  />
-              )}
-          </DialogContent>
-      </Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                      <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
+                  </DialogHeader>
+                  {isLoadingServices ? (
+                      <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                  ) : (
+                      <SubscriptionForm 
+                          services={services || []} 
+                          onSave={handleSave} 
+                          onClose={() => setIsDialogOpen(false)} 
+                          subscription={editingSubscription}
+                      />
+                  )}
+              </DialogContent>
+          </Dialog>
 
-      <div className="container mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Meus Anúncios de Assinatura</CardTitle>
-              <CardDescription>
-                Gerencie os anúncios de assinatura que você oferece no marketplace.
-              </CardDescription>
+          <div className="space-y-8">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Saldo Disponível</CardTitle>
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">R$ 0,00</div>
+                    <Button variant="outline" size="sm" className="mt-2" disabled>Retirar</Button>
+                </CardContent>
+                </Card>
+                <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Saldo a Liberar</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">R$ 0,00</div>
+                    <p className="text-xs text-muted-foreground">
+                    De vendas em andamento.
+                    </p>
+                </CardContent>
+                </Card>
+                <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Vendas (30 dias)</CardTitle>
+                    <PackageCheck className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                    <p className="text-xs text-muted-foreground">
+                    Total de vendas concluídas.
+                    </p>
+                </CardContent>
+                </Card>
             </div>
-            <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2" /> Criar Novo Anúncio
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-                <div className="space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
+
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Meus Anúncios de Assinatura</CardTitle>
+                  <CardDescription>
+                    Gerencie os anúncios de assinatura que você oferece no marketplace.
+                  </CardDescription>
                 </div>
-            ) : subscriptions && subscriptions.length > 0 ? (
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Serviço</TableHead>
-                        <TableHead>Nome do Anúncio</TableHead>
-                        <TableHead>Modelo</TableHead>
-                        <TableHead>Preço</TableHead>
-                        <TableHead>Qualidade</TableHead>
-                        <TableHead>Usuários</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {subscriptions.map((sub) => (
-                        <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</TableCell>
-                        <TableCell>{sub.name}</TableCell>
-                        <TableCell>{sub.accountModel}</TableCell>
-                        <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
-                        <TableCell>{sub.quality}</TableCell>
-                        <TableCell>{sub.userLimit}</TableCell>
-                        <TableCell className="text-right">
-                           <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Editar</span>
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                    <Trash className="h-4 w-4" />
-                                    <span className="sr-only">Apagar</span>
-                                </Button>
-                            </div>
-                        </TableCell>
+                <Button onClick={handleAddNew}>
+                  <PlusCircle className="mr-2" /> Criar Novo Anúncio
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                ) : subscriptions && subscriptions.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Serviço</TableHead>
+                            <TableHead>Nome do Anúncio</TableHead>
+                            <TableHead>Modelo</TableHead>
+                            <TableHead>Preço</TableHead>
+                            <TableHead>Qualidade</TableHead>
+                            <TableHead>Usuários</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-lg text-muted-foreground">Você ainda não cadastrou nenhum anúncio.</p>
-                <p className="text-sm text-muted-foreground">Clique em "Criar Novo Anúncio" para começar a vender.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </>
+                        </TableHeader>
+                        <TableBody>
+                        {subscriptions.map((sub) => (
+                            <TableRow key={sub.id}>
+                            <TableCell className="font-medium">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</TableCell>
+                            <TableCell>{sub.name}</TableCell>
+                            <TableCell>{sub.accountModel}</TableCell>
+                            <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
+                            <TableCell>{sub.quality}</TableCell>
+                            <TableCell>{sub.userLimit}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
+                                        <Edit className="h-4 w-4" />
+                                        <span className="sr-only">Editar</span>
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                        <Trash className="h-4 w-4" />
+                                        <span className="sr-only">Apagar</span>
+                                    </Button>
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-lg text-muted-foreground">Você ainda não cadastrou nenhum anúncio.</p>
+                    <p className="text-sm text-muted-foreground">Clique em "Criar Novo Anúncio" para começar a vender.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      </main>
+    </div>
   );
 }
