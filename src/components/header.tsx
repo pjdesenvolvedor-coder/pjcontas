@@ -9,6 +9,9 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { AuthDialog } from '@/components/auth/auth-dialog';
@@ -72,6 +75,10 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent>
+            <SheetHeader className="sr-only">
+              <SheetTitle>Menu</SheetTitle>
+              <SheetDescription>Navegação principal do site</SheetDescription>
+            </SheetHeader>
             <div className="flex flex-col h-full">
                <div className="p-4 border-b">
                  <SheetClose asChild>
