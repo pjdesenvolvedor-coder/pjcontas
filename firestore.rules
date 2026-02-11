@@ -9,6 +9,7 @@
  *   and managed by sellers.
  * - /users/{userId}/userSubscriptions/{userSubscriptionId}: A customer's purchase history. This
  *   is private to each customer.
+ * - /tickets/{ticketId}: Support tickets/chats between a customer and a seller for a purchase.
  *
  * Key Security Decisions:
  * - Role-Based Access: A user's capabilities (creating products, modifying users) are
@@ -18,8 +19,8 @@
  * - Admin Privileges: Admins have elevated access to manage user roles and the `/services` catalog.
  * - Public Readability: The product catalog (`/subscriptions`) and service list (`/services`) are
  *   publicly readable to allow all users to browse the marketplace.
- * - Strict Data-Privacy: A user's subscription history and personal profile are private and can
- *   only be accessed by the user themselves.
+ * - Strict Data-Privacy: A user's subscription history, personal profile, and support tickets
+ *   are private and can only be accessed by the involved parties.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -62,6 +63,11 @@ service cloud.firestore {
 
     function isUserSubscriptionDataImmutable() {
       return request.resource.data.userId == resource.data.userId;
+    }
+
+    function isTicketParticipant(ticketId) {
+      let ticket = get(/databases/$(database)/documents/tickets/$(ticketId)).data;
+      return isSignedIn() && (request.auth.uid == ticket.customerId || request.auth.uid == ticket.sellerId);
     }
 
     match /users/{userId} {
@@ -110,6 +116,22 @@ service cloud.firestore {
                       && request.resource.data.status == 'available';
         // Allow owner to delete, or update (e.g., to change status to 'sold')
         allow update, delete: if isSeller() && isSubscriptionOwner();
+      }
+    }
+
+    match /tickets/{ticketId} {
+      allow get: if isTicketParticipant(ticketId);
+      // Users can only query for tickets where they are a customer or seller.
+      allow list: if isSignedIn() && (request.query.get('customerId') == request.auth.uid || request.query.get('sellerId') == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      allow update: if isTicketParticipant(ticketId); // For updating last message, status etc.
+      allow delete: if false; // Do not allow tickets to be deleted.
+
+      match /messages/{messageId} {
+        allow get, list: if isTicketParticipant(ticketId);
+        // Participants can create messages, and senderId must be their own.
+        allow create: if isTicketParticipant(ticketId) && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false; // Disallow editing/deleting messages for integrity.
       }
     }
   }

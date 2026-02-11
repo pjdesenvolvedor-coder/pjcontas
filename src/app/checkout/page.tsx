@@ -31,6 +31,7 @@ import {
   useFirestore,
   useMemoFirebase,
   addDocumentNonBlocking,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -120,8 +121,9 @@ function CheckoutForm() {
   }
 
   const onSubmit = (values: z.infer<typeof paymentSchema>) => {
-    if (!user || !plan) return;
+    if (!user || !plan || !service || !firestore) return;
     
+    // 1. Create the user's subscription record
     const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
     
     const newSubscriptionData = {
@@ -136,14 +138,45 @@ function CheckoutForm() {
         paymentMethod: 'card', // simplified
     };
 
-    // We don't block the UI while writing to the database.
-    addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData);
+    addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData)
+      .then(userSubDocRef => {
+        if (!userSubDocRef) throw new Error("Falha ao criar a assinatura do usuário.");
 
-    toast({
-      title: 'Pagamento bem-sucedido!',
-      description: `Sua assinatura do ${service.name} (${plan.name}) está ativa.`,
-    });
-    router.push('/dashboard');
+        // 2. Create the associated support ticket
+        const ticketsCollection = collection(firestore, 'tickets');
+        const newTicketRef = doc(ticketsCollection);
+        const newTicketData = {
+          id: newTicketRef.id,
+          userSubscriptionId: userSubDocRef.id,
+          customerId: user.uid,
+          customerName: user.displayName || 'Cliente',
+          sellerId: plan.sellerId,
+          subscriptionId: plan.id,
+          serviceName: service.name,
+          planName: plan.name,
+          status: 'open' as const,
+          createdAt: new Date().toISOString(),
+          lastMessageAt: new Date().toISOString(),
+          lastMessageText: 'Ticket aberto. Aguardando o vendedor.',
+        };
+        setDocumentNonBlocking(newTicketRef, newTicketData, { merge: false });
+        
+        toast({
+          title: 'Pagamento bem-sucedido!',
+          description: `Sua assinatura do ${service.name} está ativa. Um ticket foi aberto.`,
+        });
+        
+        // 3. Redirect to the new ticket page
+        router.push(`/meus-tickets/${newTicketRef.id}`);
+
+      }).catch(error => {
+        console.error("Checkout process error:", error);
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Algo deu errado.",
+          description: "Não foi possível processar sua compra. Tente novamente.",
+        });
+      });
   };
 
   return (

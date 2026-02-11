@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2, User as UserIcon, LogOut, Shield, ShoppingBag } from 'lucide-react';
+import { Menu, Tv2, User as UserIcon, LogOut, Shield, ShoppingBag, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -65,6 +65,9 @@ function UserNav({ isAdmin, isSeller }: { isAdmin: boolean, isSeller: boolean })
                 <DropdownMenuItem asChild>
                     <Link href="/dashboard"><UserIcon className="mr-2" /> Minha Conta</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/meus-tickets"><MessageSquare className="mr-2" /> Meus Tickets</Link>
+                </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem asChild>
                       <Link href="/admin"><Shield className="mr-2" /> Admin</Link>
@@ -122,6 +125,12 @@ export function Header() {
           >
             Recomendação
           </Link>
+          { user && <Link
+            href="/meus-tickets"
+            className="text-foreground/80 hover:text-foreground transition-colors"
+          >
+            Meus Tickets
+          </Link>}
           <Link
             href="/dashboard"
             className="text-foreground/80 hover:text-foreground transition-colors"
@@ -174,6 +183,14 @@ export function Header() {
                     Recomendação
                   </Link>
                 </SheetClose>
+                 { user && <SheetClose asChild>
+                  <Link
+                    href="/meus-tickets"
+                    className="flex w-full items-center py-2 text-lg font-semibold"
+                  >
+                    Meus Tickets
+                  </Link>
+                </SheetClose>}
                 <SheetClose asChild>
                   <Link
                     href="/dashboard"

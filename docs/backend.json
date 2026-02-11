@@ -232,6 +232,109 @@
         "status",
         "createdAt"
       ]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "Represents a support ticket and chat conversation between a customer and a seller regarding a specific purchase.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userSubscriptionId": {
+          "type": "string",
+          "description": "Reference to the UserSubscription this ticket is for."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the User (customer)."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Denormalized name of the customer for display."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Reference to the User (seller)."
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "Reference to the Subscription plan purchased."
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "Denormalized name of the service for display."
+        },
+        "planName": {
+          "type": "string",
+          "description": "Denormalized name of the plan for display."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the ticket.",
+          "enum": [
+            "open",
+            "closed"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastMessageAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastMessageText": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userSubscriptionId",
+        "customerId",
+        "sellerId",
+        "subscriptionId",
+        "status",
+        "createdAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Represents a single message within a support ticket.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ticketId": {
+          "type": "string",
+          "description": "Reference to the parent Ticket."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to the User who sent the message."
+        },
+        "senderName": {
+          "type": "string",
+          "description": "Denormalized name of the sender for display."
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ticketId",
+        "senderId",
+        "text",
+        "timestamp"
+      ]
     }
   },
   "auth": {
@@ -329,8 +432,44 @@
             }
           ]
         }
+      },
+      {
+        "path": "/tickets/{ticketId}",
+        "definition": {
+          "entityName": "Ticket",
+          "schema": {
+            "$ref": "#/backend/entities/Ticket"
+          },
+          "description": "Stores all support tickets. Access is restricted to the customer and seller involved.",
+          "params": [
+            {
+              "name": "ticketId",
+              "description": "The unique identifier of the ticket."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tickets/{ticketId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Stores all messages for a specific ticket. Access is restricted to the customer and seller.",
+          "params": [
+            {
+              "name": "ticketId",
+              "description": "The unique identifier of the ticket."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier of the message."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed for a marketplace model. It separates Users, Services (streaming providers), and Subscriptions (plans sold by sellers). Users can be customers, sellers, or admins, determined by their role. The `/services` collection is a catalog managed by admins. The `/subscriptions` collection is a global pool of all plans offered by all sellers. Security rules ensure that sellers can only manage their own subscriptions. Customers purchase subscriptions, which are recorded in the `/users/{userId}/userSubscriptions` subcollection, ensuring private and scalable purchase histories. This maintains Authorization Independence, as rules are based on user roles and document ownership (`sellerId`, `userId`)."
+    "reasoning": "The Firestore structure is designed for a marketplace model. It separates Users, Services (streaming providers), and Subscriptions (plans sold by sellers). Users can be customers, sellers, or admins, determined by their role. The `/services` collection is a catalog managed by admins. The `/subscriptions` collection is a global pool of all plans offered by all sellers. Security rules ensure that sellers can only manage their own subscriptions. Customers purchase subscriptions, which are recorded in the `/users/{userId}/userSubscriptions` subcollection, ensuring private and scalable purchase histories. The `/tickets` collection manages post-purchase communication, with access restricted to the buyer and seller of that transaction. This maintains Authorization Independence, as rules are based on user roles and document ownership (`sellerId`, `userId`, `customerId`)."
   }
 }

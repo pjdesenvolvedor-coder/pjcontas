@@ -38,3 +38,29 @@ export type Deliverable = {
   status: 'available' | 'sold';
   createdAt: string;
 }
+
+// Represents a support ticket and chat for a purchase.
+export type Ticket = {
+  id: string;
+  userSubscriptionId: string;
+  customerId: string;
+  customerName: string;
+  sellerId: string;
+  subscriptionId: string;
+  serviceName: string;
+  planName: string;
+  status: 'open' | 'closed';
+  createdAt: string;
+  lastMessageAt: string;
+  lastMessageText: string;
+};
+
+// Represents a single message within a ticket.
+export type ChatMessage = {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  text: string;
+  timestamp: string;
+  senderName?: string;
+};
