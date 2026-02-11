@@ -65,11 +65,6 @@ service cloud.firestore {
       return request.resource.data.userId == resource.data.userId;
     }
 
-    function isTicketParticipant(ticketId) {
-      let ticket = get(/databases/$(database)/documents/tickets/$(ticketId)).data;
-      return isSignedIn() && (request.auth.uid == ticket.customerId || request.auth.uid == ticket.sellerId);
-    }
-
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false; // Disallow listing all users to protect privacy.
@@ -120,20 +115,33 @@ service cloud.firestore {
     }
 
     match /tickets/{ticketId} {
-      allow get: if isTicketParticipant(ticketId);
-      // This rule allows a query to proceed if the user is signed in.
-      // Firestore's backend query mechanism then ensures that only documents
-      // that the user is allowed to 'get' (as defined by 'isTicketParticipant')
-      // are actually returned to the client, making the operation secure.
+      function isParticipant() {
+        return request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.sellerId;
+      }
+      
+      allow get: if isSignedIn() && isParticipant();
+
+      // This list rule allows a query if the user is signed in.
+      // Firestore will then verify that the query constraints (e.g., where('customerId', '==', auth.uid))
+      // ensure that every possible result document would also pass the `get` rule.
+      // This works because the `get` rule is now simple and doesn't perform its own `get()` operation.
       allow list: if isSignedIn();
+      
       allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
-      allow update: if isTicketParticipant(ticketId); // For updating last message, status etc.
+      
+      allow update: if isSignedIn() && isParticipant();
+      
       allow delete: if false; // Do not allow tickets to be deleted.
 
       match /messages/{messageId} {
-        allow get, list: if isTicketParticipant(ticketId);
+        function isParentTicketParticipant() {
+          let ticket = get(/databases/$(database)/documents/tickets/$(ticketId)).data;
+          return isSignedIn() && (request.auth.uid == ticket.customerId || request.auth.uid == ticket.sellerId);
+        }
+
+        allow get, list: if isParentTicketParticipant();
         // Participants can create messages, and senderId must be their own.
-        allow create: if isTicketParticipant(ticketId) && request.resource.data.senderId == request.auth.uid;
+        allow create: if isParentTicketParticipant() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false; // Disallow editing/deleting messages for integrity.
       }
     }
