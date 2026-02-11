@@ -137,12 +137,6 @@ export function Header() {
             Home
           </Link>
           <Link
-            href="/recommendations"
-            className="text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Recomendação
-          </Link>
-          <Link
             href="/dashboard"
             className="text-foreground/80 hover:text-foreground transition-colors"
           >
@@ -184,14 +178,6 @@ export function Header() {
                     className="flex w-full items-center py-2 text-lg font-semibold"
                   >
                     Home
-                  </Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link
-                    href="/recommendations"
-                    className="flex w-full items-center py-2 text-lg font-semibold"
-                  >
-                    Recomendação
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
