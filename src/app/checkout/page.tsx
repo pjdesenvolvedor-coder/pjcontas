@@ -257,10 +257,6 @@ function CheckoutForm() {
           )}
           <div className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Serviço:</span>
-              <span className="font-semibold">{service.name}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-muted-foreground">Plano:</span>
               <span className="font-semibold">{plan.name}</span>
             </div>
