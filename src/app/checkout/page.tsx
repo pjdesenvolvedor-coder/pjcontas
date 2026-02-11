@@ -35,6 +35,7 @@ import { doc, collection, addDoc, setDoc, getDocs, updateDoc, query, where, orde
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Plan, SubscriptionService, Deliverable } from '@/lib/types';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const paymentSchema = z.object({
   cardholderName: z.string().min(3, 'O nome é obrigatório'),
@@ -205,7 +206,7 @@ function CheckoutForm() {
                 ticketId: newTicketRef.id,
                 senderId: plan.sellerId,
                 senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
-                text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n${deliverableData.content}`,
+                text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n${'\'\'\''}${deliverableData.content}${'\'\'\''}`,
                 timestamp: new Date().toISOString(),
             };
             await addDoc(chatMessagesCollection, deliveryMessage);
@@ -242,7 +243,18 @@ function CheckoutForm() {
         <CardHeader>
           <CardTitle>Resumo do Pedido</CardTitle>
         </CardHeader>
-        <CardContent className="flex-grow">
+        <CardContent className="flex-grow space-y-6">
+          {plan.bannerUrl && (
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+              <Image
+                src={plan.bannerUrl}
+                alt={plan.name}
+                fill
+                className="object-cover"
+                data-ai-hint={plan.bannerHint || 'subscription service'}
+              />
+            </div>
+          )}
           <div className="space-y-4">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Serviço:</span>
