@@ -29,7 +29,7 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
                 "max-w-md rounded-lg px-4 py-2",
                 isOwnMessage ? "bg-primary text-primary-foreground" : "bg-muted"
             )}>
-                <p className="text-sm">{message.text}</p>
+                <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                 <p className="text-xs text-right mt-1 opacity-70">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
              {isOwnMessage && (
