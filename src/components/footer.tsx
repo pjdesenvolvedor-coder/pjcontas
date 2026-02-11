@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Tv2 } from 'lucide-react';
+import Image from 'next/image';
 
 export function Footer() {
   return (
@@ -7,7 +7,12 @@ export function Footer() {
       <div className="container mx-auto px-4 py-6 md:px-6">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <Link href="/" className="flex items-center gap-2">
-            <Tv2 className="h-6 w-6 text-primary" />
+            <Image
+              src="https://i.imgur.com/TMvl1WN.png"
+              alt="PJ Contas Logo"
+              width={24}
+              height={24}
+            />
             <span className="text-lg font-semibold text-primary">
               PJ Contas
             </span>

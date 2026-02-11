@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2, LogOut, Shield, ShoppingBag, Store, Home, User as UserIcon } from 'lucide-react';
+import Image from 'next/image';
+import { Menu, LogOut, Shield, ShoppingBag, Store, Home, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -57,7 +58,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Tv2 className="h-7 w-7 text-primary" />
+          <Image src="https://i.imgur.com/TMvl1WN.png" alt="PJ Contas Logo" width={32} height={32} />
           <span className="text-xl font-bold text-primary font-headline">
             PJ Contas
           </span>
@@ -75,7 +76,7 @@ export function Header() {
                <div className="p-4 border-b">
                  <SheetClose asChild>
                    <Link href="/" className="flex items-center gap-2">
-                    <Tv2 className="h-7 w-7 text-primary" />
+                    <Image src="https://i.imgur.com/TMvl1WN.png" alt="PJ Contas Logo" width={32} height={32} />
                     <span className="text-xl font-bold text-primary font-headline">
                       PJ Contas
                     </span>
