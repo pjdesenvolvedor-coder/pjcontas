@@ -22,7 +22,7 @@ export default function MyTicketsPage() {
   // Initialize the audio element once on component mount.
   useEffect(() => {
     // A simple, short pling sound as a base64 data URI.
-    audioRef.current = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABgAAABkYXRhAwAAAAA=');
+    audioRef.current = new Audio('data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
     
     // Most browsers block audio that is not initiated by user interaction.
     // To work around this, we can try to "unlock" audio playback on the first click anywhere on the page.
