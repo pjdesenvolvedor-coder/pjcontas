@@ -70,7 +70,7 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
-  ArrowLeftRight,
+  LifeBuoy,
   Wallet,
   PackageCheck,
   DollarSign
@@ -344,7 +344,7 @@ function SellerSidebar() {
         { href: '/seller', label: 'Resumo', icon: LayoutDashboard, disabled: true },
         { href: '/seller', label: 'Meus anúncios', icon: Store },
         { href: '#', label: 'Minhas vendas', icon: CreditCard, disabled: true },
-        { href: '#', label: 'Transações', icon: ArrowLeftRight, disabled: true },
+        { href: '#', label: 'Tickets Suporte', icon: LifeBuoy, disabled: true },
       ],
     },
     {
