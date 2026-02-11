@@ -275,7 +275,7 @@ function CheckoutForm() {
             <div className="flex justify-between border-t pt-4"><span className="text-lg font-semibold">Total:</span><span className="text-lg font-bold text-primary">R$ {plan.price.toFixed(2)}</span></div>
           </div>
         </CardContent>
-        <CardFooter><p className="text-xs text-muted-foreground">A cobrança será mensal. Você pode cancelar a qualquer momento.</p></CardFooter>
+        <CardFooter><p className="text-xs text-muted-foreground">No dia do vencimento, avisaremos você para renovar.</p></CardFooter>
       </Card>
 
       <Card>
