@@ -57,15 +57,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, MoreHorizontal, Edit, Trash, Loader2, Upload } from 'lucide-react';
+import { PlusCircle, Edit, Trash, Loader2, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -480,24 +474,16 @@ export function SellerDashboard() {
                         <TableCell>{sub.quality}</TableCell>
                         <TableCell>{sub.userLimit}</TableCell>
                         <TableCell className="text-right">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Abrir menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
+                           <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
+                                    <Edit className="h-4 w-4" />
+                                    <span className="sr-only">Editar</span>
                                 </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => handleEdit(sub)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handleDeleteRequest(sub.id)} className="text-red-600">
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Apagar
-                                </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="hover:bg-destructive/10">
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Apagar</span>
+                                </Button>
+                            </div>
                         </TableCell>
                         </TableRow>
                     ))}
