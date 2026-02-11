@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Tv2, LogOut, Shield, ShoppingBag, MessageSquare, Home, User as UserIcon } from 'lucide-react';
+import { Menu, Tv2, LogOut, Shield, ShoppingBag, Store, Home, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -108,8 +108,8 @@ export function Header() {
                     </SheetClose>
                     <SheetClose asChild>
                       <Button variant="ghost" className="w-full justify-start text-base" asChild>
-                          <Link href="/meus-tickets">
-                            <MessageSquare className="mr-2" /> Meus Tickets
+                          <Link href="/seller/compras">
+                            <ShoppingBag className="mr-2" /> Minhas Compras
                           </Link>
                       </Button>
                     </SheetClose>
@@ -117,7 +117,7 @@ export function Header() {
                       <SheetClose asChild>
                          <Button variant="ghost" className="w-full justify-start text-base" asChild>
                             <Link href="/seller">
-                               <ShoppingBag className="mr-2"/> Painel do Vendedor
+                               <Store className="mr-2"/> Painel do Vendedor
                             </Link>
                          </Button>
                       </SheetClose>
