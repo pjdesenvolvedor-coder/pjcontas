@@ -81,7 +81,7 @@ export default function Home() {
             Seus Streams Favoritos, Um Marketplace Simples
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-base md:text-lg text-foreground/80">
-            Descubra, agrupe e economize em serviços de streaming. Explore anúncios de vendedores ou deixe nossa IA guiá-lo para o pacote de entretenimento perfeito.
+            Descubra e economize nos seus serviços de streaming favoritos. Explore uma variedade de anúncios de vendedores e encontre o plano perfeito para você.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
             <div className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
