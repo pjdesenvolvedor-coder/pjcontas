@@ -41,7 +41,7 @@ export default function DashboardPage() {
   // Memoized reference to the user's subscriptions subcollection
   const userSubscriptionsRef = useMemoFirebase(
     () => (user ? collection(firestore, `users/${user.uid}/userSubscriptions`) : null),
-    [user, firestore]
+    [user?.uid, firestore]
   );
   
   // Fetch the user's subscription documents

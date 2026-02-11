@@ -241,7 +241,7 @@ export function SellerDashboard() {
   
   const subscriptionsQuery = useMemoFirebase(
     () => (user ? query(collection(firestore, 'subscriptions'), where('sellerId', '==', user.uid)) : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: subscriptions, isLoading: isLoadingSubscriptions } = useCollection<Plan>(subscriptionsQuery);
 
