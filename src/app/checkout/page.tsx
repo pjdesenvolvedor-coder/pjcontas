@@ -294,7 +294,7 @@ function CheckoutForm() {
           {pixDetails && paymentStatus !== 'paid' && (
             <>
               <div className="p-4 bg-white rounded-lg border">
-                <Image src={`data:image/png;base64,${pixDetails.qr_code_base64}`} alt="PIX QR Code" width={256} height={256} />
+                <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} />
               </div>
               <p className="text-muted-foreground text-sm">Aguardando pagamento...</p>
               <div className="w-full space-y-2">
