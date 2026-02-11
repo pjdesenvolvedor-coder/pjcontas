@@ -230,7 +230,7 @@ function SubscriptionForm({
                 <FormItem>
                     <FormLabel>Imagem do Anúncio</FormLabel>
                     <FormControl>
-                        <>
+                        <div>
                             <Input
                                 id="file-upload"
                                 type="file"
@@ -257,7 +257,7 @@ function SubscriptionForm({
                                     />
                                 </div>
                             )}
-                        </>
+                        </div>
                     </FormControl>
                     <FormMessage />
                 </FormItem>
