@@ -149,6 +149,10 @@
             "Capturada",
             "Acesso Total"
           ]
+        },
+        "isBoosted": {
+          "type": "boolean",
+          "description": "Indicates if the subscription listing is boosted by the seller."
         }
       },
       "required": [

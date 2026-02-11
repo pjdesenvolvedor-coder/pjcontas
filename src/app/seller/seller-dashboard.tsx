@@ -37,6 +37,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription as FormDescriptionComponent,
   FormField,
   FormItem,
   FormLabel,
@@ -86,6 +87,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const subscriptionSchema = z.object({
@@ -98,6 +100,7 @@ const subscriptionSchema = z.object({
   quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
   bannerUrl: z.string().min(1, "É obrigatório selecionar uma imagem para o anúncio."),
+  isBoosted: z.boolean().default(false),
 });
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
@@ -125,6 +128,7 @@ function SubscriptionForm({
       quality: subscription?.quality || '',
       features: subscription?.features.join('\n') || '',
       bannerUrl: subscription?.bannerUrl || '',
+      isBoosted: subscription?.isBoosted || false,
     },
   });
 
@@ -311,6 +315,26 @@ function SubscriptionForm({
                 <Textarea placeholder="- Acesso a todo o catálogo\n- Sem anúncios" {...field} rows={4} />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="isBoosted"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Impulsionar Anúncio</FormLabel>
+                <FormDescriptionComponent>
+                  Seu anúncio aparecerá na seção de destaque. Taxa de 5%.
+                </FormDescriptionComponent>
+              </div>
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />
@@ -695,31 +719,40 @@ export function SellerDashboard() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Serviço</TableHead>
-                        <TableHead>Nome do Anúncio</TableHead>
+                        <TableHead>Anúncio</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Preço</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
                     {subscriptions.map((sub) => (
                         <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</TableCell>
-                        <TableCell>{sub.name}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{sub.name}</div>
+                          <div className="text-sm text-muted-foreground">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</div>
+                        </TableCell>
                         <TableCell>{sub.accountModel}</TableCell>
                         <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {sub.isBoosted ? (
+                            <Badge variant="outline" className="text-primary border-primary">Destaque</Badge>
+                          ) : (
+                            <Badge variant="secondary">Padrão</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => handleManageDeliverables(sub)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleManageDeliverables(sub)} title="Gerenciar Entregáveis">
                                     <PackagePlus className="h-4 w-4" />
                                     <span className="sr-only">Gerenciar Entregáveis</span>
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)} title="Editar Anúncio">
                                     <Edit className="h-4 w-4" />
                                     <span className="sr-only">Editar</span>
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive/90">
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(sub.id)} className="text-destructive hover:text-destructive/90" title="Apagar Anúncio">
                                     <Trash className="h-4 w-4" />
                                     <span className="sr-only">Apagar</span>
                                 </Button>

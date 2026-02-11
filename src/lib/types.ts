@@ -22,6 +22,7 @@ export type Plan = {
   sellerId: string;
   description: string;
   accountModel: 'Capturada' | 'Acesso Total';
+  isBoosted?: boolean;
   // Denormalized from Service
   serviceName?: string;
   bannerUrl?: string;
