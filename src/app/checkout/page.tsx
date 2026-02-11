@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Loader2, QrCode, CheckCircle } from 'lucide-react';
+import { Copy, Loader2, QrCode, CheckCircle, Info } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -294,6 +294,12 @@ function CheckoutForm() {
           <div className="space-y-4">
             <div className="flex justify-between"><span className="text-muted-foreground">Plano:</span><span className="font-semibold">{plan.name}</span></div>
             <div className="flex justify-between border-t pt-4"><span className="text-lg font-semibold">Total:</span><span className="text-lg font-bold text-primary">R$ {plan.price.toFixed(2)}</span></div>
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4">
+            <Info className="h-5 w-5 flex-shrink-0 text-primary mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              <strong>Pagamento Seguro:</strong> O valor pago só será liberado para o vendedor após 7 dias, de acordo com as políticas de compra.
+            </p>
           </div>
         </CardContent>
         <CardFooter><p className="text-xs text-muted-foreground">No dia do vencimento, avisaremos você para renovar.</p></CardFooter>
