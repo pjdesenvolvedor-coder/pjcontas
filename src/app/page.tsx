@@ -163,7 +163,6 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-bold font-headline flex items-center justify-center gap-3">
               <BadgeCheck className="w-8 h-8 text-primary"/> Anúncios em Destaque
             </h2>
-             <p className="text-muted-foreground mt-2">Vendedores confiáveis que impulsionaram seus anúncios.</p>
           </div>
           {isLoading ? renderSkeletons() : boostedPlans.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
