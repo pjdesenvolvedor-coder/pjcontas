@@ -89,14 +89,16 @@ export function Header() {
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => {
-    if (!user?.uid) return null;
+    if (!user) return null;
     return doc(firestore, 'users', user.uid);
-  }, [firestore, user?.uid]);
+  }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<{ role: string }>(userDocRef);
 
-  const isAdmin = !isUserLoading && !isUserDataLoading && userData?.role === 'admin';
-  const isSeller = !isUserLoading && !isUserDataLoading && userData?.role === 'seller';
+  const isLoading = isUserLoading || isUserDataLoading;
+
+  const isAdmin = !isLoading && userData?.role === 'admin';
+  const isSeller = !isLoading && userData?.role === 'seller';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
