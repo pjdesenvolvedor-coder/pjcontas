@@ -1,4 +1,13 @@
-
+// Represents a user profile, corresponding to a document in the /users collection.
+export type UserProfile = {
+  id: string;
+  email: string;
+  name: string;
+  registrationDate: string;
+  role: 'admin' | 'customer' | 'seller';
+  sellerUsername?: string;
+  lastSeen?: string;
+};
 
 // Represents a plan for a streaming service, corresponding to a document in the /subscriptions collection.
 export type Plan = {

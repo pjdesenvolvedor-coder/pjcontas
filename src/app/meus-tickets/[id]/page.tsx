@@ -3,7 +3,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
-import type { Ticket, ChatMessage, UserSubscription, Plan } from '@/lib/types';
+import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean }) {
     return (
@@ -35,6 +37,41 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
                     <AvatarFallback>{message.senderName?.charAt(0) || 'V'}</AvatarFallback>
                 </Avatar>
             )}
+        </div>
+    );
+}
+
+function SellerStatus({ seller }: { seller: UserProfile }) {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!seller) return null;
+
+    let statusElement: React.ReactNode = null;
+
+    if (isClient && seller.lastSeen) {
+        const lastSeenDate = new Date(seller.lastSeen);
+        const now = new Date();
+        const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
+
+        if (diffMinutes < 5) {
+            statusElement = <Badge variant="outline" className="border-green-500 bg-green-50 text-green-600">Online</Badge>;
+        } else {
+            const lastSeenText = formatDistanceToNow(lastSeenDate, { addSuffix: true, locale: ptBR });
+            statusElement = <span className="text-xs text-muted-foreground">Visto por último {lastSeenText}</span>;
+        }
+    } else {
+        statusElement = <span className="text-xs text-muted-foreground">Status indisponível</span>;
+    }
+
+
+    return (
+        <div className="flex items-center gap-2">
+            <span className="font-medium">{seller.sellerUsername || seller.name}</span>
+            {statusElement}
         </div>
     );
 }
@@ -72,7 +109,7 @@ export default function TicketChatPage() {
         if (!firestore || !ticket) return null;
         return doc(firestore, 'users', ticket.sellerId);
     }, [firestore, ticket]);
-    const { data: sellerData, isLoading: isSellerLoading } = useDoc<{ name: string }>(sellerRef);
+    const { data: sellerData, isLoading: isSellerLoading } = useDoc<UserProfile>(sellerRef);
 
     // Plan info (for image)
     const planRef = useMemoFirebase(() => {
@@ -198,9 +235,9 @@ export default function TicketChatPage() {
                                 <span className="text-muted-foreground">Comprador:</span>
                                 <span className="font-medium">{ticket.customerName}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Vendedor:</span>
-                                <span className="font-medium">{sellerData?.name || '...'}</span>
+                                {sellerData ? <SellerStatus seller={sellerData} /> : '...'}
                             </div>
                             <div className="flex justify-between pt-2 border-t">
                                 <span className="text-muted-foreground">Total:</span>

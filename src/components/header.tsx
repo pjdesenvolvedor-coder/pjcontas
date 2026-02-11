@@ -9,7 +9,7 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
-import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -23,6 +23,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc } from 'firebase/firestore';
+import { useEffect } from 'react';
 
 function UserNav({ isAdmin, isSeller }: { isAdmin: boolean, isSeller: boolean }) {
     const { user, isUserLoading } = useUser();
@@ -96,7 +97,23 @@ export function Header() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<{ role: string }>(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<{ role: string; lastSeen?: string }>(userDocRef);
+
+  useEffect(() => {
+    if (user && firestore) {
+      const userRef = doc(firestore, 'users', user.uid);
+      // Only update if last seen was more than a minute ago to avoid excessive writes
+      const now = new Date();
+      const lastSeenDate = userData?.lastSeen ? new Date(userData.lastSeen) : new Date(0);
+      const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
+      
+      if (diffMinutes > 1) {
+          updateDocumentNonBlocking(userRef, {
+            lastSeen: now.toISOString()
+          });
+      }
+    }
+  }, [user, firestore, userData]);
 
   const isLoading = isUserLoading || isUserDataLoading;
 

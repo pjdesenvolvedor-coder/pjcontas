@@ -19,6 +19,15 @@
           "type": "string",
           "description": "The user's full name."
         },
+        "sellerUsername": {
+          "type": "string",
+          "description": "The seller's public display name in the marketplace."
+        },
+        "lastSeen": {
+          "type": "string",
+          "description": "The last time the user was seen online.",
+          "format": "date-time"
+        },
         "registrationDate": {
           "type": "string",
           "description": "Date and time the user registered.",
