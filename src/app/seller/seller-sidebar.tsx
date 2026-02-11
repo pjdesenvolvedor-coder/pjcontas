@@ -26,7 +26,7 @@ export function SellerSidebar() {
       items: [
         { href: '/seller', label: 'Meus anúncios', icon: Store },
         { href: '#', label: 'Minhas vendas', icon: CreditCard, disabled: true },
-        { href: '/seller/tickets', label: 'Tickets Suporte', icon: LifeBuoy, disabled: false },
+        { href: '/seller/tickets', label: 'Tickets', icon: LifeBuoy, disabled: false },
         { href: '/seller/taxas', label: 'Taxas', icon: Percent, disabled: false },
       ],
     },
