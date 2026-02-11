@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the StreamShare application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "Date and time the user registered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "registrationDate"
+      ]
+    },
+    "Subscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subscription",
+      "type": "object",
+      "description": "Represents a streaming service subscription (e.g., Netflix Premium).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subscription entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the subscription (e.g., Netflix Premium)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the subscription."
+        },
+        "price": {
+          "type": "number",
+          "description": "Monthly price of the subscription."
+        },
+        "service": {
+          "type": "string",
+          "description": "Streaming service associated with the subscription (e.g., Netflix, Disney+)."
+        },
+        "userLimit": {
+          "type": "number",
+          "description": "Maximum number of users allowed on the subscription."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price",
+        "service",
+        "userLimit"
+      ]
+    },
+    "UserSubscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserSubscription",
+      "type": "object",
+      "description": "Represents the association between a user and a subscription.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user subscription entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N UserSubscription)"
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "Reference to Subscription. (Relationship: Subscription 1:N UserSubscription)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Date when the user's subscription started.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Date when the user's subscription ends.",
+          "format": "date-time"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method used for the subscription."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "subscriptionId",
+        "startDate",
+        "endDate",
+        "paymentMethod"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Path-based ownership ensures only the authenticated user can access their own data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/userSubscriptions/{userSubscriptionId}",
+        "definition": {
+          "entityName": "UserSubscription",
+          "schema": {
+            "$ref": "#/backend/entities/UserSubscription"
+          },
+          "description": "Stores the subscriptions of a user. Path-based ownership, nested under /users/{userId}, ensures only the authenticated user can access their own subscriptions.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "userSubscriptionId",
+              "description": "The unique identifier of the user subscription."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Stores available subscription plans (e.g., Netflix Premium, Disney+ Basic).",
+          "params": [
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier of the subscription."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support user authentication and subscription management for StreamShare. It prioritizes Authorization Independence, DBAC (Database-Based Access Control), and QAPs (Rules Are Not Filters) to ensure security and scalability. User data is stored in `/users/{userId}`. User Subscriptions, representing the association between users and subscriptions, are stored in a subcollection `/users/{userId}/userSubscriptions/{userSubscriptionId}` for clear ownership and easy querying. This structure leverages path-based ownership for private user data and simplifies security rules. The structure inherently supports QAPs since `list` operations on `/users/{userId}/userSubscriptions` are naturally scoped to the user. There is no denormalization needed in this case, the structure provides authorization independence, as security rules can be based solely on `request.auth.uid` matching the `userId` path parameter."
+  }
+}
