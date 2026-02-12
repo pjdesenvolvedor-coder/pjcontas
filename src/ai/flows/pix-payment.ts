@@ -42,7 +42,11 @@ const generatePixFlow = ai.defineFlow(
   },
   async (input) => {
     if (!TOKEN) {
-      throw new Error('PushinPay API token (PUSHINPAY_TOKEN) is not configured in environment variables.');
+      if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+          throw new Error('CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não foi configurado para produção. Adicione a variável de ambiente PUSHINPAY_TOKEN nas configurações do seu projeto na Vercel.');
+      } else {
+          throw new Error('CONFIGURAÇÃO INCOMPLETA: Para desenvolvimento local, crie um arquivo .env na raiz do projeto e adicione a linha: PUSHINPAY_TOKEN="seu_token_aqui"');
+      }
     }
 
     const headers = {
@@ -112,7 +116,11 @@ const checkPixStatusFlow = ai.defineFlow(
   },
   async (input) => {
     if (!TOKEN) {
-      throw new Error('PushinPay API token (PUSHINPAY_TOKEN) is not configured in environment variables.');
+        if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+            throw new Error('CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não foi configurado para produção. Adicione a variável de ambiente PUSHINPAY_TOKEN nas configurações do seu projeto na Vercel.');
+        } else {
+            throw new Error('CONFIGURAÇÃO INCOMPLETA: Para desenvolvimento local, crie um arquivo .env na raiz do projeto e adicione a linha: PUSHINPAY_TOKEN="seu_token_aqui"');
+        }
     }
 
     const headers = {
