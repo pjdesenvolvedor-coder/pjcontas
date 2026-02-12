@@ -152,6 +152,8 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
 
     try {
+        // JSON.stringify é a forma correta e robusta de criar um JSON válido.
+        // Ele automaticamente escapa caracteres especiais como quebras de linha (\n) e aspas (").
         const bodyPayload = {
             token: token,
             number: formattedNumber,
