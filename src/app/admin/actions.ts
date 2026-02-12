@@ -151,18 +151,24 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
     
     try {
-        const bodyPayload = {
-            token,
-            number: formattedNumber,
-            // Replace newlines with a literal '\\n' which is JSON-safe.
-            // The webhook service (n8n) is expected to interpret '\\n' as a newline character.
-            text: message,
-        };
+        // Manually escape the message to ensure it's a valid JSON string.
+        const escapedMessage = message
+            .replace(/\\/g, '\\\\')  // 1. escape backslashes
+            .replace(/"/g, '\\"')   // 2. escape double quotes
+            .replace(/\n/g, '\\n')  // 3. escape newlines
+            .replace(/\r/g, '\\r')  // 4. escape carriage returns
+            .replace(/\t/g, '\\t'); // 5. escape tabs
+            
+        const bodyPayloadString = `{
+            "token": "${token}",
+            "number": "${formattedNumber}",
+            "text": "${escapedMessage}"
+        }`;
 
         const response = await fetch(WELCOME_URL, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyPayload),
+            body: bodyPayloadString,
             cache: 'no-store',
         });
 
