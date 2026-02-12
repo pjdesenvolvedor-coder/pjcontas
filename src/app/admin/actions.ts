@@ -73,19 +73,33 @@ export async function checkWhatsAppStatus(token: string): Promise<StatusResponse
         }
 
         const data = await response.json();
-        const statusInfo = data?.[0];
+        
+        // n8n can sometimes return an array, even for a single item. Let's safely get the first object.
+        const statusInfo = Array.isArray(data) ? data[0] : data;
 
-        if (!statusInfo || !statusInfo.instance) {
+        if (!statusInfo || typeof statusInfo.status === 'undefined') {
              console.error("Resposta inesperada da API do WhatsApp (Status):", JSON.stringify(data));
              return { status: 'disconnected', error: 'Formato de resposta de status inesperado.' };
         }
+        
+        // The user reported "connected ". Trim whitespace to be safe.
+        const effectiveStatus = (statusInfo.status || '').trim();
 
-        const instanceStatus = statusInfo.instance.status;
-
+        // Ensure the status is one of the valid types before casting
+        const validStatuses = ['connected', 'connecting', 'disconnected'];
+        if (!validStatuses.includes(effectiveStatus)) {
+            console.warn(`Status inesperado recebido: '${effectiveStatus}'. Tratando como 'disconnected'.`);
+            return {
+                status: 'disconnected',
+                profileName: statusInfo.nomeperfil,
+                profilePicUrl: statusInfo.fotoperfil,
+            };
+        }
+        
         return {
-            status: instanceStatus,
-            profileName: statusInfo.instance.profileName,
-            profilePicUrl: statusInfo.instance.profilePicUrl,
+            status: effectiveStatus as 'connected' | 'connecting' | 'disconnected',
+            profileName: statusInfo.nomeperfil,
+            profilePicUrl: statusInfo.fotoperfil,
         };
 
     } catch (e: any) {
