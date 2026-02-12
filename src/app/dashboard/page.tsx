@@ -89,9 +89,11 @@ function UserProfileCard({
     if (!firestore || !userId || !user) return;
     const userRef = doc(firestore, 'users', userId);
 
+    const formattedPhoneNumber = values.phoneNumber?.replace(/\D/g, '');
+
     const updateData: Partial<UserProfile> = {
       firstName: values.firstName,
-      phoneNumber: values.phoneNumber,
+      phoneNumber: formattedPhoneNumber,
       photoURL: values.photoURL,
     };
     if (userProfile.role === 'seller') {
