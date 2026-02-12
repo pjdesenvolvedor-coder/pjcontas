@@ -73,36 +73,45 @@ export function WhatsAppManager() {
 
   // Polling logic when QR code is displayed
   useEffect(() => {
+    // Only run this effect when the QR code is displayed
     if (status !== 'qrcode' || !savedToken) return;
 
+    // Set up an interval to poll for the connection status every 3 seconds.
     const intervalId = setInterval(async () => {
       const result = await checkWhatsAppStatus(savedToken);
+      
+      // If the API confirms the connection is established...
       if (result.status === 'connected') {
+        // ...update the UI to show the 'connected' state with profile info.
         setStatus('connected');
         setProfileName(result.profileName || null);
         setProfilePicUrl(result.profilePicUrl || null);
-        setQrCode(null);
+        setQrCode(null); // Clear the QR code for the next session
         toast({ title: "WhatsApp Conectado!", description: "Sua conta foi conectada com sucesso." });
-      } else if (result.status === 'error' || (result.error && result.status !== 'connecting')) {
-          setError(result.error || 'Ocorreu um erro ao verificar o status.');
-          setStatus('disconnected');
+      } else if (result.error) {
+        // If a single poll fails, just log it and keep trying. Don't hide the QR code.
+        console.warn('Falha na verificação de status (nova tentativa em breve):', result.error);
       }
     }, 3000); // Poll every 3 seconds
 
-    // Timeout for polling
+    // Set a timeout to stop polling after 60 seconds if no connection is made.
     const timeoutId = setTimeout(() => {
-        if(status === 'qrcode'){
-            clearInterval(intervalId);
-            setStatus('disconnected');
-            setError("Tempo esgotado. Tente gerar um novo QR Code.");
+        // This check is important: only time out if we are still waiting for the QR scan.
+        if (status === 'qrcode') {
+            clearInterval(intervalId); // Stop polling
+            setStatus('disconnected'); // Change status to reflect the timeout
+            setError("Tempo esgotado. Por favor, tente gerar um novo QR Code.");
+            setQrCode(null);
         }
     }, 60000); // 60 seconds timeout
 
+    // Cleanup function to clear the interval and timeout when the component unmounts
+    // or when the status changes, preventing memory leaks.
     return () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [status, savedToken, toast]);
+  }, [status, savedToken, toast]); // Re-run this effect if the status or token changes.
 
 
   const handleSaveToken = () => {
