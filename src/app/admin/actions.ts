@@ -151,27 +151,18 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
     
     try {
-        // Manually escape the message to ensure it's a valid JSON string.
-        const escapedMessage = message
-            .replace(/\\/g, '\\\\')  // 1. escape backslashes
-            .replace(/"/g, '\\"')   // 2. escape double quotes
-            .replace(/\n/g, '\\n')  // 3. escape newlines
-            .replace(/\r/g, '\\r')  // 4. escape carriage returns
-            .replace(/\t/g, '\\t'); // 5. escape tabs
-            
-        const bodyPayloadString = `{
-            "token": "${token}",
-            "number": "${formattedNumber}",
-            "text": "${escapedMessage}"
-        }`;
+        const bodyPayload = {
+            token: token,
+            number: formattedNumber,
+            text: message,
+        };
 
         const response = await fetch(WELCOME_URL, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
-            body: bodyPayloadString,
+            body: JSON.stringify(bodyPayload),
             cache: 'no-store',
         });
-
 
         if (!response.ok) {
             const errorText = await response.text();
