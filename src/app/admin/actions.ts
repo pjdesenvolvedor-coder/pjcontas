@@ -57,8 +57,10 @@ export async function checkWhatsAppStatus(token: string): Promise<StatusResponse
 
         const response = await fetch(STATUS_URL, {
             method: 'POST',
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
+            headers: { 
+                "Content-Type": "application/json",
+                "token": token
+            },
             cache: 'no-store',
         });
 
