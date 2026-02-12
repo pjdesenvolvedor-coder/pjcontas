@@ -26,8 +26,22 @@ export async function connectWhatsApp(token: string) {
         }
         
         const data = await response.json();
-        // A resposta é um array com um elemento
-        return data[0] || { error: 'Resposta de conexão inesperada.' };
+        const responseData = data[0];
+
+        if (!responseData) {
+             return { error: 'Resposta de conexão inesperada.' };
+        }
+
+        // Robustly find the QR code in the response
+        const qrCode = responseData.qrcode || (responseData.instance && responseData.instance.qrcode);
+
+        if (qrCode) {
+            // Return a simple object with just the QR code
+            return { qrCode: qrCode };
+        }
+        
+        return { error: 'QR Code não encontrado na resposta da API.' };
+
     } catch (e: any) {
         if (e instanceof z.ZodError) {
             return { error: e.errors[0].message };
