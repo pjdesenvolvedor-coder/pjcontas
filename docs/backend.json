@@ -32,6 +32,10 @@
           "type": "string",
           "description": "The seller's public display name in the marketplace."
         },
+        "whatsappApiToken": {
+          "type": "string",
+          "description": "API Token for the WhatsApp service integration."
+        },
         "lastSeen": {
           "type": "string",
           "description": "The last time the user was seen online.",

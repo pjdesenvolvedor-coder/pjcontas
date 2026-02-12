@@ -10,6 +10,7 @@ export type UserProfile = {
   sellerUsername?: string;
   lastSeen?: string;
   photoURL?: string;
+  whatsappApiToken?: string;
 };
 
 // Represents a plan for a streaming service, corresponding to a document in the /subscriptions collection.

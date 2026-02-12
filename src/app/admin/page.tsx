@@ -29,6 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { WhatsAppManager } from './whatsapp-manager';
 
 
 type UserProfile = {
@@ -530,15 +531,19 @@ export default function AdminPage() {
       </header>
       
       <Tabs defaultValue="services" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="mt-6">
           <ServiceManagement />
         </TabsContent>
         <TabsContent value="users" className="mt-6">
           <UserManagement />
+        </TabsContent>
+        <TabsContent value="whatsapp" className="mt-6">
+          <WhatsAppManager />
         </TabsContent>
       </Tabs>
 
