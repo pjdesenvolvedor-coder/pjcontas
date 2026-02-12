@@ -26,21 +26,15 @@ export async function connectWhatsApp(token: string) {
         }
         
         const data = await response.json();
-        const responseData = data[0];
 
-        if (!responseData) {
-             return { error: 'Resposta de conexão inesperada.' };
-        }
-
-        // Robustly find the QR code in the response
-        const qrCode = responseData.qrcode || (responseData.instance && responseData.instance.qrcode);
-
-        if (qrCode) {
-            // Return a simple object with just the QR code
-            return { qrCode: qrCode };
+        // The user explicitly provided this response format: { "qrcode": "..." }
+        if (data && data.qrcode) {
+            return { qrCode: data.qrcode };
         }
         
-        return { error: 'QR Code não encontrado na resposta da API.' };
+        // If the structure is different, return an error with the received data for debugging.
+        console.error("Resposta inesperada da API do WhatsApp:", JSON.stringify(data));
+        return { error: 'QR Code não encontrado na resposta da API. Formato inesperado.' };
 
     } catch (e: any) {
         if (e instanceof z.ZodError) {
