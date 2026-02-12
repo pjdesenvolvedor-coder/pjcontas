@@ -10,9 +10,12 @@ export async function connectWhatsApp(token: string) {
     try {
         tokenSchema.parse(token);
 
+        const headers = new Headers();
+        headers.append("token", token);
+
         const response = await fetch(CONNECT_URL, {
             method: 'POST',
-            headers: { 'token': token },
+            headers: headers,
             cache: 'no-store',
         });
 
