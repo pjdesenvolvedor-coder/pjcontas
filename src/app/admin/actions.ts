@@ -12,7 +12,7 @@ export async function getWhatsAppStatus(token: string) {
     tokenSchema.parse(token);
 
     const response = await fetch(STATUS_URL, {
-      method: 'GET',
+      method: 'POST',
       headers: { 'token': token },
       cache: 'no-store',
     });
