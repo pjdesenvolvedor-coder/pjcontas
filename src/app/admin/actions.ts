@@ -150,11 +150,15 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
 
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
     
+    // This regex replaces a newline, followed by any whitespace, followed by another newline
+    // with just two newlines. This ensures that blank lines in the textarea don't add extra spaces.
+    const formattedMessage = message.replace(/\n\s*\n/g, '\n\n');
+
     try {
         const bodyPayload = {
             token: token,
             number: formattedNumber,
-            text: message,
+            text: formattedMessage,
         };
 
         const response = await fetch(WELCOME_URL, {
