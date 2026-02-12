@@ -8,12 +8,11 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const API_URL = 'https://api.pushinpay.com.br/api/pix/cashIn';
 const API_URL_STATUS = 'https://api.pushinpay.com.br/api/transactions/';
 const TOKEN = process.env.PUSHINPAY_TOKEN;
-const WEBHOOK_URL = 'https://seudominio.com/webhook/pushinpay'; // Placeholder
 
 // == Generate PIX Flow ==
 
@@ -43,7 +42,7 @@ const generatePixFlow = ai.defineFlow(
   },
   async (input) => {
     if (!TOKEN) {
-      throw new Error('PushinPay API token is not configured.');
+      throw new Error('PushinPay API token (PUSHINPAY_TOKEN) is not configured in environment variables.');
     }
 
     const headers = {
@@ -52,9 +51,17 @@ const generatePixFlow = ai.defineFlow(
       'Content-Type': 'application/json',
     };
 
+    // Dynamically create the webhook URL.
+    // Vercel automatically provides the VERCEL_URL environment variable.
+    const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:9002'; // Fallback for local development.
+    
+    const webhook_url = `${baseUrl}/api/webhook/pushinpay`;
+
     const payload = {
       value: input.value,
-      webhook_url: WEBHOOK_URL,
+      webhook_url: webhook_url,
     };
 
     const response = await fetch(API_URL, {
@@ -105,7 +112,7 @@ const checkPixStatusFlow = ai.defineFlow(
   },
   async (input) => {
     if (!TOKEN) {
-      throw new Error('PushinPay API token is not configured.');
+      throw new Error('PushinPay API token (PUSHINPAY_TOKEN) is not configured in environment variables.');
     }
 
     const headers = {
