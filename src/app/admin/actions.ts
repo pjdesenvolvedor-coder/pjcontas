@@ -180,3 +180,43 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
         return { success: false, error: `Exceção: ${e.message}` };
     }
 }
+
+
+export async function sendTestWhatsAppMessage(message: string, token: string): Promise<{ success: boolean; error?: string }> {
+    const testNumber = "77998222827";
+    if (!message || !token) {
+        return { success: false, error: 'Mensagem ou token não fornecidos.' };
+    }
+
+    const formattedNumber = `+55${testNumber.replace(/\D/g, '')}`;
+    
+    // Clean up any spaces between consecutive newlines to ensure \n\n
+    const cleanedMessage = message.replace(/\n\s+\n/g, '\n\n');
+
+    try {
+        const bodyPayload = {
+            token: token,
+            number: formattedNumber,
+            text: cleanedMessage,
+        };
+
+        const response = await fetch(WELCOME_URL, { // Re-using WELCOME_URL as it's a generic webhook endpoint
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyPayload),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("WhatsApp Test Message API Error:", errorText)
+            return { success: false, error: `Erro da API de Teste: ${response.status} ${errorText}` };
+        }
+        
+        return { success: true };
+
+    } catch (e: any) {
+        console.error("Exceção ao enviar mensagem de teste:", e);
+        return { success: false, error: `Exceção: ${e.message}` };
+    }
+}
