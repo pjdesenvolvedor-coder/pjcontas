@@ -100,3 +100,16 @@ export type ChatMessage = {
   timestamp: string;
   senderName?: string;
 };
+
+// Represents the central WhatsApp configuration.
+export type WhatsappConfig = {
+  apiToken?: string;
+  welcomeMessage?: string;
+};
+
+// Represents a pending welcome message to be sent.
+export type PendingWelcomeMessage = {
+  id: string;
+  phoneNumber: string;
+  createdAt: string;
+};

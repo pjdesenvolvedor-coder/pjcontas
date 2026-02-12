@@ -5,6 +5,8 @@ import { z } from 'zod';
 const CONNECT_URL = 'https://n8nbeta.typeflow.app.br/webhook/aeb30639-baf0-4862-9f5f-a3cc468ab7c5';
 const STATUS_URL = 'https://n8nbeta.typeflow.app.br/webhook/58da289a-e20c-460a-8e35-d01c9b567dad';
 const DISCONNECT_URL = 'https://n8nbeta.typeflow.app.br/webhook/2ac86d63-f7fc-4221-bbaf-efeecec33127';
+const WELCOME_URL = 'https://n8nbeta.typeflow.app.br/webhook/235c79d0-71ed-4a43-aa3c-5c0cf1de2580';
+
 
 const tokenSchema = z.string().min(1, "Token é obrigatório");
 
@@ -28,9 +30,6 @@ export async function connectWhatsApp(token: string): Promise<{ qrCode?: string;
         const data = await response.json();
         
         if (data && data.qrcode) {
-            if (data.qrcode.startsWith('data:image')) {
-                return { qrCode: data.qrcode };
-            }
             return { qrCode: `data:image/png;base64,${data.qrcode}` };
         }
         
@@ -75,29 +74,27 @@ export async function checkWhatsAppStatus(token: string): Promise<StatusResponse
 
         const data = await response.json();
         
-        const statusInfo = Array.isArray(data) ? data[0] : data;
-
-        if (!statusInfo || typeof statusInfo.status === 'undefined') {
+        if (!data || typeof data.status === 'undefined') {
              console.error("Resposta inesperada da API do WhatsApp (Status):", JSON.stringify(data));
              return { status: 'disconnected', error: 'Formato de resposta de status inesperado.' };
         }
         
-        const effectiveStatus = (statusInfo.status || '').trim();
+        const effectiveStatus = (data.status || '').trim();
 
         const validStatuses = ['connected', 'connecting', 'disconnected'];
         if (!validStatuses.includes(effectiveStatus)) {
             console.warn(`Status inesperado recebido: '${effectiveStatus}'. Tratando como 'disconnected'.`);
             return {
                 status: 'disconnected',
-                profileName: statusInfo.nomeperfil,
-                profilePicUrl: statusInfo.fotoperfil,
+                profileName: data.nomeperfil,
+                profilePicUrl: data.fotoperfil,
             };
         }
         
         return {
             status: effectiveStatus as 'connected' | 'connecting' | 'disconnected',
-            profileName: statusInfo.nomeperfil,
-            profilePicUrl: statusInfo.fotoperfil,
+            profileName: data.nomeperfil,
+            profilePicUrl: data.fotoperfil,
         };
 
     } catch (e: any) {
@@ -142,5 +139,35 @@ export async function disconnectWhatsApp(token: string): Promise<DisconnectRespo
         }
         console.error("Exceção ao desconectar WhatsApp:", e);
         return { success: false, error: `Exceção ao desconectar: ${e.message}` };
+    }
+}
+
+
+export async function sendWelcomeWhatsAppMessage(number: string, message: string, token: string): Promise<{ success: boolean; error?: string }> {
+    if (!number || !message || !token) {
+        return { success: false, error: 'Número, mensagem ou token não fornecidos.' };
+    }
+
+    const formattedNumber = `+55${number.replace(/\D/g, '')}`;
+    
+    try {
+        const response = await fetch(WELCOME_URL, {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, number: formattedNumber, message }),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("WhatsApp Welcome API Error:", errorText)
+            return { success: false, error: `Erro da API: ${response.status} ${errorText}` };
+        }
+        
+        return { success: true };
+
+    } catch (e: any) {
+        console.error("Exceção ao enviar mensagem de boas-vindas:", e);
+        return { success: false, error: `Exceção: ${e.message}` };
     }
 }

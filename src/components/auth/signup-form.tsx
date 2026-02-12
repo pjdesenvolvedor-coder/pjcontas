@@ -14,10 +14,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 
 const formSchema = z.object({
   firstName: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
@@ -69,6 +69,15 @@ export function SignupForm({ setOpen }: SignupFormProps) {
         };
         setDocumentNonBlocking(userRef, userData, { merge: false });
         
+        // 3. Queue welcome message
+        if (values.phoneNumber) {
+            const pendingMessagesRef = collection(firestore, 'pending_welcome_messages');
+            addDocumentNonBlocking(pendingMessagesRef, {
+                phoneNumber: values.phoneNumber,
+                createdAt: new Date().toISOString(),
+            });
+        }
+
         toast({
             title: 'Conta Criada!',
             description: 'Você já pode usar a PJ Contas.',

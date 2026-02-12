@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useUser, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/types';
+import type { WhatsappConfig } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,12 +20,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'checking' | 'error' | 'qrcode';
 
 export function WhatsAppManager() {
-  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile, isLoading: isUserLoading } = useDoc<UserProfile>(userDocRef);
+  const configDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'configs', 'whatsapp') : null, [firestore]);
+  const { data: whatsappConfig, isLoading: isConfigLoading } = useDoc<WhatsappConfig>(configDocRef);
 
   const [token, setToken] = useState('');
   const [savedToken, setSavedToken] = useState('');
@@ -38,13 +37,13 @@ export function WhatsAppManager() {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load saved token from user profile
+  // Load saved token from config doc
   useEffect(() => {
-    if (userProfile?.whatsappApiToken) {
-      setToken(userProfile.whatsappApiToken);
-      setSavedToken(userProfile.whatsappApiToken);
+    if (whatsappConfig?.apiToken) {
+      setToken(whatsappConfig.apiToken);
+      setSavedToken(whatsappConfig.apiToken);
     }
-  }, [userProfile]);
+  }, [whatsappConfig]);
 
   // Initial status check on component load or when savedToken changes
   const performInitialStatusCheck = useCallback(async () => {
@@ -85,8 +84,9 @@ export function WhatsAppManager() {
         setProfilePicUrl(result.profilePicUrl || null);
         setQrCode(null);
         toast({ title: "WhatsApp Conectado!", description: "Sua conta foi conectada com sucesso." });
-      } else if (result.error) {
+      } else if (result.error && status === 'qrcode') { // Only log error if we are still in QR code mode
         console.warn('Falha na verificação de status (nova tentativa em breve):', result.error);
+        // Don't set a visible error, just keep polling
       }
     }, 3000);
 
@@ -107,9 +107,9 @@ export function WhatsAppManager() {
 
 
   const handleSaveToken = () => {
-    if (!user || !firestore) return;
-    const userRef = doc(firestore, 'users', user.uid);
-    updateDocumentNonBlocking(userRef, { whatsappApiToken: token });
+    if (!firestore) return;
+    const configRef = doc(firestore, 'configs', 'whatsapp');
+    setDocumentNonBlocking(configRef, { apiToken: token }, { merge: true });
     setSavedToken(token);
     toast({
       title: "Token Salvo!",
@@ -220,6 +220,9 @@ export function WhatsAppManager() {
                 <XCircle className="h-12 w-12"/>
                 <h3 className="font-semibold">Ocorreu um erro</h3>
                 <p className="text-sm max-w-xs">{error}</p>
+                 <Button onClick={handleConnect} variant="outline" className="mt-4">
+                    Tentar Novamente
+                </Button>
             </div>
         );
       case 'disconnected':
@@ -239,7 +242,7 @@ export function WhatsAppManager() {
   };
 
 
-  if (isUserLoading) {
+  if (isConfigLoading) {
     return (
         <div className="grid md:grid-cols-3 gap-6">
             <Card className="md:col-span-1">
@@ -279,10 +282,10 @@ export function WhatsAppManager() {
               placeholder="Cole seu token aqui"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              disabled={isUserLoading}
+              disabled={isConfigLoading}
             />
           </div>
-          <Button onClick={handleSaveToken} disabled={isUserLoading || !token || token === savedToken}>
+          <Button onClick={handleSaveToken} disabled={isConfigLoading || !token || token === savedToken}>
             Salvar Token
           </Button>
           <div className="border-t pt-4">
