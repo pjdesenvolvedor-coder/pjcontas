@@ -63,10 +63,11 @@ export function WhatsAppManager() {
         return;
     }
 
-    if (result.instance?.qrcode) {
-        setQrCode(result.instance.qrcode);
+    if (result.qrcode) {
+        setQrCode(result.qrcode);
     } else {
-        setError("A resposta da API não continha um QR code. Tente novamente.");
+        console.error("API Response for QR Code:", result);
+        setError("A resposta da API não continha um QR code no formato esperado. Tente novamente.");
     }
     
     setIsConnecting(false);
