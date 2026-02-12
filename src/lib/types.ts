@@ -111,5 +111,7 @@ export type WhatsappConfig = {
 export type PendingWelcomeMessage = {
   id: string;
   phoneNumber: string;
+  firstName: string;
+  email: string;
   createdAt: string;
 };

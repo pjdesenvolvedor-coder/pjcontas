@@ -33,7 +33,12 @@ export function WhatsAppWelcomeDaemon() {
 
             processedIds.current.add(msg.id);
 
-            const result = await sendWelcomeWhatsAppMessage(msg.phoneNumber, welcomeMessage, apiToken);
+            const processedMessage = welcomeMessage
+                .replace(/{cliente}/g, msg.firstName)
+                .replace(/{email}/g, msg.email)
+                .replace(/{telefone}/g, msg.phoneNumber);
+
+            const result = await sendWelcomeWhatsAppMessage(msg.phoneNumber, processedMessage, apiToken);
             
             if (firestore) {
                 const msgRef = doc(firestore, 'pending_welcome_messages', msg.id);

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export function WelcomeMessageManager() {
   const firestore = useFirestore();
@@ -67,7 +68,7 @@ export function WelcomeMessageManager() {
           <Label htmlFor="welcome-message">Mensagem</Label>
           <Textarea
             id="welcome-message"
-            placeholder="Olá! Seja bem-vindo à nossa plataforma..."
+            placeholder="Olá {cliente}! Seja bem-vindo à nossa plataforma..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
@@ -75,6 +76,14 @@ export function WelcomeMessageManager() {
            <p className="text-xs text-muted-foreground">
             Esta mensagem será enviada assim que um novo usuário se cadastrar. O admin precisa estar com o painel aberto.
           </p>
+           <div className="pt-2">
+            <p className="text-xs text-muted-foreground">Variáveis disponíveis:</p>
+            <div className="flex flex-wrap gap-1 mt-1">
+                <Badge variant="outline">{'{cliente}'}</Badge>
+                <Badge variant="outline">{'{email}'}</Badge>
+                <Badge variant="outline">{'{telefone}'}</Badge>
+            </div>
+           </div>
         </div>
         <Button onClick={handleSaveMessage} disabled={!message}>
           <Save className="mr-2" />
