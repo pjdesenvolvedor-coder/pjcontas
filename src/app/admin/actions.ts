@@ -151,7 +151,7 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
     
     // Remove any spaces between consecutive newline characters.
-    const cleanedMessage = message.replace(/\n\s+\n/g, '\n\n');
+    const cleanedMessage = message.replace(/\n\s*\n/g, '\n\n');
 
     try {
         const bodyPayload = {
@@ -191,7 +191,7 @@ export async function sendTestWhatsAppMessage(message: string, token: string): P
     const formattedNumber = `+55${testNumber.replace(/\D/g, '')}`;
     
     // Clean up any spaces between consecutive newlines to ensure \n\n
-    const cleanedMessage = message.replace(/\n\s+\n/g, '\n\n');
+    const cleanedMessage = message.replace(/\n\s*\n/g, '\n\n');
 
     try {
         const bodyPayload = {
