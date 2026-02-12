@@ -154,7 +154,7 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
         const response = await fetch(WELCOME_URL, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token, number: formattedNumber, message }),
+            body: JSON.stringify({ token, number: formattedNumber, text: message }),
             cache: 'no-store',
         });
 
