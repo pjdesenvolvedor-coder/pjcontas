@@ -55,6 +55,7 @@ export function WhatsAppManager() {
     setQrCode(null);
     setError(null);
     
+    // This waits for the server action to complete.
     const result = await connectWhatsApp(savedToken);
 
     if (result.error) {
@@ -63,8 +64,17 @@ export function WhatsAppManager() {
         return;
     }
 
-    if (result.instance && result.instance.qrcode) {
-        setQrCode(result.instance.qrcode);
+    // Check for QR code in both possible locations and ensure it's a valid data URI
+    const qrCodeFromApi = result.qrcode || (result.instance && result.instance.qrcode);
+
+    if (qrCodeFromApi) {
+        // The API might not return the 'data:image/png;base64,' prefix.
+        // Let's ensure it's there before setting the state.
+        if (qrCodeFromApi.startsWith('data:image')) {
+            setQrCode(qrCodeFromApi);
+        } else {
+            setQrCode(`data:image/png;base64,${qrCodeFromApi}`);
+        }
     } else {
         console.error("API Response for QR Code:", result);
         setError("A resposta da API não continha um QR code no formato esperado. Tente novamente.");
