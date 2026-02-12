@@ -18,8 +18,6 @@ export type Plan = {
   name: string;
   price: number;
   features: string[];
-  userLimit: number;
-  quality: string;
   serviceId: string;
   sellerId: string;
   description: string;

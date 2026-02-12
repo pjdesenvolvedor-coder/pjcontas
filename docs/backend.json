@@ -131,14 +131,6 @@
           "type": "string",
           "description": "Reference to the User (seller) who created this plan."
         },
-        "userLimit": {
-          "type": "number",
-          "description": "Maximum number of users allowed on the plan."
-        },
-        "quality": {
-          "type": "string",
-          "description": "Streaming quality of the plan (e.g., 4K, 1080p)."
-        },
         "features": {
           "type": "array",
           "items": {
@@ -165,8 +157,6 @@
         "price",
         "serviceId",
         "sellerId",
-        "userLimit",
-        "quality",
         "features",
         "accountModel"
       ]

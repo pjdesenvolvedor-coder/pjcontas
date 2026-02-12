@@ -145,14 +145,6 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
                             <span>{feature}</span>
                           </li>
                         ))}
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Até {plan.userLimit} usuários</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Qualidade {plan.quality}</span>
-                        </li>
                       </ul>
                       <Button
                         asChild
@@ -182,5 +174,3 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
     </div>
   );
 }
-
-    

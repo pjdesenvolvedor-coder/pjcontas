@@ -96,8 +96,6 @@ const subscriptionSchema = z.object({
   price: z.coerce.number().positive("O preço deve ser um número positivo."),
   serviceId: z.string({ required_error: "Por favor, selecione um serviço." }),
   accountModel: z.enum(['Capturada', 'Acesso Total'], { required_error: "Por favor, selecione o modelo da conta." }),
-  userLimit: z.coerce.number().int().positive("Deve ser um número inteiro positivo."),
-  quality: z.string().min(3, "A qualidade é obrigatória (ex: 1080p, 4K)."),
   features: z.string().min(10, "Liste pelo menos uma característica."),
   bannerUrl: z.string().min(1, "É obrigatório selecionar uma imagem para o anúncio."),
   isBoosted: z.boolean().default(false),
@@ -124,8 +122,6 @@ function SubscriptionForm({
       price: subscription?.price || 0,
       serviceId: subscription?.serviceId || '',
       accountModel: subscription?.accountModel || undefined,
-      userLimit: subscription?.userLimit || 1,
-      quality: subscription?.quality || '',
       features: subscription?.features.join('\n') || '',
       bannerUrl: subscription?.bannerUrl || '',
       isBoosted: subscription?.isBoosted || false,
@@ -262,7 +258,7 @@ function SubscriptionForm({
                 </FormItem>
             )}
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
             <FormField
             control={form.control}
             name="price"
@@ -271,34 +267,6 @@ function SubscriptionForm({
                 <FormLabel>Preço (mensal)</FormLabel>
                 <FormControl>
                     <Input type="number" step="0.01" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="quality"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Qualidade</FormLabel>
-                <FormControl>
-                    <Input placeholder="Ex: 4K, 1080p" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
-            control={form.control}
-            name="userLimit"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Limite de Usuários</FormLabel>
-                <FormControl>
-                    <Input type="number" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -580,9 +548,9 @@ export function SellerDashboard() {
           bannerUrl: bannerUrl,
           bannerHint: service.bannerHint,
           sellerId: user.uid,
-          sellerName: user.displayName,
-          sellerUsername: userProfile.sellerUsername,
-          sellerPhotoURL: userProfile.photoURL,
+          sellerName: userProfile.firstName || user.displayName,
+          sellerUsername: userProfile.sellerUsername || userProfile.firstName,
+          sellerPhotoURL: userProfile.photoURL || user.photoURL,
       };
       setDocumentNonBlocking(subRef, updatedData, { merge: true });
       toast({
@@ -600,9 +568,9 @@ export function SellerDashboard() {
         serviceName: service.name,
         bannerUrl: bannerUrl,
         bannerHint: service.bannerHint,
-        sellerName: user.displayName,
-        sellerUsername: userProfile.sellerUsername,
-        sellerPhotoURL: userProfile.photoURL,
+        sellerName: userProfile.firstName || user.displayName,
+        sellerUsername: userProfile.sellerUsername || userProfile.firstName,
+        sellerPhotoURL: userProfile.photoURL || user.photoURL,
       };
       setDocumentNonBlocking(newSubRef, newSubscriptionData, { merge: false });
       toast({
