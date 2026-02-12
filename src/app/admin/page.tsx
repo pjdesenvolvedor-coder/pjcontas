@@ -30,8 +30,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WhatsAppManager } from './whatsapp-manager';
-import { WelcomeMessageManager } from './welcome-message-manager';
-import { WhatsAppWelcomeDaemon } from './whatsapp-welcome-daemon';
+import { WhatsappMessageManager } from './whatsapp-message-manager';
+import { WhatsAppMessageDaemon } from './whatsapp-message-daemon';
 
 
 type UserProfile = {
@@ -537,7 +537,7 @@ export default function AdminPage() {
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="mensagens">Mensagens</TabsTrigger>
+          <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="mt-6">
           <ServiceManagement />
@@ -549,11 +549,11 @@ export default function AdminPage() {
           <WhatsAppManager />
         </TabsContent>
         <TabsContent value="mensagens" className="mt-6">
-          <WelcomeMessageManager />
+          <WhatsappMessageManager />
         </TabsContent>
       </Tabs>
       
-      <WhatsAppWelcomeDaemon />
+      <WhatsAppMessageDaemon />
     </div>
   );
 }

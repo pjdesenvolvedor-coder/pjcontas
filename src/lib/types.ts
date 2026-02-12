@@ -105,13 +105,25 @@ export type ChatMessage = {
 export type WhatsappConfig = {
   apiToken?: string;
   welcomeMessage?: string;
+  saleNotificationMessage?: string;
+  deliveryMessage?: string;
 };
 
-// Represents a pending welcome message to be sent.
-export type PendingWelcomeMessage = {
+// Represents a pending message to be sent via WhatsApp.
+export type PendingMessage = {
   id: string;
-  phoneNumber: string;
-  firstName: string;
-  email: string;
+  type: 'welcome' | 'sale_notification' | 'delivery';
+  recipientPhoneNumber: string;
   createdAt: string;
+  data: {
+    // General
+    customerName?: string;
+    customerEmail?: string;
+    sellerName?: string;
+    // For sales/delivery
+    serviceName?: string;
+    planName?: string;
+    price?: number;
+    deliverableContent?: string;
+  };
 };

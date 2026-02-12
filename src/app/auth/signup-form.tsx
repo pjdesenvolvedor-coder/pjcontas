@@ -71,12 +71,15 @@ export function SignupForm({ setOpen }: SignupFormProps) {
         
         // 3. Queue welcome message
         if (values.phoneNumber) {
-            const pendingMessagesRef = collection(firestore, 'pending_welcome_messages');
+            const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
             addDocumentNonBlocking(pendingMessagesRef, {
-                phoneNumber: values.phoneNumber,
-                firstName: values.firstName,
-                email: values.email,
+                type: 'welcome',
+                recipientPhoneNumber: values.phoneNumber,
                 createdAt: new Date().toISOString(),
+                data: {
+                    customerName: values.firstName,
+                    customerEmail: values.email,
+                }
             });
         }
 

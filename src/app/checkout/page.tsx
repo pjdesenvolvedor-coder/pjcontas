@@ -36,13 +36,14 @@ import {
   doc,
   collection,
   getDocs,
+  getDoc,
   updateDoc,
   query,
   where,
   increment,
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Plan, SubscriptionService, Deliverable } from '@/lib/types';
+import type { Plan, SubscriptionService, Deliverable, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { generatePixAction, checkPixStatusAction } from './actions';
@@ -87,6 +88,18 @@ function CheckoutForm() {
     setIsProcessingOrder(true);
 
     try {
+      // Fetch seller and customer profiles to get phone numbers
+      const sellerProfileRef = doc(firestore, 'users', plan.sellerId);
+      const customerProfileRef = doc(firestore, 'users', user.uid);
+      
+      const [sellerProfileSnap, customerProfileSnap] = await Promise.all([
+        getDoc(sellerProfileRef),
+        getDoc(customerProfileRef)
+      ]);
+
+      const sellerProfile = sellerProfileSnap.data() as UserProfile;
+      const customerProfile = customerProfileSnap.data() as UserProfile;
+
       const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
       const newSubscriptionData = {
         userId: user.uid,
@@ -128,6 +141,9 @@ function CheckoutForm() {
       const q = query(deliverableCollectionRef, where('status', '==', 'available'));
       const snapshot = await getDocs(q);
       const chatMessagesCollection = collection(firestore, 'tickets', newTicketRef.id, 'messages');
+      const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
+
+      let deliverableContentForMessage: string;
 
       if (snapshot.empty) {
         const stockOutMessage = {
@@ -144,6 +160,8 @@ function CheckoutForm() {
           unreadBySellerCount: increment(1),
           unreadByCustomerCount: 1,
         });
+
+        deliverableContentForMessage = 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.';
       } else {
         const sortedDeliverables = snapshot.docs.sort((a, b) => new Date(a.data().createdAt).getTime() - new Date(b.data().createdAt).getTime());
         const deliverableDoc = sortedDeliverables[0];
@@ -165,6 +183,38 @@ function CheckoutForm() {
           unreadBySellerCount: 0,
           unreadByCustomerCount: 1,
         });
+        deliverableContentForMessage = `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n${deliverableData.content}`;
+      }
+
+      // Queue Delivery Message for Buyer
+      if (customerProfile?.phoneNumber) {
+          addDocumentNonBlocking(pendingMessagesRef, {
+              type: 'delivery',
+              recipientPhoneNumber: customerProfile.phoneNumber,
+              createdAt: new Date().toISOString(),
+              data: {
+                  customerName: customerProfile.firstName,
+                  serviceName: service.name,
+                  planName: plan.name,
+                  deliverableContent: deliverableContentForMessage,
+              }
+          });
+      }
+
+      // Queue Sale Notification for Seller
+      if (sellerProfile?.phoneNumber) {
+          addDocumentNonBlocking(pendingMessagesRef, {
+              type: 'sale_notification',
+              recipientPhoneNumber: sellerProfile.phoneNumber,
+              createdAt: new Date().toISOString(),
+              data: {
+                  sellerName: sellerProfile.firstName,
+                  customerName: customerProfile.firstName,
+                  serviceName: service.name,
+                  planName: plan.name,
+                  price: plan.price
+              }
+          });
       }
       
       toast({
