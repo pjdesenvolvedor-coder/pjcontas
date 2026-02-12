@@ -151,12 +151,21 @@ export async function sendWelcomeWhatsAppMessage(number: string, message: string
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
     
     try {
+        const bodyPayload = {
+            token,
+            number: formattedNumber,
+            // Replace newlines with a literal '\\n' which is JSON-safe.
+            // The webhook service (n8n) is expected to interpret '\\n' as a newline character.
+            text: message,
+        };
+
         const response = await fetch(WELCOME_URL, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token, number: formattedNumber, text: message }),
+            body: JSON.stringify(bodyPayload),
             cache: 'no-store',
         });
+
 
         if (!response.ok) {
             const errorText = await response.text();
