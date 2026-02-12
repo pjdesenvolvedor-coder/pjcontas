@@ -143,21 +143,36 @@ export async function disconnectWhatsApp(token: string): Promise<DisconnectRespo
 }
 
 
+/**
+ * Cleans and normalizes a message string to be sent via WhatsApp.
+ * 1. Replaces all CRLF and CR with LF.
+ * 2. Removes any whitespace between consecutive newlines.
+ * @param message The raw message string.
+ * @returns A cleaned message string.
+ */
+function normalizeMessageForWhatsapp(message: string): string {
+    if (!message) return '';
+    // Unify all newline types to \n
+    const normalizedNewlines = message.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Remove any whitespace between two newlines to fix the `\n \n` issue.
+    const cleanedMessage = normalizedNewlines.replace(/\n\s*\n/g, '\n\n');
+    return cleanedMessage;
+}
+
+
 export async function sendWelcomeWhatsAppMessage(number: string, message: string, token: string): Promise<{ success: boolean; error?: string }> {
     if (!number || !message || !token) {
         return { success: false, error: 'Número, mensagem ou token não fornecidos.' };
     }
 
     const formattedNumber = `+55${number.replace(/\D/g, '')}`;
-    
-    // Remove any spaces between consecutive newline characters.
-    const cleanedMessage = message.replace(/\n\s*\n/g, '\n\n');
+    const cleanedMessage = normalizeMessageForWhatsapp(message);
 
     try {
         const bodyPayload = {
             token: token,
             number: formattedNumber,
-            text: cleanedMessage, // Use the cleaned message
+            text: cleanedMessage,
         };
 
         const response = await fetch(WELCOME_URL, {
@@ -189,9 +204,7 @@ export async function sendTestWhatsAppMessage(message: string, token: string): P
     }
 
     const formattedNumber = `+55${testNumber.replace(/\D/g, '')}`;
-    
-    // Clean up any spaces between consecutive newlines to ensure \n\n
-    const cleanedMessage = message.replace(/\n\s*\n/g, '\n\n');
+    const cleanedMessage = normalizeMessageForWhatsapp(message);
 
     try {
         const bodyPayload = {
