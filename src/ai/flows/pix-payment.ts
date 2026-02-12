@@ -12,7 +12,6 @@ import { z } from 'zod';
 
 const API_URL = 'https://api.pushinpay.com.br/api/pix/cashIn';
 const API_URL_STATUS = 'https://api.pushinpay.com.br/api/transactions/';
-const TOKEN = process.env.PUSHINPAY_TOKEN;
 
 // == Generate PIX Flow ==
 
@@ -42,6 +41,7 @@ const generatePixFlow = ai.defineFlow(
     outputSchema: GeneratePixOutputSchema,
   },
   async (input) => {
+    const TOKEN = process.env.PUSHINPAY_TOKEN;
     if (!TOKEN) {
       if (process.env.NODE_ENV === 'production' || process.env.VERCEL_URL) {
           return { error: 'CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não foi configurado para produção. Adicione a variável de ambiente PUSHINPAY_TOKEN nas configurações do seu projeto na Vercel.' };
@@ -121,6 +121,7 @@ const checkPixStatusFlow = ai.defineFlow(
     outputSchema: CheckPixStatusOutputSchema,
   },
   async (input) => {
+    const TOKEN = process.env.PUSHINPAY_TOKEN;
     if (!TOKEN) {
         if (process.env.NODE_ENV === 'production' || process.env.VERCEL_URL) {
             return { error: 'CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não está configurado para produção.' };
