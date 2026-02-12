@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, CheckCircle, XCircle, QrCode as QrCodeIcon } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, QrCode as QrCodeIcon, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { connectWhatsApp, checkWhatsAppStatus } from './actions';
+import { connectWhatsApp, checkWhatsAppStatus, disconnectWhatsApp } from './actions';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -34,7 +34,8 @@ export function WhatsAppManager() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false); // Manages the connect button loading state
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load saved token from user profile
@@ -73,45 +74,36 @@ export function WhatsAppManager() {
 
   // Polling logic when QR code is displayed
   useEffect(() => {
-    // Only run this effect when the QR code is displayed
     if (status !== 'qrcode' || !savedToken) return;
 
-    // Set up an interval to poll for the connection status every 3 seconds.
     const intervalId = setInterval(async () => {
       const result = await checkWhatsAppStatus(savedToken);
       
-      // If the API confirms the connection is established...
       if (result.status === 'connected') {
-        // ...update the UI to show the 'connected' state with profile info.
         setStatus('connected');
         setProfileName(result.profileName || null);
         setProfilePicUrl(result.profilePicUrl || null);
-        setQrCode(null); // Clear the QR code for the next session
+        setQrCode(null);
         toast({ title: "WhatsApp Conectado!", description: "Sua conta foi conectada com sucesso." });
       } else if (result.error) {
-        // If a single poll fails, just log it and keep trying. Don't hide the QR code.
         console.warn('Falha na verificação de status (nova tentativa em breve):', result.error);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 3000);
 
-    // Set a timeout to stop polling after 60 seconds if no connection is made.
     const timeoutId = setTimeout(() => {
-        // This check is important: only time out if we are still waiting for the QR scan.
         if (status === 'qrcode') {
-            clearInterval(intervalId); // Stop polling
-            setStatus('disconnected'); // Change status to reflect the timeout
+            clearInterval(intervalId);
+            setStatus('disconnected');
             setError("Tempo esgotado. Por favor, tente gerar um novo QR Code.");
             setQrCode(null);
         }
-    }, 60000); // 60 seconds timeout
+    }, 60000);
 
-    // Cleanup function to clear the interval and timeout when the component unmounts
-    // or when the status changes, preventing memory leaks.
     return () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [status, savedToken, toast]); // Re-run this effect if the status or token changes.
+  }, [status, savedToken, toast]);
 
 
   const handleSaveToken = () => {
@@ -149,6 +141,30 @@ export function WhatsAppManager() {
     setStatus('qrcode');
   };
 
+  const handleDisconnect = async () => {
+    if (!savedToken) {
+        toast({ variant: 'destructive', title: "Token não encontrado", description: "Não foi possível encontrar o token para desconectar."});
+        return;
+    }
+    setIsDisconnecting(true);
+    setError(null);
+    
+    const result = await disconnectWhatsApp(savedToken);
+    
+    setIsDisconnecting(false);
+
+    if (result.success) {
+        setStatus('disconnected');
+        setProfileName(null);
+        setProfilePicUrl(null);
+        toast({ title: "WhatsApp Desconectado", description: "Sua conta foi desconectada com sucesso." });
+    } else {
+        setError(result.error || "Ocorreu um erro ao desconectar.");
+        toast({ variant: 'destructive', title: "Erro ao Desconectar", description: result.error || "Não foi possível desconectar. Tente novamente." });
+    }
+  };
+
+
   const renderStatusContent = () => {
     switch (status) {
       case 'checking':
@@ -170,6 +186,10 @@ export function WhatsAppManager() {
               <CheckCircle className="mr-2 h-4 w-4" />
               Conectado
             </Badge>
+            <Button onClick={handleDisconnect} variant="destructive" className="mt-4">
+                {isDisconnecting ? <Loader2 className="animate-spin" /> : <LogOut className="mr-2" />}
+                Desconectar
+            </Button>
           </div>
         );
       case 'qrcode':
