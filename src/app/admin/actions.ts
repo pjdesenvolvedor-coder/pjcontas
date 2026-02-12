@@ -3,7 +3,7 @@
 import { z } from 'zod';
 
 const CONNECT_URL = 'https://n8nbeta.typeflow.app.br/webhook/aeb30639-baf0-4862-9f5f-a3cc468ab7c5';
-const STATUS_URL = 'https://n8nbeta.typeflow.app.br/webhook/ea50772a-1e0f-4d1f-bdcb-d205b1200ea8';
+const STATUS_URL = 'https://n8nbeta.typeflow.app.br/webhook/58da289a-e20c-460a-8e35-d01c9b567dad';
 
 const tokenSchema = z.string().min(1, "Token é obrigatório");
 
@@ -24,13 +24,11 @@ export async function connectWhatsApp(token: string) {
         }
         
         const data = await response.json();
-
-        // The user explicitly provided this response format: { "qrcode": "..." }
+        
         if (data && data.qrcode) {
             return { qrCode: data.qrcode };
         }
         
-        // If the structure is different, return an error with the received data for debugging.
         console.error("Resposta inesperada da API do WhatsApp:", JSON.stringify(data));
         return { error: 'QR Code não encontrado na resposta da API. Formato inesperado.' };
 
