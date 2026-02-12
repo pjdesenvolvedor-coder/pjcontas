@@ -83,12 +83,6 @@ export function WhatsAppManager() {
     setIsCheckingStatus(false);
   }, []);
 
-  useEffect(() => {
-    if (savedToken) {
-      updateStatus(savedToken);
-    }
-  }, [savedToken, updateStatus]);
-
   const handleSaveToken = () => {
     if (!user || !firestore) return;
     const userRef = doc(firestore, 'users', user.uid);
@@ -98,8 +92,6 @@ export function WhatsAppManager() {
       title: "Token Salvo!",
       description: "Seu token da API do WhatsApp foi atualizado.",
     });
-    // Immediately check status with new token
-    updateStatus(token);
   };
   
   const handleConnect = () => {
