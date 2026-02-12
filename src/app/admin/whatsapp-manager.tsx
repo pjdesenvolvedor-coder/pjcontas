@@ -136,13 +136,7 @@ export function WhatsAppManager() {
         return;
     }
 
-    const qrCodeFromApi = result.qrCode;
-
-    if (qrCodeFromApi.startsWith('data:image')) {
-        setQrCode(qrCodeFromApi);
-    } else {
-        setQrCode(`data:image/png;base64,${qrCodeFromApi}`);
-    }
+    setQrCode(result.qrCode);
     setStatus('qrcode');
   };
 

@@ -7,7 +7,7 @@ const STATUS_URL = 'https://n8nbeta.typeflow.app.br/webhook/58da289a-e20c-460a-8
 
 const tokenSchema = z.string().min(1, "Token é obrigatório");
 
-export async function connectWhatsApp(token: string) {
+export async function connectWhatsApp(token: string): Promise<{ qrCode?: string; error?: string }> {
     try {
         tokenSchema.parse(token);
 
@@ -26,7 +26,11 @@ export async function connectWhatsApp(token: string) {
         const data = await response.json();
         
         if (data && data.qrcode) {
-            return { qrCode: data.qrcode };
+            // Garante que o retorno é uma string base64 completa para a imagem
+            if (data.qrcode.startsWith('data:image')) {
+                return { qrCode: data.qrcode };
+            }
+            return { qrCode: `data:image/png;base64,${data.qrcode}` };
         }
         
         console.error("Resposta inesperada da API do WhatsApp:", JSON.stringify(data));
