@@ -190,15 +190,25 @@ function CheckoutForm() {
       const valueInCents = Math.round(plan.price * 100);
       generatePixAction(valueInCents)
         .then(details => {
-          setPixDetails(details);
+          if (details.error) {
+            console.error("PIX Generation Error:", details.error);
+            toast({
+              variant: "destructive",
+              title: "Erro ao Gerar PIX",
+              description: details.error,
+              duration: 10000, // Show for longer
+            });
+          } else {
+            setPixDetails(details as PixDetails);
+          }
           setIsGeneratingPix(false);
         })
         .catch(err => {
-          console.error("PIX Generation Error:", err);
+          console.error("Unexpected PIX Generation Error:", err);
           toast({
             variant: "destructive",
-            title: "Erro ao Gerar PIX",
-            description: "Não foi possível gerar o código PIX. Por favor, recarregue a página.",
+            title: "Erro Inesperado",
+            description: "Ocorreu um erro inesperado ao gerar o PIX. Por favor, tente novamente.",
           });
           setIsGeneratingPix(false);
         });
@@ -212,19 +222,21 @@ function CheckoutForm() {
   }, [paymentStatus, isProcessingOrder, handleSuccessfulPayment]);
 
   useEffect(() => {
-    if (!pixDetails || paymentStatus === 'paid' || isProcessingOrder) {
+    if (!pixDetails?.id || paymentStatus === 'paid' || isProcessingOrder) {
       return;
     }
 
     const intervalId = setInterval(() => {
       checkPixStatusAction(pixDetails.id)
         .then(result => {
-          if (result.status === 'paid') {
+          if (result.error) {
+            console.error("PIX Status Check Error:", result.error);
+          } else if (result.status === 'paid') {
             setPaymentStatus('paid');
           }
         })
         .catch(err => {
-          console.error("PIX Status Check Error:", err);
+          console.error("Unexpected PIX Status Check Error:", err);
         });
     }, 5000);
 

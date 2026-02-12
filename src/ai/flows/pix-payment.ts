@@ -22,9 +22,10 @@ const GeneratePixInputSchema = z.object({
 export type GeneratePixInput = z.infer<typeof GeneratePixInputSchema>;
 
 const GeneratePixOutputSchema = z.object({
-  id: z.string().describe('The transaction ID.'),
-  qr_code: z.string().describe('The PIX copy-and-paste code.'),
-  qr_code_base64: z.string().describe('The QR code image in Base64.'),
+  id: z.string().describe('The transaction ID.').optional(),
+  qr_code: z.string().describe('The PIX copy-and-paste code.').optional(),
+  qr_code_base64: z.string().describe('The QR code image in Base64.').optional(),
+  error: z.string().describe('An error message if generation failed.').optional(),
 });
 export type GeneratePixOutput = z.infer<typeof GeneratePixOutputSchema>;
 
@@ -42,10 +43,10 @@ const generatePixFlow = ai.defineFlow(
   },
   async (input) => {
     if (!TOKEN) {
-      if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
-          throw new Error('CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não foi configurado para produção. Adicione a variável de ambiente PUSHINPAY_TOKEN nas configurações do seu projeto na Vercel.');
+      if (process.env.NODE_ENV === 'production' || process.env.VERCEL_URL) {
+          return { error: 'CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não foi configurado para produção. Adicione a variável de ambiente PUSHINPAY_TOKEN nas configurações do seu projeto na Vercel.' };
       } else {
-          throw new Error('CONFIGURAÇÃO INCOMPLETA: Para desenvolvimento local, crie um arquivo .env na raiz do projeto e adicione a linha: PUSHINPAY_TOKEN="seu_token_aqui"');
+          return { error: 'CONFIGURAÇÃO INCOMPLETA: Para desenvolvimento local, crie um arquivo .env na raiz do projeto e adicione a linha: PUSHINPAY_TOKEN="seu_token_aqui"' };
       }
     }
 
@@ -55,11 +56,10 @@ const generatePixFlow = ai.defineFlow(
       'Content-Type': 'application/json',
     };
 
-    // Dynamically create the webhook URL.
     // Vercel automatically provides the VERCEL_URL environment variable.
     const baseUrl = process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:9002'; // Fallback for local development.
+        : 'http://localhost:9002';
     
     const webhook_url = `${baseUrl}/api/webhook/pushinpay`;
 
@@ -68,25 +68,30 @@ const generatePixFlow = ai.defineFlow(
       webhook_url: webhook_url,
     };
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PushinPay Error:', errorText);
-      throw new Error(`Error generating PIX: ${response.status} ${errorText}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('PushinPay Error:', errorText);
+            return { error: `Erro ao comunicar com a API de pagamento: ${response.status} ${errorText}` };
+        }
+
+        const data = await response.json();
+
+        return {
+            id: data.id,
+            qr_code: data.qr_code,
+            qr_code_base64: data.qr_code_base64,
+        };
+    } catch (e: any) {
+        console.error('Network or other error in generatePixFlow:', e);
+        return { error: `Ocorreu um erro de conexão: ${e.message}` };
     }
-
-    const data = await response.json();
-
-    return {
-      id: data.id,
-      qr_code: data.qr_code,
-      qr_code_base64: data.qr_code_base64,
-    };
   }
 );
 
@@ -98,7 +103,8 @@ const CheckPixStatusInputSchema = z.object({
 export type CheckPixStatusInput = z.infer<typeof CheckPixStatusInputSchema>;
 
 const CheckPixStatusOutputSchema = z.object({
-  status: z.string().describe('The payment status (e.g., pending, paid).'),
+  status: z.string().describe('The payment status (e.g., pending, paid).').optional(),
+  error: z.string().describe('An error message if the check failed.').optional(),
 });
 export type CheckPixStatusOutput = z.infer<typeof CheckPixStatusOutputSchema>;
 
@@ -116,10 +122,10 @@ const checkPixStatusFlow = ai.defineFlow(
   },
   async (input) => {
     if (!TOKEN) {
-        if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
-            throw new Error('CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não foi configurado para produção. Adicione a variável de ambiente PUSHINPAY_TOKEN nas configurações do seu projeto na Vercel.');
+        if (process.env.NODE_ENV === 'production' || process.env.VERCEL_URL) {
+            return { error: 'CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não está configurado para produção.' };
         } else {
-            throw new Error('CONFIGURAÇÃO INCOMPLETA: Para desenvolvimento local, crie um arquivo .env na raiz do projeto e adicione a linha: PUSHINPAY_TOKEN="seu_token_aqui"');
+            return { error: 'CONFIGURAÇÃO INCOMPLETA: O token da API de pagamento não está configurado para desenvolvimento local.' };
         }
     }
 
@@ -129,20 +135,23 @@ const checkPixStatusFlow = ai.defineFlow(
       'Content-Type': 'application/json',
     };
 
-    const response = await fetch(`${API_URL_STATUS}${input.transactionId}`, {
-      method: 'GET',
-      headers,
-    });
+    try {
+        const response = await fetch(`${API_URL_STATUS}${input.transactionId}`, {
+            method: 'GET',
+            headers,
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('PushinPay Status Check Error:', errorText);
-      throw new Error(
-        `Error checking PIX status: ${response.status} ${errorText}`
-      );
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('PushinPay Status Check Error:', errorText);
+            return { error: `Erro ao verificar status do PIX: ${response.status} ${errorText}` };
+        }
+
+        const data = await response.json();
+        return { status: data.status };
+    } catch(e: any) {
+        console.error('Network or other error in checkPixStatusFlow:', e);
+        return { error: `Ocorreu um erro de conexão ao verificar o status: ${e.message}` };
     }
-
-    const data = await response.json();
-    return { status: data.status };
   }
 );
