@@ -54,6 +54,8 @@ export function SignupForm({ setOpen }: SignupFormProps) {
         unsubscribe(); // Unsubscribe to avoid running this for other auth state changes
         
         const displayName = values.firstName;
+        const formattedPhoneNumber = values.phoneNumber.replace(/\D/g, '');
+
         // 1. Update user profile in Auth
         updateProfile(newUser, { displayName }).catch(err => console.error("Update profile error", err));
 
@@ -63,18 +65,23 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             id: newUser.uid,
             email: values.email,
             firstName: values.firstName,
-            phoneNumber: values.phoneNumber,
+            phoneNumber: formattedPhoneNumber,
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
         setDocumentNonBlocking(userRef, userData, { merge: false });
         
         // 3. Queue welcome message
-        if (values.phoneNumber) {
-            const pendingMessagesRef = collection(firestore, 'pending_welcome_messages');
+        if (formattedPhoneNumber) {
+            const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
             addDocumentNonBlocking(pendingMessagesRef, {
-                phoneNumber: values.phoneNumber,
+                type: 'welcome',
+                recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),
+                data: {
+                    customerName: values.firstName,
+                    customerEmail: values.email,
+                }
             });
         }
 
