@@ -100,9 +100,9 @@ function CheckoutForm() {
       const sellerProfile = sellerProfileSnap.data() as UserProfile;
       const customerProfile = customerProfileSnap.data() as UserProfile;
       
-      // FORAÇAR ASSINATURA VENCIDA PARA TESTES
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + 30);
 
       const userSubscriptionsRef = collection(firestore, 'users', user.uid, 'userSubscriptions');
       const newSubscriptionData = {
@@ -112,8 +112,8 @@ function CheckoutForm() {
         planName: plan.name,
         serviceName: service.name,
         price: plan.price,
-        startDate: new Date().toISOString(),
-        endDate: yesterday.toISOString(), // MUDANÇA PARA TESTE: A assinatura já nasce vencida.
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         paymentMethod: 'PIX',
         bannerUrl: plan.bannerUrl,
       };
