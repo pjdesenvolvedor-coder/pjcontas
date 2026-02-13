@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { differenceInDays } from 'date-fns';
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
   if (!purchase.ticketId) {
@@ -36,11 +37,14 @@ function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
 
   let expirationText = 'Calculando...';
   let badgeVariant: "outline" | "destructive" = "outline";
+  let isExpired = false;
 
   if (isClient) {
     const endDate = new Date(purchase.endDate);
     const today = new Date();
     const daysRemaining = differenceInDays(endDate, today);
+
+    isExpired = daysRemaining < 0;
 
     if (daysRemaining < 0) {
       expirationText = 'Expirado';
@@ -66,8 +70,16 @@ function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
             src={purchase.bannerUrl || 'https://placehold.co/600x400/2196F3/FFFFFF/png?text=Anuncio'}
             alt={purchase.planName}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className={cn(
+              "object-cover transition-transform duration-300 group-hover:scale-105",
+              isExpired && "blur-sm"
+            )}
           />
+           {isExpired && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
+              <p className="text-white text-center font-semibold">Clique aqui para renovar a assinatura</p>
+            </div>
+          )}
         </div>
         <CardContent className="flex flex-1 flex-col justify-between p-4">
           <div>
