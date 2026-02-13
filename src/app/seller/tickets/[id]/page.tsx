@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -18,6 +18,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean }) {
+    const isSystemMessage = message.senderId === 'system';
+    
+    if (isSystemMessage) {
+        return (
+            <div className="text-center text-xs text-muted-foreground p-2 my-2 rounded-md bg-muted/50 border">
+                {message.text}
+            </div>
+        )
+    }
+
     return (
         <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
             {!isOwnMessage && (
@@ -186,6 +196,7 @@ export default function TicketChatPage() {
     };
     
     const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading || isCustomerLoading;
+    const isExpired = userSubscription ? new Date() > new Date(userSubscription.endDate) : false;
 
     if (isLoading) {
         return (
@@ -299,24 +310,36 @@ export default function TicketChatPage() {
                         <CardDescription>Converse com o {user?.uid === ticket.customerId ? 'vendedor' : 'comprador'} aqui.</CardDescription>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                    <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
-                        <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
-                        <p>O suporte será prestado por esse chat!</p>
-                    </div>
-                    {messages?.map(msg => (
-                        <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
-                    ))}
-                    <div ref={chatEndRef} />
-                </CardContent>
+                <div className="relative flex-1">
+                    <CardContent className="absolute inset-0 overflow-y-auto p-4 space-y-4">
+                        <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
+                            <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
+                            <p>O suporte será prestado por esse chat!</p>
+                        </div>
+                        {messages?.map(msg => (
+                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
+                        ))}
+                        <div ref={chatEndRef} />
+                    </CardContent>
+                    
+                    {isExpired && (
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 gap-4 p-4 text-center">
+                            <AlertCircle className="w-12 h-12 text-destructive"/>
+                            <h3 className="text-xl font-bold text-destructive">Assinatura Vencida</h3>
+                            <p className="text-muted-foreground">O chat está bloqueado pois a assinatura do cliente expirou. Aguardando renovação.</p>
+                        </div>
+                    )}
+                </div>
+
                 <CardFooter className="p-4 border-t">
-                    <form action={handleSendMessage} className="flex w-full items-center space-x-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex w-full items-center space-x-2">
                         <Input 
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
-                            placeholder="Digite sua mensagem..."
+                            placeholder={isExpired ? "Chat bloqueado até a renovação" : "Digite sua mensagem..."}
+                            disabled={isExpired || !user}
                         />
-                        <Button type="submit" disabled={!newMessage.trim()}>
+                        <Button type="submit" disabled={!newMessage.trim() || isExpired || !user}>
                             <Send className="h-4 w-4" />
                             <span className="sr-only">Enviar</span>
                         </Button>

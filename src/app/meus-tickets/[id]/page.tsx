@@ -9,15 +9,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { generatePixAction, checkPixStatusAction } from '@/app/checkout/actions';
+import { Label } from '@/components/ui/label';
+
+type PixDetails = {
+  id: string;
+  qr_code: string;
+  qr_code_base64: string;
+};
 
 function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean }) {
+    const isSystemMessage = message.senderId === 'system';
+    
+    if (isSystemMessage) {
+        return (
+            <div className="text-center text-xs text-muted-foreground p-2 my-2 rounded-md bg-muted/50 border">
+                {message.text}
+            </div>
+        )
+    }
+
     return (
         <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
             {!isOwnMessage && (
@@ -83,8 +103,15 @@ export default function TicketChatPage() {
     
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
     const [newMessage, setNewMessage] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    // Renewal State
+    const [isRenewing, setIsRenewing] = useState(false);
+    const [renewalPixDetails, setRenewalPixDetails] = useState<PixDetails | null>(null);
+    const [renewalPaymentStatus, setRenewalPaymentStatus] = useState('pending');
+
 
     // Ticket
     const ticketRef = useMemoFirebase(() => (firestore && ticketId) ? doc(firestore, 'tickets', ticketId) : null, [firestore, ticketId]);
@@ -184,7 +211,92 @@ export default function TicketChatPage() {
         
         setNewMessage('');
     };
+
+    const isExpired = userSubscription ? new Date() > new Date(userSubscription.endDate) : false;
     
+    const handleRenew = async () => {
+        if (!userSubscription) return;
+        setIsRenewing(true);
+        setRenewalPaymentStatus('pending');
+        setRenewalPixDetails(null);
+
+        const valueInCents = Math.round(userSubscription.price * 100);
+        const pixResult = await generatePixAction(valueInCents);
+        
+        if (pixResult.error || !pixResult.id || !pixResult.qr_code || !pixResult.qr_code_base64) {
+             toast({
+                variant: 'destructive',
+                title: 'Erro ao gerar PIX para renovação',
+                description: pixResult.error || 'Não foi possível obter os detalhes do PIX.'
+            });
+            setIsRenewing(false);
+            return;
+        }
+        
+        setRenewalPixDetails({
+            id: pixResult.id,
+            qr_code: pixResult.qr_code,
+            qr_code_base64: pixResult.qr_code_base64
+        });
+    };
+
+    useEffect(() => {
+        if (!renewalPixDetails?.id || renewalPaymentStatus === 'paid' || !isRenewing) {
+          return;
+        }
+
+        const intervalId = setInterval(async () => {
+          const result = await checkPixStatusAction(renewalPixDetails.id);
+          if (result.status === 'paid') {
+            setRenewalPaymentStatus('paid');
+            clearInterval(intervalId);
+          }
+        }, 5000);
+
+        return () => clearInterval(intervalId);
+    }, [renewalPixDetails, renewalPaymentStatus, isRenewing]);
+    
+    useEffect(() => {
+        if (renewalPaymentStatus === 'paid' && firestore && userSubscriptionRef && ticketRef) {
+            
+            const newEndDate = new Date();
+            newEndDate.setDate(newEndDate.getDate() + 30);
+
+            updateDocumentNonBlocking(userSubscriptionRef, { endDate: newEndDate.toISOString() });
+            
+            const messagesCollection = collection(firestore, 'tickets', ticketRef.id, 'messages');
+            const renewalMessage = {
+                ticketId: ticketRef.id,
+                senderId: 'system',
+                senderName: 'Sistema',
+                text: `✅ Assinatura renovada com sucesso! Novo vencimento em ${newEndDate.toLocaleDateString('pt-BR')}.`,
+                timestamp: new Date().toISOString(),
+            };
+            addDocumentNonBlocking(messagesCollection, renewalMessage);
+
+            const ticketUpdatePayload = {
+                lastMessageText: 'Assinatura renovada com sucesso!',
+                lastMessageAt: new Date().toISOString(),
+                unreadBySellerCount: increment(1),
+                unreadByCustomerCount: 0, 
+            };
+            updateDocumentNonBlocking(ticketRef, ticketUpdatePayload);
+
+            toast({
+                title: 'Assinatura Renovada!',
+                description: 'Seu acesso foi reestabelecido.',
+            });
+            setIsRenewing(false);
+            setRenewalPixDetails(null);
+            setRenewalPaymentStatus('pending');
+        }
+    }, [renewalPaymentStatus, firestore, userSubscriptionRef, ticketRef, toast]);
+    
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Código PIX copiado!" });
+    };
+
     const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading || isCustomerLoading;
 
     if (isLoading) {
@@ -214,6 +326,45 @@ export default function TicketChatPage() {
 
     return (
         <div className="container mx-auto max-w-4xl py-8">
+            <Dialog open={isRenewing && !!renewalPixDetails} onOpenChange={(open) => { if(!open) setIsRenewing(false)}}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2"><QrCode /> Renovar com PIX</DialogTitle>
+                        <DialogDescription>Escaneie ou copie o código para renovar sua assinatura.</DialogDescription>
+                    </DialogHeader>
+                    {renewalPaymentStatus === 'pending' && renewalPixDetails ? (
+                        <div className="flex flex-col items-center gap-4 py-4">
+                            <div className="p-4 bg-white rounded-lg border">
+                                <Image src={renewalPixDetails.qr_code_base64} alt="PIX QR Code" width={200} height={200} />
+                            </div>
+                            <p className="text-sm text-muted-foreground">Aguardando pagamento...</p>
+                            <div className="w-full space-y-2">
+                                <Label htmlFor="pix-code" className="sr-only">PIX Copia e Cola</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input id="pix-code" readOnly value={renewalPixDetails.qr_code} onClick={() => copyToClipboard(renewalPixDetails.qr_code)} className="truncate" />
+                                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(renewalPixDetails.qr_code)}><Copy className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : renewalPaymentStatus === 'paid' ? (
+                         <div className="flex flex-col items-center gap-4 py-8 text-center">
+                            <CheckCircle className="h-16 w-16 text-green-600" />
+                            <h3 className="text-xl font-bold">Pagamento Aprovado!</h3>
+                            <p className="text-muted-foreground">Reativando sua assinatura...</p>
+                            <Loader2 className="h-8 w-8 animate-spin text-primary mt-2" />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-4 py-8 text-center">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            <p className="text-muted-foreground">Gerando PIX...</p>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsRenewing(false)}>Fechar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Purchase Details Section */}
             <div className="mb-8 space-y-4">
                 <div className="flex items-center gap-4">
@@ -299,24 +450,37 @@ export default function TicketChatPage() {
                         <CardDescription>Converse com o {user?.uid === ticket.customerId ? 'vendedor' : 'comprador'} aqui.</CardDescription>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                    <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
-                        <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
-                        <p>O suporte será prestado por esse chat!</p>
-                    </div>
-                    {messages?.map(msg => (
-                        <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
-                    ))}
-                    <div ref={chatEndRef} />
-                </CardContent>
+                <div className="relative flex-1">
+                    <CardContent className="absolute inset-0 overflow-y-auto p-4 space-y-4">
+                        <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
+                            <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
+                            <p>O suporte será prestado por esse chat!</p>
+                        </div>
+                        {messages?.map(msg => (
+                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
+                        ))}
+                        <div ref={chatEndRef} />
+                    </CardContent>
+
+                     {isExpired && (
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 gap-4 p-4 text-center">
+                            <h3 className="text-2xl font-bold text-destructive">Sua Assinatura Venceu</h3>
+                            <p className="text-muted-foreground">Renove para continuar conversando e manter seu acesso.</p>
+                            <Button onClick={handleRenew} disabled={isRenewing}>
+                                {isRenewing ? <Loader2 className="animate-spin" /> : "Renovar Assinatura"}
+                            </Button>
+                        </div>
+                    )}
+                </div>
                 <CardFooter className="p-4 border-t">
-                    <form action={handleSendMessage} className="flex w-full items-center space-x-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex w-full items-center space-x-2">
                         <Input 
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
-                            placeholder="Digite sua mensagem..."
+                            placeholder={isExpired ? "Renove para enviar mensagens" : "Digite sua mensagem..."}
+                            disabled={isExpired || !user}
                         />
-                        <Button type="submit" disabled={!newMessage.trim()}>
+                        <Button type="submit" disabled={!newMessage.trim() || isExpired || !user}>
                             <Send className="h-4 w-4" />
                             <span className="sr-only">Enviar</span>
                         </Button>
