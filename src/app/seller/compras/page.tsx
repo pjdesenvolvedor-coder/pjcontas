@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { differenceInDays } from 'date-fns';
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
   if (!purchase.ticketId) {
@@ -159,10 +160,13 @@ export default function UserPurchasesPage() {
                 ))}
               </div>
           ) : (
-            <div className="text-center py-12">
+            <div className="text-center py-12 space-y-4">
               <p className="text-lg text-muted-foreground">
                 Você ainda não fez nenhuma compra.
               </p>
+              <Button asChild>
+                <Link href="/">Adquirir uma assinatura agora</Link>
+              </Button>
             </div>
           )}
       </div>
