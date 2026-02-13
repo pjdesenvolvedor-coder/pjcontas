@@ -22,7 +22,6 @@ function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
            <div className="relative h-32 w-full overflow-hidden bg-muted"></div>
             <CardContent className="flex flex-1 flex-col justify-between p-4">
                  <div>
-                    <p className="text-sm font-medium text-primary">{purchase.serviceName}</p>
                     <h3 className="font-bold text-lg truncate">{purchase.planName}</h3>
                 </div>
                 <p className="p-4 text-sm text-center text-muted-foreground">Ticket ainda não gerado.</p>
@@ -44,7 +43,6 @@ function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
         </div>
         <CardContent className="flex flex-1 flex-col justify-between p-4">
           <div>
-            <p className="text-sm font-medium text-primary">{purchase.serviceName}</p>
             <h3 className="font-bold text-lg truncate">{purchase.planName}</h3>
           </div>
           <div className="mt-2">
