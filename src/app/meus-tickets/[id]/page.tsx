@@ -327,7 +327,7 @@ export default function TicketChatPage() {
     return (
         <div className="container mx-auto max-w-4xl py-8">
             <Dialog open={isRenewing && !!renewalPixDetails} onOpenChange={(open) => { if(!open) setIsRenewing(false)}}>
-                <DialogContent>
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2"><QrCode /> Renovar com PIX</DialogTitle>
                         <DialogDescription>Escaneie ou copie o código para renovar sua assinatura.</DialogDescription>
@@ -341,7 +341,7 @@ export default function TicketChatPage() {
                             <div className="w-full space-y-2">
                                 <Label htmlFor="pix-code" className="sr-only">PIX Copia e Cola</Label>
                                 <div className="flex items-center gap-2">
-                                    <Input id="pix-code" readOnly value={renewalPixDetails.qr_code} onClick={() => copyToClipboard(renewalPixDetails.qr_code)} className="truncate" />
+                                    <Input id="pix-code" readOnly value={renewalPixDetails.qr_code} onClick={() => copyToClipboard(renewalPixDetails.qr_code)} className="truncate cursor-pointer" />
                                     <Button variant="outline" size="icon" onClick={() => copyToClipboard(renewalPixDetails.qr_code)}><Copy className="h-4 w-4" /></Button>
                                 </div>
                             </div>
@@ -490,3 +490,5 @@ export default function TicketChatPage() {
         </div>
     );
 }
+
+    
