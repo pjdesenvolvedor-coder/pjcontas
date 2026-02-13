@@ -11,8 +11,7 @@ import type { UserSubscription } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { differenceInDays } from 'date-fns';
 import React from 'react';
 
 function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
@@ -30,6 +29,35 @@ function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
     );
   }
 
+  const [isClient, setIsClient] = React.useState(false);
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  let expirationText = 'Calculando...';
+  let badgeVariant: "outline" | "destructive" = "outline";
+
+  if (isClient) {
+    const endDate = new Date(purchase.endDate);
+    const today = new Date();
+    const daysRemaining = differenceInDays(endDate, today);
+
+    if (daysRemaining < 0) {
+      expirationText = 'Expirado';
+    } else if (daysRemaining === 0) {
+      expirationText = 'Expira hoje';
+    } else if (daysRemaining === 1) {
+      expirationText = 'Expira em 1 dia';
+    } else {
+      expirationText = `Expira em ${daysRemaining} dias`;
+    }
+
+    if (daysRemaining < 3) {
+      badgeVariant = 'destructive';
+    }
+  }
+
+
   return (
     <Link href={`/meus-tickets/${purchase.ticketId}`}>
       <Card className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:shadow-lg group h-full">
@@ -46,8 +74,8 @@ function PurchaseCard({ purchase }: { purchase: UserSubscription }) {
             <h3 className="font-bold text-lg truncate">{purchase.planName}</h3>
           </div>
           <div className="mt-2">
-            <Badge variant="outline">
-              Expira em {formatDistanceToNow(new Date(purchase.endDate), { locale: ptBR })}
+            <Badge variant={badgeVariant}>
+              {expirationText}
             </Badge>
           </div>
         </CardContent>
