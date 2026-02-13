@@ -178,6 +178,16 @@ function UserProfileCard({
                     </FormItem>
                     )}
                 />
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      readOnly
+                      value={userProfile.email || ''}
+                      className="cursor-not-allowed bg-muted/50 border-dashed"
+                    />
+                  </FormControl>
+                </FormItem>
               </div>
             </div>
             
