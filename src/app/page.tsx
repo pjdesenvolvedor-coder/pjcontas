@@ -2,16 +2,25 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, LifeBuoy, ArrowDown } from 'lucide-react';
+import { BadgeCheck, LifeBuoy, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  useDoc,
+} from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
-import type { Plan, UserProfile } from '@/lib/types';
+import type {
+  Plan,
+  SpecialCouponsConfig,
+  Coupon,
+} from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import React, { useEffect, useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AbandonedCartOffer } from '@/components/abandoned-cart-offer';
 
 
 function PlanCard({ plan }: { plan: Plan }) {
@@ -55,6 +64,34 @@ export default function Home() {
   );
   const { data: subscriptions, isLoading } = useCollection<Plan>(subscriptionsRef);
 
+  const [showAbandonedOffer, setShowAbandonedOffer] = useState(false);
+  const [specialCoupon, setSpecialCoupon] = useState<Coupon | null>(null);
+  const [abandonedPlan, setAbandonedPlan] = useState<Plan | null>(null);
+
+  // Fetch special coupon config
+  const specialCouponsConfigRef = useMemoFirebase(() => doc(firestore, 'configs', 'special_coupons'), [firestore]);
+  const { data: specialCouponsConfig } = useDoc<SpecialCouponsConfig>(specialCouponsConfigRef);
+
+  // Fetch the actual coupon document based on the ID from the config
+  const specialCouponRef = useMemoFirebase(() => {
+      if (!firestore || !specialCouponsConfig?.abandonedCartCouponId) return null;
+      return doc(firestore, 'coupons', specialCouponsConfig.abandonedCartCouponId);
+  }, [firestore, specialCouponsConfig]);
+  const { data: fetchedSpecialCoupon } = useDoc<Coupon>(specialCouponRef);
+
+  useEffect(() => {
+    // This effect runs only on the client
+    const abandonedPlanId = sessionStorage.getItem('abandoned_checkout_plan_id');
+    if (abandonedPlanId && subscriptions && fetchedSpecialCoupon) {
+        const plan = subscriptions.find(p => p.id === abandonedPlanId);
+        if (plan) {
+            setAbandonedPlan(plan);
+            setSpecialCoupon(fetchedSpecialCoupon);
+            setShowAbandonedOffer(true);
+        }
+    }
+  }, [subscriptions, fetchedSpecialCoupon]);
+
   const boostedPlans = React.useMemo(() => subscriptions?.filter(plan => plan.isBoosted) || [], [subscriptions]);
   const regularPlans = React.useMemo(() => subscriptions?.filter(plan => !plan.isBoosted) || [], [subscriptions]);
 
@@ -75,6 +112,16 @@ export default function Home() {
 
   return (
     <div>
+      <AbandonedCartOffer
+        isOpen={showAbandonedOffer}
+        onClose={() => {
+            setShowAbandonedOffer(false);
+            sessionStorage.removeItem('abandoned_checkout_plan_id');
+        }}
+        coupon={specialCoupon}
+        serviceId={abandonedPlan?.serviceId || null}
+        planId={abandonedPlan?.id || null}
+      />
       <section className="pt-16 md:pt-24 pb-8 bg-card">
         <div className="container mx-auto text-center px-4 md:px-6">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-primary font-headline">
