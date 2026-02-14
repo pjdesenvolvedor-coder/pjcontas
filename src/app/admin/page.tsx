@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash, Loader2, MoreHorizontal } from 'lucide-react';
@@ -33,6 +32,7 @@ import { WhatsAppManager } from './whatsapp-manager';
 import { WhatsappMessageManager } from './whatsapp-message-manager';
 import { WhatsAppMessageDaemon } from './whatsapp-message-daemon';
 import { CouponManagement } from './coupon-management';
+import { PaymentProviderManager } from './payment-provider-manager';
 
 
 type UserProfile = {
@@ -41,12 +41,6 @@ type UserProfile = {
 
 const serviceSchema = z.object({
   name: z.string().min(2, "O nome é obrigatório."),
-  description: z.string().min(10, "A descrição curta é obrigatória."),
-  longDescription: z.string().min(20, "A descrição longa é obrigatória."),
-  logoUrl: z.string().url("URL do logo inválida."),
-  imageHint: z.string().optional(),
-  bannerUrl: z.string().url("URL do banner inválida."),
-  bannerHint: z.string().optional(),
 });
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
@@ -64,12 +58,6 @@ function ServiceForm({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
       name: service?.name || '',
-      description: service?.description || '',
-      longDescription: service?.longDescription || '',
-      logoUrl: service?.logoUrl || '',
-      imageHint: service?.imageHint || '',
-      bannerUrl: service?.bannerUrl || '',
-      bannerHint: service?.bannerHint || '',
     },
   });
 
@@ -85,72 +73,6 @@ function ServiceForm({
             <FormItem>
               <FormLabel>Nome do Serviço</FormLabel>
               <FormControl><Input placeholder="Ex: Netflix" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição Curta</FormLabel>
-              <FormControl><Textarea placeholder="Uma descrição breve para listas" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="longDescription"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição Longa</FormLabel>
-              <FormControl><Textarea placeholder="Uma descrição detalhada para a página do serviço" {...field} rows={4} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="logoUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL do Logo</FormLabel>
-              <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="imageHint"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Dica para IA (Logo)</FormLabel>
-              <FormControl><Input placeholder="Ex: streaming service" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="bannerUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL do Banner</FormLabel>
-              <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="bannerHint"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Dica para IA (Banner)</FormLabel>
-              <FormControl><Input placeholder="Ex: movie collage" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -212,7 +134,7 @@ function ServiceManagement() {
   
   const handleSave = (values: ServiceFormData) => {
     if (editingService) {
-      // Update
+      // Update only the name
       const serviceRef = doc(firestore, 'services', editingService.id);
       setDocumentNonBlocking(serviceRef, values, { merge: true });
       toast({
@@ -220,9 +142,18 @@ function ServiceManagement() {
         description: 'As alterações foram salvas.',
       });
     } else {
-      // Create
+      // Create new service with placeholder data for other fields
       const newServiceRef = doc(collection(firestore, 'services'));
-      const newServiceData = { ...values, id: newServiceRef.id };
+      const newServiceData = { 
+        ...values, // just 'name'
+        id: newServiceRef.id,
+        description: `Descrição para ${values.name}`,
+        longDescription: `Descrição longa e detalhada para ${values.name}`,
+        logoUrl: `https://placehold.co/200x100/cccccc/FFFFFF/png?text=${encodeURIComponent(values.name)}`,
+        imageHint: 'logo',
+        bannerUrl: `https://placehold.co/600x300/cccccc/FFFFFF/png?text=${encodeURIComponent(values.name)}`,
+        bannerHint: 'banner'
+      };
       setDocumentNonBlocking(newServiceRef, newServiceData, { merge: false });
       toast({
         title: 'Serviço Criado!',
@@ -287,7 +218,6 @@ function ServiceManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -295,7 +225,6 @@ function ServiceManagement() {
                 {services.map((service) => (
                   <TableRow key={service.id}>
                     <TableCell className="font-medium">{service.name}</TableCell>
-                    <TableCell>{service.description}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(service)}>
@@ -534,10 +463,11 @@ export default function AdminPage() {
       </header>
       
       <Tabs defaultValue="services" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="coupons">Cupons</TabsTrigger>
+          <TabsTrigger value="payments">Pagamentos</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
         </TabsList>
@@ -549,6 +479,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="coupons" className="mt-6">
           <CouponManagement />
+        </TabsContent>
+        <TabsContent value="payments" className="mt-6">
+            <PaymentProviderManager />
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6">
           <WhatsAppManager />
