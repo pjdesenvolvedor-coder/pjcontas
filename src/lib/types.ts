@@ -134,3 +134,17 @@ export type Coupon = {
   name: string;
   discountPercentage: number;
 };
+
+// Represents the central payment provider configuration.
+export type PaymentProvider = 'axenpay' | 'pushinpay';
+
+export type PaymentConfig = {
+  activeProvider: PaymentProvider;
+  axenpay?: {
+    clientId: string;
+    clientSecret: string;
+  };
+  pushinpay?: {
+    apiKey: string;
+  };
+};
