@@ -95,10 +95,15 @@ async function generateAxenpayPix(config: PaymentConfig, valueInCents: number) {
     const data = await response.json();
     const qr = data.qrCodeResponse;
     
+    let base64Image = qr.qrCodeImage || qr.qrCodeBase64;
+    if (base64Image && !base64Image.startsWith('data:image')) {
+        base64Image = `data:image/png;base64,${base64Image}`;
+    }
+
     return {
         id: qr.transactionId,
         qr_code: qr.qrcode,
-        qr_code_base64: qr.qrCodeImage || qr.qrCodeBase64,
+        qr_code_base64: base64Image || undefined,
     };
 }
 
@@ -161,10 +166,15 @@ async function generatePushinpayPix(config: PaymentConfig, valueInCents: number)
           return { error: 'ID da transação não encontrado na resposta da PushinPay.' };
         }
 
+        let base64Image = data.qr_code_base64;
+        if (base64Image && !base64Image.startsWith('data:image')) {
+            base64Image = `data:image/png;base64,${base64Image}`;
+        }
+
         return {
             id: transactionId,
             qr_code: data.qr_code,
-            qr_code_base64: data.qr_code_base64,
+            qr_code_base64: base64Image || undefined,
         };
 
     } catch (e: any) {

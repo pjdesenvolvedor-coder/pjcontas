@@ -191,7 +191,7 @@ function CheckoutForm() {
           ticketId: newTicketRef.id,
           senderId: plan.sellerId,
           senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
-          text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${deliverableData.content}\'\'\'`,
+          text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${'deliverableData.content'}\'\'\'`,
           timestamp: new Date().toISOString(),
         };
         addDocumentNonBlocking(chatMessagesCollection, deliveryMessage);
@@ -480,9 +480,19 @@ function CheckoutForm() {
 
               {pixDetails && paymentStatus !== 'paid' && (
                 <>
-                  <div className="p-4 bg-white rounded-lg border">
-                    <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} />
-                  </div>
+                  {pixDetails.qr_code_base64 ? (
+                    <div className="p-4 bg-white rounded-lg border">
+                      <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} />
+                    </div>
+                  ) : (
+                    <div className="flex h-[288px] w-[288px] flex-col items-center justify-center rounded-lg border bg-muted/50 p-4 text-center">
+                      <QrCode className="h-16 w-16 text-muted-foreground" />
+                      <p className="mt-4 text-sm font-medium">QR Code indisponível</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Use a opção "PIX Copia e Cola" abaixo.
+                      </p>
+                    </div>
+                  )}
                   <p className="text-muted-foreground text-sm">Aguardando pagamento...</p>
                   <div className="w-full space-y-2">
                     <Label htmlFor="pix-code">PIX Copia e Cola</Label>
