@@ -359,6 +359,25 @@
         "text",
         "timestamp"
       ]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Represents a discount coupon that can be applied at checkout.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The coupon code that users will enter. This is also the document ID."
+        },
+        "discountPercentage": {
+          "type": "number",
+          "description": "The discount percentage (e.g., 10 for 10%)."
+        }
+      },
+      "required": [
+        "name",
+        "discountPercentage"
+      ]
     }
   },
   "auth": {
@@ -489,6 +508,22 @@
             {
               "name": "messageId",
               "description": "The unique identifier of the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/coupons/{couponId}",
+        "definition": {
+          "entityName": "Coupon",
+          "schema": {
+            "$ref": "#/backend/entities/Coupon"
+          },
+          "description": "Stores all available discount coupons. Publicly readable, but only writable by admins.",
+          "params": [
+            {
+              "name": "couponId",
+              "description": "The unique identifier of the coupon, often the coupon name itself."
             }
           ]
         }

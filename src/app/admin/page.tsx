@@ -32,6 +32,7 @@ import {
 import { WhatsAppManager } from './whatsapp-manager';
 import { WhatsappMessageManager } from './whatsapp-message-manager';
 import { WhatsAppMessageDaemon } from './whatsapp-message-daemon';
+import { CouponManagement } from './coupon-management';
 
 
 type UserProfile = {
@@ -533,9 +534,10 @@ export default function AdminPage() {
       </header>
       
       <Tabs defaultValue="services" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="coupons">Cupons</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
         </TabsList>
@@ -544,6 +546,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="users" className="mt-6">
           <UserManagement />
+        </TabsContent>
+        <TabsContent value="coupons" className="mt-6">
+          <CouponManagement />
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6">
           <WhatsAppManager />

@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Loader2, QrCode, CheckCircle, Info } from 'lucide-react';
+import { Copy, Loader2, QrCode, CheckCircle, Info, Ticket as CouponIcon } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -43,10 +43,11 @@ import {
   increment,
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Plan, SubscriptionService, Deliverable, UserProfile } from '@/lib/types';
+import type { Plan, SubscriptionService, Deliverable, UserProfile, Coupon } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { generatePixAction, checkPixStatusAction } from './actions';
+import { generatePixAction, checkPixStatusAction, validateCouponAction } from './actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type PixDetails = {
   id: string;
@@ -63,6 +64,13 @@ function CheckoutForm() {
 
   const serviceId = searchParams.get('serviceId');
   const planId = searchParams.get('planId');
+
+  const [checkoutStep, setCheckoutStep] = useState<'coupon' | 'payment'>('coupon');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
 
   const [pixDetails, setPixDetails] = useState<PixDetails | null>(null);
   const [isGeneratingPix, setIsGeneratingPix] = useState(true);
@@ -82,8 +90,14 @@ function CheckoutForm() {
   );
   const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
 
+  useEffect(() => {
+    if (plan) {
+      setFinalPrice(plan.price);
+    }
+  }, [plan]);
+
   const handleSuccessfulPayment = useCallback(async () => {
-    if (isProcessingOrder || !user || !plan || !service || !firestore) return;
+    if (isProcessingOrder || !user || !plan || !service || !firestore || finalPrice === null) return;
 
     setIsProcessingOrder(true);
 
@@ -111,7 +125,7 @@ function CheckoutForm() {
         serviceId: service.id,
         planName: plan.name,
         serviceName: service.name,
-        price: plan.price,
+        price: finalPrice, // Use final discounted price
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         paymentMethod: 'PIX',
@@ -216,7 +230,7 @@ function CheckoutForm() {
                   customerName: customerProfile.firstName,
                   serviceName: service.name,
                   planName: plan.name,
-                  price: plan.price
+                  price: finalPrice
               }
           });
       }
@@ -237,11 +251,11 @@ function CheckoutForm() {
       });
       setIsProcessingOrder(false);
     }
-  }, [user, plan, service, firestore, toast, router, isProcessingOrder]);
+  }, [user, plan, service, firestore, toast, router, isProcessingOrder, finalPrice]);
 
   useEffect(() => {
-    if (plan && !pixDetails && isGeneratingPix) {
-      const valueInCents = Math.round(plan.price * 100);
+    if (checkoutStep === 'payment' && finalPrice !== null && !pixDetails && isGeneratingPix) {
+      const valueInCents = Math.round(finalPrice * 100);
       generatePixAction(valueInCents)
         .then(details => {
           if (details.error) {
@@ -250,7 +264,7 @@ function CheckoutForm() {
               variant: "destructive",
               title: "Erro ao Gerar PIX",
               description: details.error,
-              duration: 10000, // Show for longer
+              duration: 10000,
             });
           } else {
             setPixDetails(details as PixDetails);
@@ -267,7 +281,7 @@ function CheckoutForm() {
           setIsGeneratingPix(false);
         });
     }
-  }, [plan, pixDetails, isGeneratingPix, toast]);
+  }, [checkoutStep, finalPrice, pixDetails, isGeneratingPix, toast]);
 
   useEffect(() => {
     if (paymentStatus === 'paid' && !isProcessingOrder) {
@@ -296,6 +310,32 @@ function CheckoutForm() {
 
     return () => clearInterval(intervalId);
   }, [pixDetails, paymentStatus, isProcessingOrder]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || !plan) return;
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+    const result = await validateCouponAction(couponCode);
+    if (result.error) {
+        setCouponError(result.error);
+        setAppliedCoupon(null);
+        setFinalPrice(plan.price);
+    } else if (result.data) {
+        setAppliedCoupon(result.data);
+        const discount = plan.price * (result.data.discountPercentage / 100);
+        setFinalPrice(plan.price - discount);
+        toast({ title: "Cupom aplicado com sucesso!" });
+    }
+    setIsApplyingCoupon(false);
+  };
+
+  const handleProceedToPayment = () => {
+    if (!plan) return;
+    if (!appliedCoupon) {
+      setFinalPrice(plan.price);
+    }
+    setCheckoutStep('payment');
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -359,7 +399,13 @@ function CheckoutForm() {
           )}
           <div className="space-y-4">
             <div className="flex justify-between"><span className="text-muted-foreground">Plano:</span><span className="font-semibold">{plan.name}</span></div>
-            <div className="flex justify-between border-t pt-4"><span className="text-lg font-semibold">Total:</span><span className="text-lg font-bold text-primary">R$ {plan.price.toFixed(2)}</span></div>
+            {appliedCoupon && (
+              <>
+                <div className="flex justify-between text-destructive"><span className="text-muted-foreground">Preço Original:</span><span className="line-through">R$ {plan.price.toFixed(2)}</span></div>
+                <div className="flex justify-between text-primary"><span className="text-muted-foreground">Desconto ({appliedCoupon.name}):</span><span>- R$ {(plan.price - (finalPrice || 0)).toFixed(2)}</span></div>
+              </>
+            )}
+            <div className="flex justify-between border-t pt-4"><span className="text-lg font-semibold">Total:</span><span className="text-lg font-bold text-primary">R$ {finalPrice !== null ? finalPrice.toFixed(2) : plan.price.toFixed(2)}</span></div>
           </div>
           <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4">
             <Info className="h-5 w-5 flex-shrink-0 text-primary mt-0.5" />
@@ -372,58 +418,108 @@ function CheckoutForm() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><QrCode className="h-6 w-6" /> Pagamento com PIX</CardTitle>
-          <CardDescription>Escaneie o QR Code ou copie o código abaixo.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-6">
-          {isGeneratingPix && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-muted-foreground">Gerando seu PIX...</p>
-            </div>
-          )}
-
-          {pixDetails && paymentStatus !== 'paid' && (
-            <>
-              <div className="p-4 bg-white rounded-lg border">
-                <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} />
-              </div>
-              <p className="text-muted-foreground text-sm">Aguardando pagamento...</p>
-              <div className="w-full space-y-2">
-                <Label htmlFor="pix-code">PIX Copia e Cola</Label>
+        {checkoutStep === 'coupon' && (
+          <>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><CouponIcon className="h-6 w-6" /> Cupom de Desconto</CardTitle>
+              <CardDescription>Possui um cupom? Aplique-o aqui.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="coupon-code">Código do Cupom</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="pix-code"
-                    readOnly
-                    value={pixDetails.qr_code}
-                    className="truncate cursor-pointer"
-                    onClick={() => copyToClipboard(pixDetails.qr_code)}
+                  <Input 
+                    id="coupon-code" 
+                    placeholder="EX: PROMO10" 
+                    value={couponCode} 
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    disabled={isApplyingCoupon}
                   />
-                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(pixDetails.qr_code)}><Copy className="h-4 w-4" /></Button>
+                  <Button onClick={handleApplyCoupon} disabled={!couponCode.trim() || isApplyingCoupon}>
+                    {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Aplicar'}
+                  </Button>
                 </div>
-                <p className="text-xs text-destructive text-center pt-1">
-                  Clique no campo acima para copiar o código.
-                </p>
               </div>
-            </>
-          )}
+              {couponError && (
+                <Alert variant="destructive">
+                    <AlertDescription>{couponError}</AlertDescription>
+                </Alert>
+              )}
+              {appliedCoupon && (
+                 <Alert variant="default" className="border-green-500 bg-green-50 text-green-700">
+                    <CheckCircle className="h-4 w-4 !text-green-700" />
+                    <AlertTitle>Cupom Aplicado!</AlertTitle>
+                    <AlertDescription>Você recebeu um desconto de {appliedCoupon.discountPercentage}%.</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+              <Button onClick={handleProceedToPayment} className="w-full">
+                Prosseguir para Pagamento
+              </Button>
+              <Button onClick={handleProceedToPayment} variant="link" className="text-muted-foreground">
+                Continuar sem cupom
+              </Button>
+            </CardFooter>
+          </>
+        )}
 
-          {paymentStatus === 'paid' && (
-            <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-10 w-10 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold">Pagamento Aprovado!</h3>
-              <p className="text-muted-foreground">Estamos processando seu pedido. Você será redirecionado em breve.</p>
-              <Loader2 className="h-8 w-8 animate-spin text-primary mt-4" />
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex-col items-center text-center">
-          <p className="text-xs text-muted-foreground">Após o pagamento, o acesso é liberado em instantes.</p>
-          <p className="text-xs text-muted-foreground mt-1">Esta cobrança expira em 1 hora.</p>
-        </CardFooter>
+        {checkoutStep === 'payment' && (
+          <>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><QrCode className="h-6 w-6" /> Pagamento com PIX</CardTitle>
+              <CardDescription>Escaneie o QR Code ou copie o código abaixo.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center gap-6">
+              {isGeneratingPix && (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Gerando seu PIX...</p>
+                </div>
+              )}
+
+              {pixDetails && paymentStatus !== 'paid' && (
+                <>
+                  <div className="p-4 bg-white rounded-lg border">
+                    <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} />
+                  </div>
+                  <p className="text-muted-foreground text-sm">Aguardando pagamento...</p>
+                  <div className="w-full space-y-2">
+                    <Label htmlFor="pix-code">PIX Copia e Cola</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="pix-code"
+                        readOnly
+                        value={pixDetails.qr_code}
+                        className="truncate cursor-pointer"
+                        onClick={() => copyToClipboard(pixDetails.qr_code)}
+                      />
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(pixDetails.qr_code)}><Copy className="h-4 w-4" /></Button>
+                    </div>
+                    <p className="text-xs text-destructive text-center pt-1">
+                      Clique no campo acima para copiar o código.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {paymentStatus === 'paid' && (
+                <div className="flex flex-col items-center gap-4 py-8 text-center">
+                  <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-10 w-10 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Pagamento Aprovado!</h3>
+                  <p className="text-muted-foreground">Estamos processando seu pedido. Você será redirecionado em breve.</p>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mt-4" />
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex-col items-center text-center">
+               <Button variant="link" onClick={() => setCheckoutStep('coupon')} className="text-sm">Voltar e alterar cupom</Button>
+               <p className="text-xs text-muted-foreground mt-1">Esta cobrança expira em 1 hora.</p>
+            </CardFooter>
+          </>
+        )}
       </Card>
     </div>
   );

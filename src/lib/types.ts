@@ -127,3 +127,10 @@ export type PendingMessage = {
     deliverableContent?: string;
   };
 };
+
+// Represents a discount coupon.
+export type Coupon = {
+  id: string;
+  name: string;
+  discountPercentage: number;
+};
