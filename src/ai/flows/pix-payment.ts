@@ -130,7 +130,7 @@ async function checkAxenpayStatus(config: PaymentConfig, transactionId: string) 
 
 
 // PushinPay specific logic
-const PUSHINPAY_API_URL = 'https://api.pushinpay.com.br/api/v1/pix/cash-in';
+const PUSHINPAY_API_URL = 'https://api.pushinpay.com.br/pix';
 const PUSHINPAY_STATUS_URL = 'https://api.pushinpay.com.br/api/v1/transactions/';
 
 async function generatePushinpayPix(config: PaymentConfig, valueInCents: number) {
