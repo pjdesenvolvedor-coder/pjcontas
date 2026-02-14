@@ -130,8 +130,8 @@ async function checkAxenpayStatus(config: PaymentConfig, transactionId: string) 
 
 
 // PushinPay specific logic
-const PUSHINPAY_API_URL = 'https://api.pushinpay.com.br/api/v1/pix';
-const PUSHINPAY_STATUS_URL = 'https://api.pushinpay.com.br/api/v1/transactions/';
+const PUSHINPAY_API_URL = 'https://api.pushinpay.com.br/api/pix/cashIn';
+const PUSHINPAY_STATUS_URL = 'https://api.pushinpay.com.br/api/transactions/';
 
 async function generatePushinpayPix(config: PaymentConfig, valueInCents: number) {
     const token = config.pushinpay!.apiKey;
@@ -155,12 +155,16 @@ async function generatePushinpayPix(config: PaymentConfig, valueInCents: number)
         }
 
         const data = await response.json();
-        const transactionId = data.id || data.transactionId || data.txid;
+        const transactionId = data.id;
+
+        if (!transactionId) {
+          return { error: 'ID da transação não encontrado na resposta da PushinPay.' };
+        }
 
         return {
             id: transactionId,
-            qr_code: data.qr_code || data.qrCode,
-            qr_code_base64: data.qr_code_base64 || data.qrCodeBase64,
+            qr_code: data.qr_code,
+            qr_code_base64: data.qr_code_base64,
         };
 
     } catch (e: any) {
