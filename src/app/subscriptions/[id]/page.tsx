@@ -16,7 +16,8 @@ import {
   where,
   type DocumentData,
 } from 'firebase/firestore';
-import type { Plan, SubscriptionService } from '@/lib/types';
+import type { Plan, SubscriptionService, SpecialCouponsConfig, Coupon } from '@/lib/types';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +30,7 @@ import {
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AbandonedCartOffer } from '@/components/abandoned-cart-offer';
 
 type SubscriptionPageProps = {
   params: {
@@ -55,7 +57,34 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
   );
   const { data: plans, isLoading: arePlansLoading } = useCollection<Plan>(plansQuery);
 
-  if (isServiceLoading || arePlansLoading) {
+  const [showAbandonedOffer, setShowAbandonedOffer] = useState(false);
+  const [specialCoupon, setSpecialCoupon] = useState<Coupon | null>(null);
+
+  // Fetch special coupon config
+  const specialCouponsConfigRef = useMemoFirebase(() => doc(firestore, 'configs', 'special_coupons'), [firestore]);
+  const { data: specialCouponsConfig } = useDoc<SpecialCouponsConfig>(specialCouponsConfigRef);
+
+  // Fetch the actual coupon document based on the ID from the config
+  const specialCouponRef = useMemoFirebase(() => {
+      if (!firestore || !specialCouponsConfig?.abandonedCartCouponId) return null;
+      return doc(firestore, 'coupons', specialCouponsConfig.abandonedCartCouponId);
+  }, [firestore, specialCouponsConfig]);
+  const { data: fetchedSpecialCoupon } = useDoc<Coupon>(specialCouponRef);
+
+  useEffect(() => {
+    const abandonedPlanId = sessionStorage.getItem('abandoned_checkout_plan_id');
+    // Check if the abandoned plan belongs to the currently viewed service
+    if (abandonedPlanId && plans?.some(p => p.id === abandonedPlanId)) {
+        if (fetchedSpecialCoupon) {
+            setSpecialCoupon(fetchedSpecialCoupon);
+            setShowAbandonedOffer(true);
+        }
+    }
+  }, [plans, fetchedSpecialCoupon]);
+
+  const isLoading = isServiceLoading || arePlansLoading;
+
+  if (isLoading) {
     return (
       <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
         <Card>
@@ -83,6 +112,16 @@ export default function SubscriptionPage({ params }: SubscriptionPageProps) {
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
+      <AbandonedCartOffer
+        isOpen={showAbandonedOffer}
+        onClose={() => {
+            setShowAbandonedOffer(false);
+            sessionStorage.removeItem('abandoned_checkout_plan_id');
+        }}
+        coupon={specialCoupon}
+        serviceId={params.id}
+        planId={sessionStorage.getItem('abandoned_checkout_plan_id')}
+      />
       <Card className="overflow-hidden">
         <CardHeader className="p-0">
           <div className="bg-card p-6 md:p-8">

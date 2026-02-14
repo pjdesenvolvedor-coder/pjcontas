@@ -148,3 +148,8 @@ export type PaymentConfig = {
     apiKey: string;
   };
 };
+
+// Represents the configuration for special, automated coupons.
+export type SpecialCouponsConfig = {
+  abandonedCartCouponId?: string;
+};

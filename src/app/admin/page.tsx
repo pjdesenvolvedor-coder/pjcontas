@@ -33,6 +33,7 @@ import { WhatsappMessageManager } from './whatsapp-message-manager';
 import { WhatsAppMessageDaemon } from './whatsapp-message-daemon';
 import { CouponManagement } from './coupon-management';
 import { PaymentProviderManager } from './payment-provider-manager';
+import { SpecialCouponsManager } from './special-coupons-manager';
 
 
 type UserProfile = {
@@ -463,10 +464,11 @@ export default function AdminPage() {
       </header>
       
       <Tabs defaultValue="services" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="coupons">Cupons</TabsTrigger>
+          <TabsTrigger value="special_coupons">Cupons Especiais</TabsTrigger>
           <TabsTrigger value="payments">Pagamentos</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
@@ -479,6 +481,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="coupons" className="mt-6">
           <CouponManagement />
+        </TabsContent>
+        <TabsContent value="special_coupons" className="mt-6">
+          <SpecialCouponsManager />
         </TabsContent>
         <TabsContent value="payments" className="mt-6">
             <PaymentProviderManager />

@@ -96,9 +96,48 @@ function CheckoutForm() {
     }
   }, [plan]);
 
+  // Set abandonment flag
+  useEffect(() => {
+    if (planId) {
+      sessionStorage.setItem('abandoned_checkout_plan_id', planId);
+    }
+  }, [planId]);
+
+  const handleApplyCoupon = useCallback(async (codeToApply?: string) => {
+    const effectiveCouponCode = (codeToApply || couponCode).trim();
+    if (!effectiveCouponCode || !plan) return;
+    
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+    const result = await validateCouponAction(effectiveCouponCode);
+    if (result.error) {
+        setCouponError(result.error);
+        setAppliedCoupon(null);
+        setFinalPrice(plan.price);
+    } else if (result.data) {
+        setAppliedCoupon(result.data);
+        const discount = plan.price * (result.data.discountPercentage / 100);
+        setFinalPrice(plan.price - discount);
+        toast({ title: "Cupom aplicado com sucesso!" });
+    }
+    setIsApplyingCoupon(false);
+  }, [couponCode, plan, toast]);
+  
+  // Pre-apply coupon from abandoned cart flow
+  useEffect(() => {
+      const appliedCouponCode = sessionStorage.getItem('applied_coupon_code');
+      if (appliedCouponCode && plan && !appliedCoupon) { 
+          setCouponCode(appliedCouponCode);
+          handleApplyCoupon(appliedCouponCode);
+          sessionStorage.removeItem('applied_coupon_code');
+      }
+  }, [plan, appliedCoupon, handleApplyCoupon]);
+
+
   const handleSuccessfulPayment = useCallback(async () => {
     if (isProcessingOrder || !user || !plan || !service || !firestore || finalPrice === null) return;
-
+    
+    sessionStorage.removeItem('abandoned_checkout_plan_id');
     setIsProcessingOrder(true);
 
     try {
@@ -311,24 +350,6 @@ function CheckoutForm() {
     return () => clearInterval(intervalId);
   }, [pixDetails, paymentStatus, isProcessingOrder]);
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim() || !plan) return;
-    setIsApplyingCoupon(true);
-    setCouponError(null);
-    const result = await validateCouponAction(couponCode);
-    if (result.error) {
-        setCouponError(result.error);
-        setAppliedCoupon(null);
-        setFinalPrice(plan.price);
-    } else if (result.data) {
-        setAppliedCoupon(result.data);
-        const discount = plan.price * (result.data.discountPercentage / 100);
-        setFinalPrice(plan.price - discount);
-        toast({ title: "Cupom aplicado com sucesso!" });
-    }
-    setIsApplyingCoupon(false);
-  };
-
   const handleProceedToPayment = () => {
     if (!plan) return;
     if (!appliedCoupon) {
@@ -435,7 +456,7 @@ function CheckoutForm() {
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     disabled={isApplyingCoupon}
                   />
-                  <Button onClick={handleApplyCoupon} disabled={!couponCode.trim() || isApplyingCoupon}>
+                  <Button onClick={() => handleApplyCoupon()} disabled={!couponCode.trim() || isApplyingCoupon}>
                     {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Aplicar'}
                   </Button>
                 </div>
