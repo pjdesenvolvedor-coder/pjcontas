@@ -35,7 +35,7 @@ export function SpecialCouponsManager() {
   const form = useForm<SpecialCouponsFormData>({
     resolver: zodResolver(specialCouponsSchema),
     defaultValues: {
-      abandonedCartCouponId: '',
+      abandonedCartCouponId: 'none',
     },
   });
 
@@ -44,7 +44,7 @@ export function SpecialCouponsManager() {
   useEffect(() => {
     if (specialCouponsConfig) {
       reset({
-        abandonedCartCouponId: specialCouponsConfig.abandonedCartCouponId || '',
+        abandonedCartCouponId: specialCouponsConfig.abandonedCartCouponId || 'none',
       });
     }
   }, [specialCouponsConfig, reset]);
@@ -52,7 +52,11 @@ export function SpecialCouponsManager() {
   const handleSave = (values: SpecialCouponsFormData) => {
     if (!firestore) return;
 
-    setDocumentNonBlocking(configDocRef, values, { merge: true });
+    const configToSave = {
+      abandonedCartCouponId: values.abandonedCartCouponId === 'none' ? '' : values.abandonedCartCouponId
+    }
+
+    setDocumentNonBlocking(configDocRef, configToSave, { merge: true });
     toast({
       title: 'Configurações Salvas!',
       description: 'O cupom de abandono de carrinho foi definido.',
@@ -94,14 +98,14 @@ export function SpecialCouponsManager() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cupom a ser Oferecido</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione um cupom..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                         <SelectItem value="">Nenhum (desativado)</SelectItem>
+                         <SelectItem value="none">Nenhum (desativado)</SelectItem>
                          {allCoupons.map((coupon) => (
                            <SelectItem key={coupon.id} value={coupon.id}>
                              {coupon.name} ({coupon.discountPercentage}%)
