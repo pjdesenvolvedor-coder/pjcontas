@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from '@/hooks/use-toast';
 import { generatePixAction, checkPixStatusAction } from '@/app/checkout/actions';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 type PixDetails = {
   id: string;
@@ -301,6 +302,13 @@ export default function TicketChatPage() {
         updateDocumentNonBlocking(ticketDocRef, updatePayload);
         
         setNewMessage('');
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSendMessage();
+        }
     };
 
     const isExpired = userSubscription ? new Date() > new Date(userSubscription.endDate) : false;
@@ -654,11 +662,14 @@ export default function TicketChatPage() {
                 </div>
                 <CardFooter className="p-4 border-t">
                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex w-full items-center space-x-2">
-                        <Input 
+                        <Textarea 
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder={isExpired ? "Renove para enviar mensagens" : "Digite sua mensagem..."}
                             disabled={isExpired || !user}
+                            rows={1}
+                            className="resize-none"
                         />
                         <Button type="submit" disabled={!newMessage.trim() || isExpired || !user}>
                             <Send className="h-4 w-4" />
@@ -670,5 +681,3 @@ export default function TicketChatPage() {
         </div>
     );
 }
-
-    

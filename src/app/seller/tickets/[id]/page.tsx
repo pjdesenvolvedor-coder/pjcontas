@@ -6,10 +6,10 @@ import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, AlertCircle, Paperclip, Loader2, Upload } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, AlertCircle, Paperclip, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -305,6 +305,13 @@ export default function TicketChatPage() {
         setNewMessage('');
     };
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSendMessage();
+        }
+    };
+
     const handleRequestMedia = () => {
         if (!user || !ticket || !firestore) return;
 
@@ -473,11 +480,14 @@ export default function TicketChatPage() {
 
                 <CardFooter className="p-4 border-t">
                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex w-full items-center space-x-2">
-                        <Input 
+                        <Textarea 
                             value={newMessage}
                             onChange={e => setNewMessage(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder={isExpired ? "Chat bloqueado até a renovação" : "Digite sua mensagem..."}
                             disabled={isExpired || !user}
+                            rows={1}
+                            className="resize-none"
                         />
                          {isSellerView && (
                             <Button type="button" variant="outline" size="icon" onClick={handleRequestMedia} disabled={isExpired || !user} title="Solicitar Mídia">
@@ -495,5 +505,3 @@ export default function TicketChatPage() {
         </div>
     );
 }
-
-    
