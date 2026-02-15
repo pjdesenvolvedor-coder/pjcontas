@@ -273,6 +273,10 @@
           "type": "string",
           "description": "Reference to the User (seller)."
         },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized name of the seller for display."
+        },
         "subscriptionId": {
           "type": "string",
           "description": "Reference to the Subscription plan purchased."

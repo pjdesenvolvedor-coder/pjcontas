@@ -180,6 +180,7 @@ function CheckoutForm() {
         customerId: user.uid,
         customerName: user.displayName || 'Cliente',
         sellerId: plan.sellerId,
+        sellerName: plan.sellerName || plan.sellerUsername || 'Vendedor',
         subscriptionId: plan.id,
         serviceName: service.name,
         planName: plan.name,
@@ -209,6 +210,7 @@ function CheckoutForm() {
           senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
           text: 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.',
           timestamp: new Date().toISOString(),
+          type: 'text' as const,
         };
         addDocumentNonBlocking(chatMessagesCollection, stockOutMessage);
         
@@ -232,6 +234,7 @@ function CheckoutForm() {
           senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
           text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${deliverableData.content}\'\'\'`,
           timestamp: new Date().toISOString(),
+          type: 'text' as const,
         };
         addDocumentNonBlocking(chatMessagesCollection, deliveryMessage);
         

@@ -4,6 +4,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { TicketNotificationListener } from '@/components/ticket-notification-listener';
 
 export const metadata: Metadata = {
   title: 'PJ Contas',
@@ -35,6 +36,7 @@ export default function RootLayout({
           <main className="flex-grow">{children}</main>
           <Footer />
           <Toaster />
+          <TicketNotificationListener />
         </FirebaseClientProvider>
       </body>
     </html>

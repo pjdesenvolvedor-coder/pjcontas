@@ -80,6 +80,7 @@ export type Ticket = {
   customerId: string;
   customerName: string;
   sellerId: string;
+  sellerName: string;
   subscriptionId: string;
   serviceName: string;
   planName: string;
