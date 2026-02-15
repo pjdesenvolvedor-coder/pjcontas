@@ -2,7 +2,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -239,7 +239,7 @@ export default function TicketChatPage() {
     }, [firestore, ticket]);
     const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
     
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }

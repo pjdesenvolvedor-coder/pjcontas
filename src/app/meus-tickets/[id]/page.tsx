@@ -2,7 +2,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useLayoutEffect } from 'react';
 import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -210,7 +210,7 @@ export default function TicketChatPage() {
         return lastRequest;
     }, [messages, user]);
     
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
@@ -408,7 +408,7 @@ export default function TicketChatPage() {
                         </div>
                         <p className="text-xs text-right mt-1 opacity-70 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    {isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback></Avatar> )}
+                    {isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{user?.displayName?.charAt(0) || 'C'}</AvatarFallback></Avatar> )}
                 </div>
             )
         }
@@ -430,7 +430,7 @@ export default function TicketChatPage() {
                 </div>
                  {isOwnMessage && (
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback>
+                        <AvatarFallback>{user?.displayName?.charAt(0) || 'C'}</AvatarFallback>
                     </Avatar>
                 )}
             </div>
