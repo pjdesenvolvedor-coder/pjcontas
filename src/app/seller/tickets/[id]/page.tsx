@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, AlertCircle, Paperclip, Loader2, Upload, X } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, AlertCircle, Paperclip, Loader2, Upload, X, LifeBuoy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -17,7 +17,84 @@ import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+
+const supportSchema = z.object({
+  email: z.string().email("Por favor, insira um email válido."),
+  password: z.string().min(1, "A senha é obrigatória."),
+});
+
+type SupportFormData = z.infer<typeof supportSchema>;
+
+function SupportDialog({ 
+    isOpen, 
+    onClose, 
+    onSubmit,
+    productName 
+} : { 
+    isOpen: boolean; 
+    onClose: () => void; 
+    onSubmit: (data: SupportFormData) => void;
+    productName: string;
+}) {
+    const form = useForm<SupportFormData>({
+        resolver: zodResolver(supportSchema),
+        defaultValues: { email: '', password: '' }
+    });
+    
+    const { formState: { isSubmitting }, handleSubmit, control } = form;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+                <DialogHeader>
+                    <DialogTitle>Enviar Acesso de Suporte</DialogTitle>
+                    <DialogDescription>
+                        Forneça os dados de acesso para o produto: <span className="font-bold">{productName}</span>.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <FormField
+                            control={control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email de Acesso</FormLabel>
+                                    <FormControl><Input placeholder="email@exemplo.com" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Senha de Acesso</FormLabel>
+                                    <FormControl><Input type="text" placeholder="senha" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Enviar Mensagem
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, requestMessage: string }) {
     const { user } = useUser();
@@ -202,6 +279,7 @@ export default function TicketChatPage() {
     const [newMessage, setNewMessage] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
 
     // Ticket
     const ticketRef = useMemoFirebase(() => (firestore && ticketId) ? doc(firestore, 'tickets', ticketId) : null, [firestore, ticketId]);
@@ -305,6 +383,41 @@ export default function TicketChatPage() {
         setNewMessage('');
     };
 
+    const handleSendSupportMessage = (data: SupportFormData) => {
+        if (!user || !ticket || !firestore) return;
+    
+        const productName = ticket.serviceName || "Produto";
+        const messageText = `🔴 ${productName.toUpperCase()} SUPORTE🔴\n\n> ✉️ Email: ${data.email}\n> 🔑 Senha: ${data.password}\n\n🚨 Proibido altera senha da conta ou dos perfis 🚨`;
+    
+        const messagesCollection = collection(firestore, 'tickets', ticket.id, 'messages');
+        const messageData = {
+            ticketId: ticket.id,
+            senderId: user.uid,
+            senderName: user.displayName,
+            text: messageText,
+            timestamp: new Date().toISOString(),
+            type: 'text' as const,
+        };
+        addDocumentNonBlocking(messagesCollection, messageData);
+        
+        const ticketDocRef = doc(firestore, 'tickets', ticket.id);
+    
+        const updatePayload = {
+            lastMessageText: `Acesso de suporte enviado para ${productName}.`,
+            lastMessageAt: new Date().toISOString(),
+            unreadByCustomerCount: increment(1),
+        };
+    
+        updateDocumentNonBlocking(ticketDocRef, updatePayload);
+        
+        toast({
+            title: "Mensagem de suporte enviada!",
+            description: "Os dados de acesso foram enviados ao cliente.",
+        });
+    
+        setIsSupportDialogOpen(false);
+    };
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -372,6 +485,13 @@ export default function TicketChatPage() {
                     {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" />}
                 </DialogContent>
             </Dialog>
+
+            <SupportDialog 
+                isOpen={isSupportDialogOpen}
+                onClose={() => setIsSupportDialogOpen(false)}
+                onSubmit={handleSendSupportMessage}
+                productName={ticket?.serviceName || ''}
+            />
 
             {/* Purchase Details Section */}
             <div className="mb-8 space-y-4">
@@ -489,6 +609,12 @@ export default function TicketChatPage() {
                             rows={1}
                             className="resize-none"
                         />
+                         {isSellerView && (
+                            <Button type="button" variant="outline" size="icon" onClick={() => setIsSupportDialogOpen(true)} disabled={isExpired || !user} title="Enviar Acesso de Suporte">
+                                <LifeBuoy className="h-4 w-4" />
+                                <span className="sr-only">Enviar Acesso de Suporte</span>
+                            </Button>
+                        )}
                          {isSellerView && (
                             <Button type="button" variant="outline" size="icon" onClick={handleRequestMedia} disabled={isExpired || !user} title="Solicitar Mídia">
                                 <Paperclip className="h-4 w-4" />
