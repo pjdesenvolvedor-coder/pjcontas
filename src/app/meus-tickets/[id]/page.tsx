@@ -84,7 +84,7 @@ function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, req
              <Card className="bg-muted border-dashed max-w-md">
                 <CardContent className="p-4 flex flex-col items-center text-center gap-3">
                     <p className="text-sm text-muted-foreground font-medium">{requestMessage}</p>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                         {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                         {isUploading ? 'Enviando...' : 'Enviar Mídia'}
@@ -95,7 +95,7 @@ function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, req
     );
 }
 
-function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean }) {
+function ChatBubble({ message, isOwnMessage, onViewImage }: { message: ChatMessage; isOwnMessage: boolean; onViewImage: (url: string) => void; }) {
     const isSystemMessage = message.senderId === 'system';
     
     if (isSystemMessage) {
@@ -113,14 +113,15 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
 
     // Media response from either party
     if (message.type === 'media_response' && message.payload?.imageUrl) {
+        const imageUrl = message.payload.imageUrl;
         return (
             <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
                 {!isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'S'}</AvatarFallback></Avatar> )}
                 <div className={cn("max-w-xs md:max-w-sm rounded-lg p-2", isOwnMessage ? "bg-primary" : "bg-muted")}>
                     {message.text && <p className={cn("text-sm mb-2 px-1", isOwnMessage ? "text-primary-foreground" : "")}>{message.text}</p>}
-                    <a href={message.payload.imageUrl} target="_blank" rel="noopener noreferrer">
-                        <Image src={message.payload.imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover cursor-pointer" />
-                    </a>
+                    <div onClick={() => onViewImage(imageUrl)} className="cursor-pointer">
+                        <Image src={imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover" />
+                    </div>
                     <p className="text-xs text-right mt-1 opacity-70 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
                 {isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback></Avatar> )}
@@ -197,6 +198,7 @@ export default function TicketChatPage() {
     const { toast } = useToast();
     const [newMessage, setNewMessage] = useState('');
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     // Renewal State
     const [isRenewing, setIsRenewing] = useState(false);
@@ -418,6 +420,12 @@ export default function TicketChatPage() {
 
     return (
         <div className="container mx-auto max-w-4xl py-8">
+            <Dialog open={!!viewingImage} onOpenChange={(open) => !open && setViewingImage(null)}>
+                <DialogContent className="max-w-4xl w-auto p-0 bg-transparent border-none">
+                    {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" />}
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={isRenewing && !!renewalPixDetails} onOpenChange={(open) => { if(!open) setIsRenewing(false)}}>
                 <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
@@ -549,7 +557,7 @@ export default function TicketChatPage() {
                             <p>O suporte será prestado por esse chat!</p>
                         </div>
                         {messages?.map(msg => (
-                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
+                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} onViewImage={setViewingImage} />
                         ))}
                         <div ref={chatEndRef} />
                     </CardContent>
