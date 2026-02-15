@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode, Upload, Paperclip } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode, Upload, Paperclip, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -27,16 +27,17 @@ type PixDetails = {
   qr_code_base64: string;
 };
 
-function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, requestMessage: string }) {
+function MediaUploadPrompt({ ticket, seller, requestMessage }: { ticket: Ticket, seller: UserProfile, requestMessage: string }) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const ticketId = ticket.id;
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file || !user || !firestore) return;
+        if (!file || !user || !firestore || !seller) return;
 
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
             toast({ variant: 'destructive', title: 'Arquivo muito grande', description: 'Por favor, envie um arquivo menor que 5MB.' });
@@ -51,7 +52,9 @@ function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, req
             const imageUrl = reader.result as string;
 
             const messagesCollection = collection(firestore, 'tickets', ticketId, 'messages');
-            const messageData: Omit<ChatMessage, 'id'> = {
+            
+            // Customer's media response
+            const customerMessageData: Omit<ChatMessage, 'id'> = {
                 ticketId: ticketId,
                 senderId: user.uid,
                 senderName: user.displayName,
@@ -60,17 +63,41 @@ function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, req
                 type: 'media_response',
                 payload: { imageUrl }
             };
-            addDocumentNonBlocking(messagesCollection, messageData);
+            addDocumentNonBlocking(messagesCollection, customerMessageData);
 
             const ticketDocRef = doc(firestore, 'tickets', ticketId);
-            const updatePayload = {
+            const initialUpdatePayload = {
                 lastMessageText: 'O cliente enviou uma imagem.',
                 lastMessageAt: new Date().toISOString(),
                 unreadBySellerCount: increment(1),
             };
-            updateDocumentNonBlocking(ticketDocRef, updatePayload);
-            setIsUploading(false);
+            updateDocumentNonBlocking(ticketDocRef, initialUpdatePayload);
+            
             toast({ title: "Mídia enviada com sucesso!" });
+            
+            // Send automatic message from seller after a delay
+            setTimeout(() => {
+                const sellerMessageData: Omit<ChatMessage, 'id'> = {
+                    ticketId: ticketId,
+                    senderId: seller.id,
+                    senderName: seller.sellerUsername || seller.firstName,
+                    text: 'Foto recebida. Aguarde, estamos analisando.',
+                    timestamp: new Date().toISOString(),
+                    type: 'text'
+                };
+                addDocumentNonBlocking(messagesCollection, sellerMessageData);
+
+                // Update ticket again with the seller's auto-reply
+                const finalUpdatePayload = {
+                    lastMessageText: sellerMessageData.text,
+                    lastMessageAt: sellerMessageData.timestamp,
+                    unreadByCustomerCount: increment(1), // Notify customer of the new message
+                };
+                updateDocumentNonBlocking(ticketDocRef, finalUpdatePayload);
+
+            }, 1500);
+
+            setIsUploading(false);
         };
         reader.onerror = (error) => {
             console.error("File reading error:", error);
@@ -376,9 +403,19 @@ export default function TicketChatPage() {
     
         // This is the customer view.
         if (message.type === 'media_request') {
-             // Show the upload prompt ONLY for the currently active media request.
             if (activeMediaRequest?.id === message.id) {
-                return <MediaUploadPrompt ticketId={message.ticketId} requestMessage={message.text} />;
+                if (!ticket || !sellerData) {
+                    return (
+                        <div className="flex justify-start my-2">
+                             <Card className="bg-muted border-dashed max-w-md">
+                                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    );
+                }
+                return <MediaUploadPrompt ticket={ticket} seller={sellerData} requestMessage={message.text} />;
             }
             // For older/fulfilled requests, just show the message text in a standard bubble.
             return (
