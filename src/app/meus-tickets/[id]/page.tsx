@@ -465,7 +465,7 @@ export default function TicketChatPage() {
     return (
         <div className="container mx-auto max-w-4xl py-8">
             <Dialog open={!!viewingImage} onOpenChange={(open) => !open && setViewingImage(null)}>
-                <DialogContent className="max-w-4xl w-auto p-0 bg-transparent border-none">
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-auto p-0 bg-transparent border-none">
                     {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" />}
                 </DialogContent>
             </Dialog>
@@ -594,8 +594,8 @@ export default function TicketChatPage() {
                         <CardDescription>Converse com o {user?.uid === ticket.customerId ? 'vendedor' : 'comprador'} aqui.</CardDescription>
                     </div>
                 </CardHeader>
-                <div className="relative flex-1">
-                    <CardContent ref={chatContainerRef} className="absolute inset-0 overflow-y-auto p-4 space-y-4">
+                <div ref={chatContainerRef} className="relative flex-1 overflow-y-auto">
+                    <CardContent className="p-4 space-y-4">
                         <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
                             <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
                             <p>O suporte será prestado por esse chat!</p>
