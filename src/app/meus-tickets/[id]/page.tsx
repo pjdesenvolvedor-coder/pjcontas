@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -27,6 +27,74 @@ type PixDetails = {
   qr_code_base64: string;
 };
 
+function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, requestMessage: string }) {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user || !firestore) return;
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            toast({ variant: 'destructive', title: 'Arquivo muito grande', description: 'Por favor, envie um arquivo menor que 5MB.' });
+            return;
+        }
+
+        setIsUploading(true);
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const imageUrl = reader.result as string;
+
+            const messagesCollection = collection(firestore, 'tickets', ticketId, 'messages');
+            const messageData: Omit<ChatMessage, 'id'> = {
+                ticketId: ticketId,
+                senderId: user.uid,
+                senderName: user.displayName,
+                text: ``, // No text needed for the image itself
+                timestamp: new Date().toISOString(),
+                type: 'media_response',
+                payload: { imageUrl }
+            };
+            addDocumentNonBlocking(messagesCollection, messageData);
+
+            const ticketDocRef = doc(firestore, 'tickets', ticketId);
+            const updatePayload = {
+                lastMessageText: 'O cliente enviou uma imagem.',
+                lastMessageAt: new Date().toISOString(),
+                unreadBySellerCount: increment(1),
+            };
+            updateDocumentNonBlocking(ticketDocRef, updatePayload);
+            setIsUploading(false);
+            toast({ title: "Mídia enviada com sucesso!" });
+        };
+        reader.onerror = (error) => {
+            console.error("File reading error:", error);
+            toast({ variant: 'destructive', title: 'Erro ao ler arquivo', description: 'Não foi possível processar o arquivo. Tente novamente.' });
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <div className="flex justify-start my-2">
+             <Card className="bg-muted border-dashed max-w-md">
+                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                    <p className="text-sm text-muted-foreground font-medium">{requestMessage}</p>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                        {isUploading ? 'Enviando...' : 'Enviar Mídia'}
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean }) {
     const isSystemMessage = message.senderId === 'system';
     
@@ -34,6 +102,26 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
         return (
             <div className="text-center text-xs text-muted-foreground p-2 my-2 rounded-md bg-muted/50 border">
                 {message.text}
+            </div>
+        )
+    }
+
+    if (message.type === 'media_request' && !isOwnMessage) {
+        return <MediaUploadPrompt ticketId={message.ticketId} requestMessage={message.text} />;
+    }
+
+    if (message.type === 'media_response' && message.payload?.imageUrl) {
+        return (
+            <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
+                {!isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'S'}</AvatarFallback></Avatar> )}
+                <div className={cn("max-w-xs md:max-w-sm rounded-lg p-2", isOwnMessage ? "bg-primary" : "bg-muted")}>
+                    {message.text && <p className={cn("text-sm mb-2 px-1", isOwnMessage ? "text-primary-foreground" : "")}>{message.text}</p>}
+                    <a href={message.payload.imageUrl} target="_blank" rel="noopener noreferrer">
+                        <Image src={message.payload.imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover cursor-pointer" />
+                    </a>
+                    <p className="text-xs text-right mt-1 opacity-70 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                {isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback></Avatar> )}
             </div>
         )
     }
@@ -490,5 +578,3 @@ export default function TicketChatPage() {
         </div>
     );
 }
-
-    
