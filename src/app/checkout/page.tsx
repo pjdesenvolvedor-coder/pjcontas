@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Loader2, QrCode, CheckCircle, Info, Ticket as CouponIcon } from 'lucide-react';
+import { Copy, Loader2, QrCode, CheckCircle, Info, Ticket as CouponIcon, Gift } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -167,7 +167,7 @@ function CheckoutForm() {
         price: finalPrice, // Use final discounted price
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        paymentMethod: 'PIX',
+        paymentMethod: finalPrice <= 0 && appliedCoupon ? `Cupom (${appliedCoupon.name})` : 'PIX',
         bannerUrl: plan.bannerUrl,
       };
       const userSubDocRef = await addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData);
@@ -230,7 +230,7 @@ function CheckoutForm() {
           ticketId: newTicketRef.id,
           senderId: plan.sellerId,
           senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
-          text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${'deliverableData.content'}\'\'\'`,
+          text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${deliverableData.content}\'\'\'`,
           timestamp: new Date().toISOString(),
         };
         addDocumentNonBlocking(chatMessagesCollection, deliveryMessage);
@@ -290,10 +290,10 @@ function CheckoutForm() {
       });
       setIsProcessingOrder(false);
     }
-  }, [user, plan, service, firestore, toast, router, isProcessingOrder, finalPrice]);
+  }, [user, plan, service, firestore, toast, router, isProcessingOrder, finalPrice, appliedCoupon]);
 
   useEffect(() => {
-    if (checkoutStep === 'payment' && finalPrice !== null && !pixDetails && isGeneratingPix) {
+    if (checkoutStep === 'payment' && finalPrice !== null && finalPrice > 0 && !pixDetails && isGeneratingPix) {
       const valueInCents = Math.round(finalPrice * 100);
       generatePixAction(valueInCents)
         .then(details => {
@@ -352,9 +352,19 @@ function CheckoutForm() {
 
   const handleProceedToPayment = () => {
     if (!plan) return;
-    if (!appliedCoupon) {
-      setFinalPrice(plan.price);
+    if (finalPrice !== null && finalPrice <= 0) {
+      handleSuccessfulPayment();
+    } else {
+      setCheckoutStep('payment');
     }
+  };
+  
+  const handleContinueWithoutCoupon = () => {
+    if (!plan) return;
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError(null);
+    setFinalPrice(plan.price);
     setCheckoutStep('payment');
   };
 
@@ -422,8 +432,8 @@ function CheckoutForm() {
             <div className="flex justify-between"><span className="text-muted-foreground">Plano:</span><span className="font-semibold">{plan.name}</span></div>
             {appliedCoupon && (
               <>
-                <div className="flex justify-between text-destructive"><span className="text-muted-foreground">Preço Original:</span><span className="line-through">R$ {plan.price.toFixed(2)}</span></div>
-                <div className="flex justify-between text-primary"><span className="text-muted-foreground">Desconto ({appliedCoupon.name}):</span><span>- R$ {(plan.price - (finalPrice || 0)).toFixed(2)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span >Preço Original:</span><span className="line-through">R$ {plan.price.toFixed(2)}</span></div>
+                <div className="flex justify-between text-primary"><span >Desconto ({appliedCoupon.name}):</span><span>- R$ {(plan.price - (finalPrice || 0)).toFixed(2)}</span></div>
               </>
             )}
             <div className="flex justify-between border-t pt-4"><span className="text-lg font-semibold">Total:</span><span className="text-lg font-bold text-primary">R$ {finalPrice !== null ? finalPrice.toFixed(2) : plan.price.toFixed(2)}</span></div>
@@ -454,9 +464,9 @@ function CheckoutForm() {
                     placeholder="EX: PROMO10" 
                     value={couponCode} 
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    disabled={isApplyingCoupon}
+                    disabled={isApplyingCoupon || isProcessingOrder}
                   />
-                  <Button onClick={() => handleApplyCoupon()} disabled={!couponCode.trim() || isApplyingCoupon}>
+                  <Button onClick={() => handleApplyCoupon()} disabled={!couponCode.trim() || isApplyingCoupon || isProcessingOrder}>
                     {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Aplicar'}
                   </Button>
                 </div>
@@ -475,12 +485,21 @@ function CheckoutForm() {
               )}
             </CardContent>
             <CardFooter className="flex-col gap-4">
-              <Button onClick={handleProceedToPayment} className="w-full">
-                Prosseguir para Pagamento
-              </Button>
-              <Button onClick={handleProceedToPayment} variant="link" className="text-muted-foreground">
-                Continuar sem cupom
-              </Button>
+               {finalPrice !== null && finalPrice <= 0 ? (
+                  <Button onClick={handleProceedToPayment} className="w-full" disabled={isProcessingOrder}>
+                      {isProcessingOrder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
+                      {isProcessingOrder ? 'Resgatando...' : 'Resgatar Gratuitamente'}
+                  </Button>
+                ) : (
+                  <>
+                      <Button onClick={handleProceedToPayment} className="w-full" disabled={isProcessingOrder}>
+                          {isProcessingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Prosseguir para Pagamento'}
+                      </Button>
+                      <Button onClick={handleContinueWithoutCoupon} variant="link" className="text-muted-foreground" disabled={isProcessingOrder}>
+                          Continuar sem cupom
+                      </Button>
+                  </>
+                )}
             </CardFooter>
           </>
         )}
