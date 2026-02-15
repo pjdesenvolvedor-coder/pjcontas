@@ -200,7 +200,7 @@ export default function TicketChatPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [newMessage, setNewMessage] = useState('');
-    const chatEndRef = useRef<HTMLDivElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
     const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     // Ticket
@@ -240,7 +240,9 @@ export default function TicketChatPage() {
     const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
     
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
     }, [messages]);
 
     // Reset unread counter when chat is opened
@@ -450,7 +452,7 @@ export default function TicketChatPage() {
                     </div>
                 </CardHeader>
                 <div className="relative flex-1">
-                    <CardContent className="absolute inset-0 overflow-y-auto p-4 space-y-4">
+                    <CardContent ref={chatContainerRef} className="absolute inset-0 overflow-y-auto p-4 space-y-4">
                         <div className="text-center text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 mb-4 border space-y-1">
                             <p>O dinheiro só será liberado para o vendedor em 7 dias para uma maior segurança entre ambos.</p>
                             <p>O suporte será prestado por esse chat!</p>
@@ -458,7 +460,6 @@ export default function TicketChatPage() {
                         {messages?.map(msg => (
                             <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} onViewImage={setViewingImage} />
                         ))}
-                        <div ref={chatEndRef} />
                     </CardContent>
                     
                     {isExpired && (
