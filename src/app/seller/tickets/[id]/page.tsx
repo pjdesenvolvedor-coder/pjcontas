@@ -98,13 +98,8 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
         )
     }
 
-    // Customer receives request from seller
-    if (message.type === 'media_request' && !isOwnMessage) {
-        return <MediaUploadPrompt ticketId={message.ticketId} requestMessage={message.text} />;
-    }
-
-    // Seller sees their own request
-    if (message.type === 'media_request' && isOwnMessage) {
+    // This is the seller view.
+    if (message.type === 'media_request') { // Requests are always from the seller in this view
          return (
             <div className="flex justify-end my-2">
                 <div className="max-w-md rounded-lg px-4 py-3 bg-muted border">
@@ -140,7 +135,7 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
         <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
             {!isOwnMessage && (
                 <Avatar className="h-8 w-8">
-                    <AvatarFallback>{message.senderName?.charAt(0) || 'S'}</AvatarFallback>
+                    <AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback>
                 </Avatar>
             )}
             <div className={cn(
@@ -276,6 +271,7 @@ export default function TicketChatPage() {
             senderName: user.displayName,
             text: newMessage,
             timestamp: new Date().toISOString(),
+            type: 'text' as const,
         };
         addDocumentNonBlocking(messagesCollection, messageData);
         

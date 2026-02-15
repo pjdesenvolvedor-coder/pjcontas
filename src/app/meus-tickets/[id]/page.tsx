@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode, Upload, Paperclip } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -106,24 +106,9 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
         )
     }
 
-    // Customer receives request from seller
-    if (message.type === 'media_request' && !isOwnMessage) {
+    // This is the customer view.
+    if (message.type === 'media_request') { // Requests can only come from the seller in this view
         return <MediaUploadPrompt ticketId={message.ticketId} requestMessage={message.text} />;
-    }
-
-    // Seller sees their own request
-    if (message.type === 'media_request' && isOwnMessage) {
-         return (
-            <div className="flex justify-end my-2">
-                <div className="max-w-md rounded-lg px-4 py-3 bg-muted border">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <Paperclip className="h-5 w-5" />
-                        <p className="text-sm font-medium">Você solicitou uma mídia ao cliente.</p>
-                    </div>
-                     <p className="text-xs text-right mt-1 opacity-70">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-            </div>
-        )
     }
 
     // Media response from either party
@@ -160,7 +145,7 @@ function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMess
             </div>
              {isOwnMessage && (
                 <Avatar className="h-8 w-8">
-                    <AvatarFallback>{message.senderName?.charAt(0) || 'V'}</AvatarFallback>
+                    <AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback>
                 </Avatar>
             )}
         </div>
@@ -290,6 +275,7 @@ export default function TicketChatPage() {
             senderName: user.displayName,
             text: newMessage,
             timestamp: new Date().toISOString(),
+            type: 'text' as const,
         };
         addDocumentNonBlocking(messagesCollection, messageData);
         
