@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { WhatsAppManager } from './whatsapp-manager';
 import { WhatsappMessageManager } from './whatsapp-message-manager';
-import { WhatsAppMessageDaemon } from './whatsapp-message-daemon';
 import { CouponManagement } from './coupon-management';
 import { PaymentProviderManager } from './payment-provider-manager';
 import { SpecialCouponsManager } from './special-coupons-manager';
@@ -496,7 +495,6 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
       
-      <WhatsAppMessageDaemon />
     </div>
   );
 }
