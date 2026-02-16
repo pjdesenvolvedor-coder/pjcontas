@@ -289,6 +289,10 @@
           "type": "string",
           "description": "Denormalized name of the plan for display."
         },
+        "price": {
+          "type": "number",
+          "description": "The final price of the sale associated with this ticket."
+        },
         "status": {
           "type": "string",
           "description": "The current status of the ticket.",
@@ -324,7 +328,8 @@
         "sellerId",
         "subscriptionId",
         "status",
-        "createdAt"
+        "createdAt",
+        "price"
       ]
     },
     "ChatMessage": {

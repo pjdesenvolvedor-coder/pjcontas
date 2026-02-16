@@ -184,6 +184,7 @@ function CheckoutForm() {
         subscriptionId: plan.id,
         serviceName: service.name,
         planName: plan.name,
+        price: finalPrice,
         status: 'open' as const,
         createdAt: new Date().toISOString(),
         lastMessageAt: new Date().toISOString(),

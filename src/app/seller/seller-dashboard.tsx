@@ -16,7 +16,7 @@ import {
   useDoc,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import type { Plan, SubscriptionService, Deliverable, UserProfile } from '@/lib/types';
+import type { Plan, SubscriptionService, Deliverable, UserProfile, Ticket } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -507,6 +507,64 @@ export function SellerDashboard() {
     [firestore, user?.uid]
   );
   const { data: subscriptions, isLoading: isLoadingSubscriptions } = useCollection<Plan>(subscriptionsQuery);
+  
+  const sellerTicketsQuery = useMemoFirebase(
+    () => (user ? query(collection(firestore, 'tickets'), where('sellerId', '==', user.uid)) : null),
+    [firestore, user?.uid]
+  );
+  const { data: sellerTickets, isLoading: isLoadingSellerTickets } = useCollection<Ticket>(sellerTicketsQuery);
+
+  const [dashboardStats, setDashboardStats] = useState({
+    availableBalance: 0,
+    pendingBalance: 0,
+    salesCount30d: 0,
+  });
+
+  useEffect(() => {
+    if (sellerTickets && subscriptions) {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      let pending = 0;
+      let available = 0;
+      let salesCount = 0;
+      
+      const FIXED_SALE_FEE_PERCENTAGE = 9.90;
+      const BOOST_FEE_PERCENTAGE = 5;
+
+      sellerTickets.forEach(ticket => {
+        const saleDate = new Date(ticket.createdAt);
+        const price = ticket.price || 0;
+        
+        const subscription = subscriptions.find(s => s.id === ticket.subscriptionId);
+        const isBoosted = subscription?.isBoosted || false;
+        
+        let totalFeePercentage = FIXED_SALE_FEE_PERCENTAGE;
+        if (isBoosted) {
+          totalFeePercentage += BOOST_FEE_PERCENTAGE;
+        }
+
+        const netValue = price * (1 - totalFeePercentage / 100);
+
+        if (saleDate >= thirtyDaysAgo) {
+          salesCount++;
+        }
+
+        const availableDate = new Date(saleDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (now >= availableDate) {
+          available += netValue;
+        } else {
+          pending += netValue;
+        }
+      });
+
+      setDashboardStats({
+        availableBalance: available,
+        pendingBalance: pending,
+        salesCount30d: salesCount,
+      });
+    }
+  }, [sellerTickets, subscriptions]);
+
 
   const handleAddNew = () => {
     setEditingSubscription(null);
@@ -603,7 +661,7 @@ export function SellerDashboard() {
     setEditingSubscription(null);
   };
   
-  const isLoading = isLoadingServices || isLoadingSubscriptions;
+  const isLoading = isLoadingServices || isLoadingSubscriptions || isLoadingSellerTickets;
 
   return (
     <>
@@ -653,7 +711,7 @@ export function SellerDashboard() {
                 <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">R$ 0,00</div>
+                <div className="text-2xl font-bold">R$ {dashboardStats.availableBalance.toFixed(2)}</div>
                 <Button variant="outline" size="sm" className="mt-2" disabled>Retirar</Button>
             </CardContent>
             </Card>
@@ -663,9 +721,9 @@ export function SellerDashboard() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">R$ 0,00</div>
+                <div className="text-2xl font-bold">R$ {dashboardStats.pendingBalance.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">
-                De vendas em andamento.
+                  Liberado em 7 dias após a venda.
                 </p>
             </CardContent>
             </Card>
@@ -675,7 +733,7 @@ export function SellerDashboard() {
                 <PackageCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">{dashboardStats.salesCount30d}</div>
                 <p className="text-xs text-muted-foreground">
                 Total de vendas concluídas.
                 </p>
