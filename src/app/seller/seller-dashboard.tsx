@@ -459,6 +459,26 @@ function DeliverablesManagerDialog({
   );
 }
 
+function SubscriptionStock({ subscriptionId }: { subscriptionId: string }) {
+  const firestore = useFirestore();
+
+  const deliverablesQuery = useMemoFirebase(() => {
+    if (!firestore || !subscriptionId) return null;
+    return query(
+      collection(firestore, `subscriptions/${subscriptionId}/deliverables`),
+      where('status', '==', 'available')
+    );
+  }, [firestore, subscriptionId]);
+
+  const { data: availableDeliverables, isLoading } = useCollection<Deliverable>(deliverablesQuery);
+
+  if (isLoading) {
+    return <Skeleton className="h-4 w-8" />;
+  }
+
+  return <>{availableDeliverables?.length ?? 0}</>;
+}
+
 
 export function SellerDashboard() {
   const { user } = useUser();
@@ -690,6 +710,7 @@ export function SellerDashboard() {
                         <TableHead>Anúncio</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Preço</TableHead>
+                        <TableHead>Estoque</TableHead>
                         <TableHead>Tipo Anúncio</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -703,6 +724,9 @@ export function SellerDashboard() {
                         </TableCell>
                         <TableCell>{sub.accountModel}</TableCell>
                         <TableCell>R$ {sub.price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <SubscriptionStock subscriptionId={sub.id} />
+                        </TableCell>
                         <TableCell>
                           {sub.isBoosted ? (
                             <Badge variant="outline" className="text-primary border-primary">Destaque</Badge>
