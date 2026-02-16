@@ -153,7 +153,7 @@ function MediaUploadPrompt({ ticketId, requestMessage }: { ticketId: string, req
              <Card className="bg-muted border-dashed max-w-md">
                 <CardContent className="p-4 flex flex-col items-center text-center gap-3">
                     <p className="text-sm text-muted-foreground font-medium">{requestMessage}</p>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                         {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                         {isUploading ? 'Enviando...' : 'Enviar Mídia'}
