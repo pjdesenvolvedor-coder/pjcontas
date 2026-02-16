@@ -141,6 +141,14 @@ function CheckoutForm() {
     setIsProcessingOrder(true);
 
     try {
+      // Increment coupon usage if one was applied
+      if (appliedCoupon) {
+        const couponRef = doc(firestore, 'coupons', appliedCoupon.id);
+        updateDocumentNonBlocking(couponRef, {
+          usageCount: increment(1)
+        });
+      }
+
       // Fetch seller and customer profiles to get phone numbers
       const sellerProfileRef = doc(firestore, 'users', plan.sellerId);
       const customerProfileRef = doc(firestore, 'users', user.uid);

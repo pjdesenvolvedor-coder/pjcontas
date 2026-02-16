@@ -139,6 +139,8 @@ export type Coupon = {
   id: string;
   name: string;
   discountPercentage: number;
+  usageLimit?: number;
+  usageCount?: number;
 };
 
 // Represents the central payment provider configuration.

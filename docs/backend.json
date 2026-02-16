@@ -381,6 +381,14 @@
         "discountPercentage": {
           "type": "number",
           "description": "The discount percentage (e.g., 10 for 10%)."
+        },
+        "usageLimit": {
+          "type": "number",
+          "description": "The maximum number of times this coupon can be used. A value of 0 means unlimited."
+        },
+        "usageCount": {
+          "type": "number",
+          "description": "The number of times this coupon has been used."
         }
       },
       "required": [

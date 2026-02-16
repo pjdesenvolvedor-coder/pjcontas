@@ -49,6 +49,13 @@ export async function validateCouponAction(couponCode: string): Promise<{ data: 
     }
 
     const couponData = couponSnap.data() as Coupon;
+
+    if (couponData.usageLimit && couponData.usageLimit > 0) {
+      if ((couponData.usageCount || 0) >= couponData.usageLimit) {
+        return { data: null, error: 'Este cupom atingiu o limite de usos.' };
+      }
+    }
+
     return { data: couponData, error: null };
   } catch (e: any) {
     console.error("Coupon validation error:", e);
