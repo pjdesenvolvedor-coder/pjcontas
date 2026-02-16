@@ -449,7 +449,7 @@ export default function TicketChatPage() {
                     <div className={cn("max-w-xs md:max-w-sm rounded-lg p-2", isOwnMessage ? "bg-primary" : "bg-muted")}>
                         {message.text && <p className={cn("text-sm mb-2 px-1", isOwnMessage ? "text-primary-foreground" : "")}>{message.text}</p>}
                         <div onClick={() => onViewImage(imageUrl)} className="cursor-pointer">
-                            <Image src={imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover" />
+                            <Image src={imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover" unoptimized />
                         </div>
                         <p className="text-xs text-right mt-1 opacity-70 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
@@ -511,7 +511,7 @@ export default function TicketChatPage() {
         <div className="container mx-auto max-w-4xl py-8">
             <Dialog open={!!viewingImage} onOpenChange={(open) => !open && setViewingImage(null)}>
                 <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-auto p-0 bg-transparent border-none">
-                    {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" />}
+                    {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" unoptimized />}
                 </DialogContent>
             </Dialog>
 
