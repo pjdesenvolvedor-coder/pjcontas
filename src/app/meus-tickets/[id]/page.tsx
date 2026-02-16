@@ -28,7 +28,7 @@ type PixDetails = {
   qr_code_base64: string;
 };
 
-function MediaUploadPrompt({ ticket, seller, requestMessage }: { ticket: Ticket, seller: UserProfile, requestMessage: string }) {
+function MediaUploadPrompt({ ticket, requestMessage }: { ticket: Ticket, requestMessage: string }) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -38,7 +38,7 @@ function MediaUploadPrompt({ ticket, seller, requestMessage }: { ticket: Ticket,
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file || !user || !firestore || !seller) return;
+        if (!file || !user || !firestore) return;
 
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
             toast({ variant: 'destructive', title: 'Arquivo muito grande', description: 'Por favor, envie um arquivo menor que 5MB.' });
@@ -67,36 +67,14 @@ function MediaUploadPrompt({ ticket, seller, requestMessage }: { ticket: Ticket,
             addDocumentNonBlocking(messagesCollection, customerMessageData);
 
             const ticketDocRef = doc(firestore, 'tickets', ticketId);
-            const initialUpdatePayload = {
+            const updatePayload = {
                 lastMessageText: 'O cliente enviou uma imagem.',
                 lastMessageAt: new Date().toISOString(),
                 unreadBySellerCount: increment(1),
             };
-            updateDocumentNonBlocking(ticketDocRef, initialUpdatePayload);
+            updateDocumentNonBlocking(ticketDocRef, updatePayload);
             
             toast({ title: "Mídia enviada com sucesso!" });
-            
-            // Send automatic message from seller after a delay
-            setTimeout(() => {
-                const sellerMessageData: Omit<ChatMessage, 'id'> = {
-                    ticketId: ticketId,
-                    senderId: seller.id,
-                    senderName: seller.sellerUsername || seller.firstName,
-                    text: 'Foto recebida. Aguarde, estamos analisando.',
-                    timestamp: new Date().toISOString(),
-                    type: 'text'
-                };
-                addDocumentNonBlocking(messagesCollection, sellerMessageData);
-
-                // Update ticket again with the seller's auto-reply
-                const finalUpdatePayload = {
-                    lastMessageText: sellerMessageData.text,
-                    lastMessageAt: sellerMessageData.timestamp,
-                    unreadByCustomerCount: increment(1), // Notify customer of the new message
-                };
-                updateDocumentNonBlocking(ticketDocRef, finalUpdatePayload);
-
-            }, 1500);
 
             setIsUploading(false);
         };
@@ -412,7 +390,7 @@ export default function TicketChatPage() {
         // This is the customer view.
         if (message.type === 'media_request') {
             if (activeMediaRequest?.id === message.id) {
-                if (!ticket || !sellerData) {
+                if (!ticket) {
                     return (
                         <div className="flex justify-start my-2">
                              <Card className="bg-muted border-dashed max-w-md">
@@ -423,7 +401,7 @@ export default function TicketChatPage() {
                         </div>
                     );
                 }
-                return <MediaUploadPrompt ticket={ticket} seller={sellerData} requestMessage={message.text} />;
+                return <MediaUploadPrompt ticket={ticket} requestMessage={message.text} />;
             }
             // For older/fulfilled requests, just show the message text in a standard bubble.
             return (
