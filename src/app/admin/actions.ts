@@ -30,7 +30,11 @@ export async function connectWhatsApp(token: string): Promise<{ qrCode?: string;
         const data = await response.json();
         
         if (data && data.qrcode) {
-            return { qrCode: `data:image/png;base64,${data.qrcode}` };
+            let qrCodeString = data.qrcode;
+            if (!qrCodeString.startsWith('data:image/')) {
+                 qrCodeString = `data:image/png;base64,${qrCodeString}`;
+            }
+            return { qrCode: qrCodeString };
         }
         
         console.error("Resposta inesperada da API do WhatsApp (Connect):", JSON.stringify(data));
