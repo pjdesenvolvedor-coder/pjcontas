@@ -374,8 +374,30 @@ export default function TicketChatPage() {
 
         if (isCustomer) {
             updatePayload.unreadBySellerCount = increment(1);
-        } else {
+        } else { // Seller is sending
             updatePayload.unreadByCustomerCount = increment(1);
+
+            // Send WhatsApp notification if customer is offline
+            if (customerData) {
+                const fiveMinutesAgo = new Date().getTime() - (5 * 60 * 1000);
+                const lastSeenTime = customerData.lastSeen ? new Date(customerData.lastSeen).getTime() : 0;
+                
+                const isCustomerOnline = lastSeenTime > fiveMinutesAgo;
+
+                if (!isCustomerOnline && customerData.phoneNumber) {
+                    const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
+                    addDocumentNonBlocking(pendingMessagesRef, {
+                        type: 'ticket_notification',
+                        recipientPhoneNumber: customerData.phoneNumber,
+                        createdAt: new Date().toISOString(),
+                        data: {
+                            customerName: customerData.firstName,
+                            sellerName: sellerData?.firstName || user.displayName,
+                            ticketId: ticket.id,
+                        }
+                    });
+                }
+            }
         }
 
         updateDocumentNonBlocking(ticketDocRef, updatePayload);

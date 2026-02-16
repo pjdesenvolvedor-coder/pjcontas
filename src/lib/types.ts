@@ -113,12 +113,13 @@ export type WhatsappConfig = {
   welcomeMessage?: string;
   saleNotificationMessage?: string;
   deliveryMessage?: string;
+  ticketNotificationMessage?: string;
 };
 
 // Represents a pending message to be sent via WhatsApp.
 export type PendingMessage = {
   id: string;
-  type: 'welcome' | 'sale_notification' | 'delivery';
+  type: 'welcome' | 'sale_notification' | 'delivery' | 'ticket_notification';
   recipientPhoneNumber: string;
   createdAt: string;
   data: {
@@ -131,6 +132,8 @@ export type PendingMessage = {
     planName?: string;
     price?: number;
     deliverableContent?: string;
+    // For ticket notifications
+    ticketId?: string;
   };
 };
 

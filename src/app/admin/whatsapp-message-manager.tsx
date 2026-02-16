@@ -25,6 +25,7 @@ export function WhatsappMessageManager() {
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [saleNotificationMessage, setSaleNotificationMessage] = useState('');
   const [deliveryMessage, setDeliveryMessage] = useState('');
+  const [ticketNotificationMessage, setTicketNotificationMessage] = useState('');
   const [testMessage, setTestMessage] = useState(
     '🎉 Olá, *Cliente Teste*! Seja bem-vindo(a) a *PJ Contas*!\\n\\n' +
     '> Seu cadastro foi realizado com sucesso em nosso site.✅\\n\\n' +
@@ -40,6 +41,7 @@ export function WhatsappMessageManager() {
       setWelcomeMessage(whatsappConfig.welcomeMessage || '');
       setSaleNotificationMessage(whatsappConfig.saleNotificationMessage || '');
       setDeliveryMessage(whatsappConfig.deliveryMessage || '');
+      setTicketNotificationMessage(whatsappConfig.ticketNotificationMessage || '');
     }
   }, [whatsappConfig]);
 
@@ -51,6 +53,7 @@ export function WhatsappMessageManager() {
       welcomeMessage,
       saleNotificationMessage,
       deliveryMessage,
+      ticketNotificationMessage,
     };
     setDocumentNonBlocking(configRef, newConfigData, { merge: true });
     
@@ -219,6 +222,29 @@ export function WhatsappMessageManager() {
                         <Badge variant="outline">{'{produto}'}</Badge>
                         <Badge variant="outline">{'{plano}'}</Badge>
                         <Badge variant="outline">{'{acesso}'}</Badge>
+                    </div>
+                </div>
+                </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-4">
+                <AccordionTrigger>Notificação de Mensagem no Ticket (Para o Cliente)</AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                    <Label htmlFor="ticket-notification-message">Mensagem</Label>
+                    <Textarea
+                    id="ticket-notification-message"
+                    placeholder="Olá {cliente}! O vendedor {vendedor} te enviou uma nova mensagem..."
+                    value={ticketNotificationMessage}
+                    onChange={(e) => setTicketNotificationMessage(e.target.value)}
+                    rows={5}
+                    />
+                </div>
+                <div>
+                    <p className="text-xs text-muted-foreground">Variáveis disponíveis:</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        <Badge variant="outline">{'{cliente}'}</Badge>
+                        <Badge variant="outline">{'{vendedor}'}</Badge>
+                        <Badge variant="outline">{'{link_ticket}'}</Badge>
                     </div>
                 </div>
                 </AccordionContent>
