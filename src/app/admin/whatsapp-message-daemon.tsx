@@ -71,12 +71,13 @@ export function WhatsAppMessageDaemon() {
                 
                 case 'ticket_notification':
                     messageTemplate = whatsappConfig.ticketNotificationMessage;
-                    if (messageTemplate) {
-                        finalMessage = messageTemplate
-                            .replace(/{cliente}/g, msg.data.customerName || '')
-                            .replace(/{vendedor}/g, msg.data.sellerName || '')
-                            .replace(/{link_ticket}/g, `https://pjcontas.vercel.app/meus-tickets/${msg.data.ticketId || ''}`);
+                     if (!messageTemplate || messageTemplate.trim() === '') {
+                        messageTemplate = 'Olá {cliente}! Você recebeu uma nova mensagem do vendedor {vendedor} sobre sua compra. Acesse o link para responder: {link_ticket}';
                     }
+                    finalMessage = messageTemplate
+                        .replace(/{cliente}/g, msg.data.customerName || 'Cliente')
+                        .replace(/{vendedor}/g, msg.data.sellerName || 'Vendedor')
+                        .replace(/{link_ticket}/g, `https://pjcontas.vercel.app/meus-tickets/${msg.data.ticketId || ''}`);
                     break;
             }
             
