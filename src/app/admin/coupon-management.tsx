@@ -170,7 +170,7 @@ export function CouponManagement() {
                       <TableCell>
                         {coupon.usageLimit && coupon.usageLimit > 0
                           ? `${coupon.usageCount || 0} / ${coupon.usageLimit}`
-                          : 'Ilimitado'}
+                          : `Ilimitado (${coupon.usageCount || 0})`}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteRequest(coupon)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
