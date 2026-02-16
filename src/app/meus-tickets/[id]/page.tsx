@@ -34,7 +34,15 @@ function MediaUploadPrompt({ ticket, requestMessage }: { ticket: Ticket, request
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isMounted = useRef(true);
     const ticketId = ticket.id;
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -76,12 +84,16 @@ function MediaUploadPrompt({ ticket, requestMessage }: { ticket: Ticket, request
             
             toast({ title: "Mídia enviada com sucesso!" });
 
-            setIsUploading(false);
+            if (isMounted.current) {
+                setIsUploading(false);
+            }
         };
         reader.onerror = (error) => {
             console.error("File reading error:", error);
             toast({ variant: 'destructive', title: 'Erro ao ler arquivo', description: 'Não foi possível processar o arquivo. Tente novamente.' });
-            setIsUploading(false);
+            if (isMounted.current) {
+                setIsUploading(false);
+            }
         }
     };
 
