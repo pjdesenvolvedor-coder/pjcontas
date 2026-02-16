@@ -101,10 +101,6 @@ export type ChatMessage = {
   text: string;
   timestamp: string;
   senderName?: string;
-  type?: 'text' | 'media_request' | 'media_response';
-  payload?: {
-    imageUrl?: string;
-  };
 };
 
 // Represents the central WhatsApp configuration.

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, AlertCircle, Paperclip, Loader2, Upload, X, LifeBuoy } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, AlertCircle, Loader2, LifeBuoy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -96,46 +96,13 @@ function SupportDialog({
     );
 }
 
-function ChatBubble({ message, isOwnMessage, onViewImage }: { message: ChatMessage; isOwnMessage: boolean; onViewImage: (url: string) => void; }) {
+function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean; }) {
     const isSystemMessage = message.senderId === 'system';
     
     if (isSystemMessage) {
         return (
             <div className="text-center text-xs text-muted-foreground p-2 my-2 rounded-md bg-muted/50 border">
                 {message.text}
-            </div>
-        )
-    }
-
-    // This is the seller view.
-    if (message.type === 'media_request') { // Requests are always from the seller in this view
-         return (
-            <div className="flex justify-end my-2">
-                <div className="max-w-md rounded-lg px-4 py-3 bg-muted border">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                        <Paperclip className="h-5 w-5" />
-                        <p className="text-sm font-medium">Você solicitou uma mídia ao cliente.</p>
-                    </div>
-                     <p className="text-xs text-right mt-1 opacity-70">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-            </div>
-        )
-    }
-
-    // Media response from either party
-    if (message.type === 'media_response' && message.payload?.imageUrl) {
-        const imageUrl = message.payload.imageUrl;
-        return (
-            <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
-                {!isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'C'}</AvatarFallback></Avatar> )}
-                <div className={cn("max-w-xs md:max-w-sm rounded-lg p-2", isOwnMessage ? "bg-primary" : "bg-muted")}>
-                    <div onClick={() => onViewImage(imageUrl)} className="cursor-pointer">
-                        <Image src={imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover" unoptimized />
-                    </div>
-                    {message.text && <p className={cn("text-sm mt-2 px-1", isOwnMessage ? "text-primary-foreground" : "")}>{message.text}</p>}
-                    <p className="text-xs text-right mt-1 opacity-70 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-                {isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'V'}</AvatarFallback></Avatar> )}
             </div>
         )
     }
@@ -209,7 +176,6 @@ export default function TicketChatPage() {
     const { toast } = useToast();
     const [newMessage, setNewMessage] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
-    const [viewingImage, setViewingImage] = useState<string | null>(null);
     const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
 
     // Ticket
@@ -285,7 +251,6 @@ export default function TicketChatPage() {
             senderName: user.displayName,
             text: newMessage,
             timestamp: new Date().toISOString(),
-            type: 'text' as const,
         };
         addDocumentNonBlocking(messagesCollection, messageData);
         
@@ -349,7 +314,6 @@ export default function TicketChatPage() {
             senderName: user.displayName,
             text: messageText,
             timestamp: new Date().toISOString(),
-            type: 'text' as const,
         };
         addDocumentNonBlocking(messagesCollection, messageData);
         
@@ -376,31 +340,6 @@ export default function TicketChatPage() {
             event.preventDefault();
             handleSendMessage();
         }
-    };
-
-    const handleRequestMedia = () => {
-        if (!user || !ticket || !firestore) return;
-
-        const messagesCollection = collection(firestore, 'tickets', ticket.id, 'messages');
-        const messageData: Omit<ChatMessage, 'id'> = {
-            ticketId: ticket.id,
-            senderId: user.uid,
-            senderName: user.displayName,
-            text: 'O vendedor solicitou uma foto do erro para melhor suporte.',
-            timestamp: new Date().toISOString(),
-            type: 'media_request',
-        };
-        addDocumentNonBlocking(messagesCollection, messageData);
-        
-        const ticketDocRef = doc(firestore, 'tickets', ticket.id);
-        const updatePayload = {
-            lastMessageText: 'Você solicitou um anexo ao cliente.',
-            lastMessageAt: new Date().toISOString(),
-            unreadByCustomerCount: increment(1),
-        };
-        updateDocumentNonBlocking(ticketDocRef, updatePayload);
-        
-        toast({ title: "Solicitação enviada", description: "O cliente foi notificado para enviar uma mídia." });
     };
     
     const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading || isCustomerLoading;
@@ -433,12 +372,6 @@ export default function TicketChatPage() {
     
     return (
         <div className="container mx-auto max-w-4xl py-8">
-            <Dialog open={!!viewingImage} onOpenChange={(open) => !open && setViewingImage(null)}>
-                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-auto p-0 bg-transparent border-none">
-                    {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" unoptimized />}
-                </DialogContent>
-            </Dialog>
-
             <SupportDialog 
                 isOpen={isSupportDialogOpen}
                 onClose={() => setIsSupportDialogOpen(false)}
@@ -538,7 +471,7 @@ export default function TicketChatPage() {
                             <p>O suporte será prestado por esse chat!</p>
                         </div>
                         {messages?.map(msg => (
-                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} onViewImage={setViewingImage} />
+                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
                         ))}
                     </CardContent>
                     
@@ -566,12 +499,6 @@ export default function TicketChatPage() {
                             <Button type="button" variant="outline" size="icon" onClick={() => setIsSupportDialogOpen(true)} disabled={isExpired || !user} title="Enviar Acesso de Suporte">
                                 <LifeBuoy className="h-4 w-4" />
                                 <span className="sr-only">Enviar Acesso de Suporte</span>
-                            </Button>
-                        )}
-                         {isSellerView && (
-                            <Button type="button" variant="outline" size="icon" onClick={handleRequestMedia} disabled={isExpired || !user} title="Solicitar Mídia">
-                                <Paperclip className="h-4 w-4" />
-                                <span className="sr-only">Solicitar Mídia</span>
                             </Button>
                         )}
                         <Button type="submit" disabled={!newMessage.trim() || isExpired || !user}>

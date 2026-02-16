@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode, Upload, Paperclip, X } from 'lucide-react';
+import { Send, ArrowLeft, Info, Phone, Copy, Loader2, CheckCircle, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -27,91 +27,6 @@ type PixDetails = {
   qr_code: string;
   qr_code_base64: string;
 };
-
-function MediaUploadPrompt({ ticket, requestMessage }: { ticket: Ticket, requestMessage: string }) {
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const { toast } = useToast();
-    const [isUploading, setIsUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const isMounted = useRef(true);
-    const ticketId = ticket.id;
-
-    useEffect(() => {
-        isMounted.current = true;
-        return () => {
-            isMounted.current = false;
-        };
-    }, []);
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file || !user || !firestore) return;
-
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            toast({ variant: 'destructive', title: 'Arquivo muito grande', description: 'Por favor, envie um arquivo menor que 5MB.' });
-            return;
-        }
-
-        setIsUploading(true);
-
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-            const imageUrl = reader.result as string;
-
-            const messagesCollection = collection(firestore, 'tickets', ticketId, 'messages');
-            
-            // Customer's media response
-            const customerMessageData: Omit<ChatMessage, 'id'> = {
-                ticketId: ticketId,
-                senderId: user.uid,
-                senderName: user.displayName,
-                text: ``, // No text needed for the image itself
-                timestamp: new Date().toISOString(),
-                type: 'media_response',
-                payload: { imageUrl }
-            };
-            addDocumentNonBlocking(messagesCollection, customerMessageData);
-
-            const ticketDocRef = doc(firestore, 'tickets', ticketId);
-            const updatePayload = {
-                lastMessageText: 'O cliente enviou uma imagem.',
-                lastMessageAt: new Date().toISOString(),
-                unreadBySellerCount: increment(1),
-            };
-            updateDocumentNonBlocking(ticketDocRef, updatePayload);
-            
-            toast({ title: "Mídia enviada com sucesso!" });
-
-            if (isMounted.current) {
-                setIsUploading(false);
-            }
-        };
-        reader.onerror = (error) => {
-            console.error("File reading error:", error);
-            toast({ variant: 'destructive', title: 'Erro ao ler arquivo', description: 'Não foi possível processar o arquivo. Tente novamente.' });
-            if (isMounted.current) {
-                setIsUploading(false);
-            }
-        }
-    };
-
-    return (
-        <div className="flex justify-start my-2">
-             <Card className="bg-muted border-dashed max-w-md">
-                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                    <p className="text-sm text-muted-foreground font-medium">{requestMessage}</p>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        {isUploading ? 'Enviando...' : 'Enviar Mídia'}
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
 
 function SellerStatus({ seller }: { seller: UserProfile }) {
     const [isClient, setIsClient] = useState(false);
@@ -158,7 +73,6 @@ export default function TicketChatPage() {
     const { toast } = useToast();
     const [newMessage, setNewMessage] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
-    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     // Renewal State
     const [isRenewing, setIsRenewing] = useState(false);
@@ -201,32 +115,6 @@ export default function TicketChatPage() {
         return doc(firestore, 'subscriptions', ticket.subscriptionId);
     }, [firestore, ticket]);
     const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
-
-    const activeMediaRequest = useMemo(() => {
-        if (!messages || !user) return null;
-    
-        // Find all media requests sent by the other party (the seller)
-        const mediaRequests = messages.filter(m => m.type === 'media_request' && m.senderId !== user.uid);
-        if (mediaRequests.length === 0) return null;
-    
-        // Get the last one
-        const lastRequest = mediaRequests[mediaRequests.length - 1];
-    
-        // Check if there is a media_response from the customer after this last request
-        const hasResponse = messages.some(m => 
-            m.type === 'media_response' && 
-            m.senderId === user.uid && 
-            new Date(m.timestamp) > new Date(lastRequest.timestamp)
-        );
-    
-        // If there's already a response, the request is not active
-        if (hasResponse) {
-            return null;
-        }
-    
-        // Otherwise, this is the active, unfulfilled request
-        return lastRequest;
-    }, [messages, user]);
     
     useLayoutEffect(() => {
         if (chatContainerRef.current) {
@@ -265,7 +153,6 @@ export default function TicketChatPage() {
             senderName: user.displayName,
             text: newMessage,
             timestamp: new Date().toISOString(),
-            type: 'text' as const,
         };
         addDocumentNonBlocking(messagesCollection, messageData);
         
@@ -388,62 +275,13 @@ export default function TicketChatPage() {
 
     const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading || isCustomerLoading;
 
-    function ChatBubble({ message, isOwnMessage, onViewImage }: { message: ChatMessage; isOwnMessage: boolean; onViewImage: (url: string) => void; }) {
+    function ChatBubble({ message, isOwnMessage }: { message: ChatMessage; isOwnMessage: boolean; }) {
         const isSystemMessage = message.senderId === 'system';
         
         if (isSystemMessage) {
             return (
                 <div className="text-center text-xs text-muted-foreground p-2 my-2 rounded-md bg-muted/50 border">
                     {message.text}
-                </div>
-            )
-        }
-    
-        // This is the customer view.
-        if (message.type === 'media_request') {
-            if (activeMediaRequest?.id === message.id) {
-                if (!ticket) {
-                    return (
-                        <div className="flex justify-start my-2">
-                             <Card className="bg-muted border-dashed max-w-md">
-                                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                                    <Loader2 className="h-6 w-6 animate-spin" />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    );
-                }
-                return <MediaUploadPrompt ticket={ticket} requestMessage={message.text} />;
-            }
-            // For older/fulfilled requests, just show the message text in a standard bubble.
-            return (
-                <div className={cn("flex items-end gap-2", "justify-start")}>
-                     <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'S'}</AvatarFallback></Avatar>
-                    <div className="max-w-md rounded-lg px-4 py-3 bg-muted border">
-                        <div className="flex items-center gap-3 text-muted-foreground">
-                            <Paperclip className="h-5 w-5" />
-                            <p className="text-sm font-medium">{message.text}</p>
-                        </div>
-                        <p className="text-xs text-right mt-1 opacity-70">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                </div>
-            )
-        }
-    
-        // Media response from either party
-        if (message.type === 'media_response' && message.payload?.imageUrl) {
-            const imageUrl = message.payload.imageUrl;
-            return (
-                <div className={cn("flex items-end gap-2", isOwnMessage ? "justify-end" : "justify-start")}>
-                    {!isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{message.senderName?.charAt(0) || 'S'}</AvatarFallback></Avatar> )}
-                    <div className={cn("max-w-xs md:max-w-sm rounded-lg p-2", isOwnMessage ? "bg-primary" : "bg-muted")}>
-                        {message.text && <p className={cn("text-sm mb-2 px-1", isOwnMessage ? "text-primary-foreground" : "")}>{message.text}</p>}
-                        <div onClick={() => onViewImage(imageUrl)} className="cursor-pointer">
-                            <Image src={imageUrl} alt="Mídia enviada" width={250} height={250} className="rounded-md object-cover" unoptimized />
-                        </div>
-                        <p className="text-xs text-right mt-1 opacity-70 px-1">{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                    {isOwnMessage && ( <Avatar className="h-8 w-8"><AvatarFallback>{user?.displayName?.charAt(0) || 'C'}</AvatarFallback></Avatar> )}
                 </div>
             )
         }
@@ -499,12 +337,6 @@ export default function TicketChatPage() {
 
     return (
         <div className="container mx-auto max-w-4xl py-8">
-            <Dialog open={!!viewingImage} onOpenChange={(open) => !open && setViewingImage(null)}>
-                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-auto p-0 bg-transparent border-none">
-                    {viewingImage && <Image src={viewingImage} alt="Mídia em tela cheia" width={1200} height={800} className="w-full h-auto object-contain rounded-lg" unoptimized />}
-                </DialogContent>
-            </Dialog>
-
             <Dialog open={isRenewing && !!renewalPixDetails} onOpenChange={(open) => { if(!open) setIsRenewing(false)}}>
                 <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
@@ -636,7 +468,7 @@ export default function TicketChatPage() {
                             <p>O suporte será prestado por esse chat!</p>
                         </div>
                         {messages?.map(msg => (
-                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} onViewImage={setViewingImage} />
+                            <ChatBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === user?.uid} />
                         ))}
                     </CardContent>
 
