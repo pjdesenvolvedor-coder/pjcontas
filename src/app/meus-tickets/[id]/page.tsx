@@ -524,7 +524,7 @@ export default function TicketChatPage() {
                     {renewalPaymentStatus === 'pending' && renewalPixDetails ? (
                         <div className="flex flex-col items-center gap-4 py-4">
                             <div className="p-4 bg-white rounded-lg border">
-                                <Image src={renewalPixDetails.qr_code_base64} alt="PIX QR Code" width={200} height={200} />
+                                <Image src={renewalPixDetails.qr_code_base64} alt="PIX QR Code" width={200} height={200} unoptimized />
                             </div>
                             <p className="text-sm text-muted-foreground">Aguardando pagamento...</p>
                             <div className="w-full space-y-2">

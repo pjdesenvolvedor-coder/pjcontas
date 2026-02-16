@@ -534,7 +534,7 @@ function CheckoutForm() {
                 <>
                   {pixDetails.qr_code_base64 ? (
                     <div className="p-4 bg-white rounded-lg border">
-                      <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} />
+                      <Image src={pixDetails.qr_code_base64} alt="PIX QR Code" width={256} height={256} unoptimized />
                     </div>
                   ) : (
                     <div className="flex h-[288px] w-[288px] flex-col items-center justify-center rounded-lg border bg-muted/50 p-4 text-center">
