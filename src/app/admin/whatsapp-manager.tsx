@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocument } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { WhatsappConfig } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,7 +109,7 @@ export function WhatsAppManager() {
   const handleSaveToken = () => {
     if (!firestore) return;
     const configRef = doc(firestore, 'configs', 'whatsapp');
-    setDocumentNonBlocking(configRef, { apiToken: token }, { merge: true });
+    setDocument(configRef, { apiToken: token }, { merge: true });
     setSavedToken(token);
     toast({
       title: "Token Salvo!",

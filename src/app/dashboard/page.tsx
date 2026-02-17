@@ -12,7 +12,7 @@ import {
   useFirestore,
   useMemoFirebase,
   useDoc,
-  updateDocumentNonBlocking,
+  updateDocument,
   useAuth,
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -101,7 +101,7 @@ function UserProfileCard({
     }
 
     // Update Firestore document
-    updateDocumentNonBlocking(userRef, updateData);
+    updateDocument(userRef, updateData);
 
     // Update Auth profile
     if (

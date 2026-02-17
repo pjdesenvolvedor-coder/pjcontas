@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection, setDocument, deleteDocument, updateDocument } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -121,7 +121,7 @@ function ServiceManagement() {
     if (!deletingServiceId) return;
     
     const serviceRef = doc(firestore, 'services', deletingServiceId);
-    deleteDocumentNonBlocking(serviceRef);
+    deleteDocument(serviceRef);
 
     toast({
         title: "Serviço apagado!",
@@ -136,7 +136,7 @@ function ServiceManagement() {
     if (editingService) {
       // Update only the name
       const serviceRef = doc(firestore, 'services', editingService.id);
-      setDocumentNonBlocking(serviceRef, values, { merge: true });
+      setDocument(serviceRef, values, { merge: true });
       toast({
         title: 'Serviço Atualizado!',
         description: 'As alterações foram salvas.',
@@ -154,7 +154,7 @@ function ServiceManagement() {
         bannerUrl: `https://placehold.co/600x300/cccccc/FFFFFF/png?text=${encodeURIComponent(values.name)}`,
         bannerHint: 'banner'
       };
-      setDocumentNonBlocking(newServiceRef, newServiceData, { merge: false });
+      setDocument(newServiceRef, newServiceData, { merge: false });
       toast({
         title: 'Serviço Criado!',
         description: 'O novo serviço de streaming está disponível.',
@@ -281,7 +281,7 @@ function UserManagement() {
     const userRef = doc(firestore, 'users', userToUpdate.id);
     const newRole = userToUpdate.role === 'admin' ? 'customer' : 'admin';
 
-    updateDocumentNonBlocking(userRef, { role: newRole });
+    updateDocument(userRef, { role: newRole });
     toast({
       title: "Função do Usuário Atualizada!",
       description: `${userToUpdate.firstName} agora é ${newRole === 'admin' ? 'administrador(a)' : 'cliente'}.`
@@ -301,7 +301,7 @@ function UserManagement() {
     if (!selectedUser || !firestore) return;
 
     const userRef = doc(firestore, 'users', selectedUser.id);
-    deleteDocumentNonBlocking(userRef);
+    deleteDocument(userRef);
 
     toast({
       title: "Usuário Apagado!",

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirestore, setDocument, addDocument } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { doc, collection } from 'firebase/firestore';
@@ -69,12 +69,12 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        setDocumentNonBlocking(userRef, userData, { merge: false });
+        setDocument(userRef, userData, { merge: false });
         
         // 3. Queue welcome message
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            addDocumentNonBlocking(pendingMessagesRef, {
+            addDocument(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),

@@ -13,7 +13,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocument } from '@/firebase';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,7 +41,7 @@ export function Header() {
       const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
       
       if (diffMinutes > 1) {
-          updateDocumentNonBlocking(userRef, {
+          updateDocument(userRef, {
             lastSeen: now.toISOString()
           });
       }

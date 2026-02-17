@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, setDocument, deleteDocument } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Coupon } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,8 +47,7 @@ export function CouponManagement() {
     const newCouponRef = doc(firestore, 'coupons', values.name);
     const newCouponData = { ...values, id: values.name, usageCount: 0 };
 
-    // Use setDocumentNonBlocking instead of addDocument to handle cases where the doc might exist
-    setDocumentNonBlocking(newCouponRef, newCouponData, { merge: false });
+    setDocument(newCouponRef, newCouponData, { merge: false });
     toast({
       title: 'Cupom Criado!',
       description: `O cupom "${values.name}" foi criado com ${values.discountPercentage}% de desconto.`,
@@ -63,7 +62,7 @@ export function CouponManagement() {
   const handleConfirmDelete = () => {
     if (!deletingCoupon) return;
     const couponRef = doc(firestore, 'coupons', deletingCoupon.id);
-    deleteDocumentNonBlocking(couponRef);
+    deleteDocument(couponRef);
     toast({
       title: "Cupom apagado!",
       description: `O cupom "${deletingCoupon.name}" foi removido.`,

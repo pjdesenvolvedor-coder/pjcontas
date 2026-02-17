@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocument } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { WhatsappConfig } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +55,7 @@ export function WhatsappMessageManager() {
       deliveryMessage,
       ticketNotificationMessage,
     };
-    setDocumentNonBlocking(configRef, newConfigData, { merge: true });
+    setDocument(configRef, newConfigData, { merge: true });
     
     toast({
       title: "Mensagens Salvas!",

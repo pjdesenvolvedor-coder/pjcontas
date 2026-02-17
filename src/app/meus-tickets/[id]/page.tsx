@@ -1,6 +1,6 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocument, updateDocument } from '@/firebase';
 import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
 import { useEffect, useRef, useState, useMemo, useLayoutEffect } from 'react';
 import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
@@ -138,7 +138,7 @@ export default function TicketChatPage() {
         
         if (Object.keys(updatePayload).length > 0) {
             const ticketDocRef = doc(firestore, 'tickets', ticket.id);
-            updateDocumentNonBlocking(ticketDocRef, updatePayload);
+            updateDocument(ticketDocRef, updatePayload);
         }
 
     }, [isTicketLoading, ticket, user, firestore]);
@@ -154,7 +154,7 @@ export default function TicketChatPage() {
             text: newMessage,
             timestamp: new Date().toISOString(),
         };
-        addDocumentNonBlocking(messagesCollection, messageData);
+        addDocument(messagesCollection, messageData);
         
         const ticketDocRef = doc(firestore, 'tickets', ticket.id);
 
@@ -176,7 +176,7 @@ export default function TicketChatPage() {
             updatePayload.unreadByCustomerCount = increment(1);
         }
 
-        updateDocumentNonBlocking(ticketDocRef, updatePayload);
+        updateDocument(ticketDocRef, updatePayload);
         
         setNewMessage('');
     };
@@ -238,7 +238,7 @@ export default function TicketChatPage() {
             const newEndDate = new Date();
             newEndDate.setDate(newEndDate.getDate() + 30);
 
-            updateDocumentNonBlocking(userSubscriptionRef, { endDate: newEndDate.toISOString() });
+            updateDocument(userSubscriptionRef, { endDate: newEndDate.toISOString() });
             
             const messagesCollection = collection(firestore, 'tickets', ticketRef.id, 'messages');
             const renewalMessage = {
@@ -248,7 +248,7 @@ export default function TicketChatPage() {
                 text: `✅ Assinatura renovada com sucesso! Novo vencimento em ${newEndDate.toLocaleDateString('pt-BR')}.`,
                 timestamp: new Date().toISOString(),
             };
-            addDocumentNonBlocking(messagesCollection, renewalMessage);
+            addDocument(messagesCollection, renewalMessage);
 
             const ticketUpdatePayload = {
                 lastMessageText: 'Assinatura renovada com sucesso!',
@@ -256,7 +256,7 @@ export default function TicketChatPage() {
                 unreadBySellerCount: increment(1),
                 unreadByCustomerCount: 0, 
             };
-            updateDocumentNonBlocking(ticketRef, ticketUpdatePayload);
+            updateDocument(ticketRef, ticketUpdatePayload);
 
             toast({
                 title: 'Assinatura Renovada!',

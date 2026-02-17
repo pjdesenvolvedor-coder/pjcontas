@@ -1,6 +1,6 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocument, updateDocument } from '@/firebase';
 import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
@@ -236,7 +236,7 @@ export default function TicketChatPage() {
         
         if (Object.keys(updatePayload).length > 0) {
             const ticketDocRef = doc(firestore, 'tickets', ticket.id);
-            updateDocumentNonBlocking(ticketDocRef, updatePayload);
+            updateDocument(ticketDocRef, updatePayload);
         }
 
     }, [isTicketLoading, ticket, user, firestore]);
@@ -252,7 +252,7 @@ export default function TicketChatPage() {
             text: newMessage,
             timestamp: new Date().toISOString(),
         };
-        addDocumentNonBlocking(messagesCollection, messageData);
+        addDocument(messagesCollection, messageData);
         
         const ticketDocRef = doc(firestore, 'tickets', ticket.id);
 
@@ -282,7 +282,7 @@ export default function TicketChatPage() {
 
                 if (!isCustomerOnline && customerData.phoneNumber) {
                     const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-                    addDocumentNonBlocking(pendingMessagesRef, {
+                    addDocument(pendingMessagesRef, {
                         type: 'ticket_notification',
                         recipientPhoneNumber: customerData.phoneNumber,
                         createdAt: new Date().toISOString(),
@@ -296,7 +296,7 @@ export default function TicketChatPage() {
             }
         }
 
-        updateDocumentNonBlocking(ticketDocRef, updatePayload);
+        updateDocument(ticketDocRef, updatePayload);
         
         setNewMessage('');
     };
@@ -315,7 +315,7 @@ export default function TicketChatPage() {
             text: messageText,
             timestamp: new Date().toISOString(),
         };
-        addDocumentNonBlocking(messagesCollection, messageData);
+        addDocument(messagesCollection, messageData);
         
         const ticketDocRef = doc(firestore, 'tickets', ticket.id);
     
@@ -325,7 +325,7 @@ export default function TicketChatPage() {
             unreadByCustomerCount: increment(1),
         };
     
-        updateDocumentNonBlocking(ticketDocRef, updatePayload);
+        updateDocument(ticketDocRef, updatePayload);
         
         toast({
             title: "Mensagem de suporte enviada!",

@@ -28,9 +28,9 @@ import {
   useDoc,
   useFirestore,
   useMemoFirebase,
-  addDocumentNonBlocking,
-  setDocumentNonBlocking,
-  updateDocumentNonBlocking,
+  addDocument,
+  setDocument,
+  updateDocument,
 } from '@/firebase';
 import {
   doc,
@@ -144,7 +144,7 @@ function CheckoutForm() {
       // Increment coupon usage if one was applied
       if (appliedCoupon) {
         const couponRef = doc(firestore, 'coupons', appliedCoupon.id);
-        updateDocumentNonBlocking(couponRef, {
+        await updateDocument(couponRef, {
           usageCount: increment(1)
         });
       }
@@ -178,7 +178,7 @@ function CheckoutForm() {
         paymentMethod: finalPrice <= 0 && appliedCoupon ? `Cupom (${appliedCoupon.name})` : 'PIX',
         bannerUrl: plan.bannerUrl,
       };
-      const userSubDocRef = await addDocumentNonBlocking(userSubscriptionsRef, newSubscriptionData);
+      const userSubDocRef = await addDocument(userSubscriptionsRef, newSubscriptionData);
 
       const ticketsCollection = collection(firestore, 'tickets');
       const newTicketRef = doc(ticketsCollection);
@@ -200,9 +200,9 @@ function CheckoutForm() {
         unreadBySellerCount: 1,
         unreadByCustomerCount: 0,
       };
-      setDocumentNonBlocking(newTicketRef, newTicketData, { merge: false });
+      await setDocument(newTicketRef, newTicketData, { merge: false });
       
-      updateDocumentNonBlocking(userSubDocRef, { ticketId: newTicketRef.id });
+      await updateDocument(userSubDocRef, { ticketId: newTicketRef.id });
 
       const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
       const q = query(deliverableCollectionRef, where('status', '==', 'available'));
@@ -221,9 +221,9 @@ function CheckoutForm() {
           timestamp: new Date().toISOString(),
           type: 'text' as const,
         };
-        addDocumentNonBlocking(chatMessagesCollection, stockOutMessage);
+        addDocument(chatMessagesCollection, stockOutMessage);
         
-        updateDocumentNonBlocking(newTicketRef, {
+        updateDocument(newTicketRef, {
           lastMessageText: 'ATENÇÃO: Venda realizada sem estoque! Repor e entregar manualmente.',
           unreadBySellerCount: increment(1),
           unreadByCustomerCount: 1,
@@ -235,7 +235,7 @@ function CheckoutForm() {
         const deliverableDoc = sortedDeliverables[0];
         const deliverableData = deliverableDoc.data() as Deliverable;
         
-        updateDocumentNonBlocking(deliverableDoc.ref, { status: 'sold' });
+        await updateDocument(deliverableDoc.ref, { status: 'sold' });
 
         const deliveryMessage = {
           ticketId: newTicketRef.id,
@@ -245,9 +245,9 @@ function CheckoutForm() {
           timestamp: new Date().toISOString(),
           type: 'text' as const,
         };
-        addDocumentNonBlocking(chatMessagesCollection, deliveryMessage);
+        addDocument(chatMessagesCollection, deliveryMessage);
         
-        updateDocumentNonBlocking(newTicketRef, {
+        updateDocument(newTicketRef, {
           lastMessageText: 'Produto entregue automaticamente.',
           unreadBySellerCount: 0,
           unreadByCustomerCount: 1,
@@ -257,7 +257,7 @@ function CheckoutForm() {
 
       // Queue Delivery Message for Buyer
       if (customerProfile?.phoneNumber) {
-          addDocumentNonBlocking(pendingMessagesRef, {
+          addDocument(pendingMessagesRef, {
               type: 'delivery',
               recipientPhoneNumber: customerProfile.phoneNumber,
               createdAt: new Date().toISOString(),
@@ -272,7 +272,7 @@ function CheckoutForm() {
 
       // Queue Sale Notification for Seller
       if (sellerProfile?.phoneNumber) {
-          addDocumentNonBlocking(pendingMessagesRef, {
+          addDocument(pendingMessagesRef, {
               type: 'sale_notification',
               recipientPhoneNumber: sellerProfile.phoneNumber,
               createdAt: new Date().toISOString(),

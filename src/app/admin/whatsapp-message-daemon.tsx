@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useFirestore, useDoc, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, deleteDocument } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { sendWelcomeWhatsAppMessage } from './actions';
 import type { WhatsappConfig, PendingMessage } from '@/lib/types';
@@ -86,7 +86,7 @@ export function WhatsAppMessageDaemon() {
                 // Delete the message from queue to prevent retries for unconfigured templates.
                 if (firestore) {
                     const msgRef = doc(firestore, 'pending_whatsapp_messages', msg.id);
-                    deleteDocumentNonBlocking(msgRef);
+                    deleteDocument(msgRef);
                 }
                 return;
             }
@@ -95,7 +95,7 @@ export function WhatsAppMessageDaemon() {
             
             if (firestore) {
                 const msgRef = doc(firestore, 'pending_whatsapp_messages', msg.id);
-                deleteDocumentNonBlocking(msgRef);
+                deleteDocument(msgRef);
             }
 
             if(result?.error) {
