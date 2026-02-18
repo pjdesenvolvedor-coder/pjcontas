@@ -1,9 +1,9 @@
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, collection, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit, Trash, Loader2, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { UserProfile as UserProfileType } from '@/lib/types';
+import type { UserProfile as UserProfileType, Ticket } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -34,6 +34,7 @@ import { CouponManagement } from './coupon-management';
 import { PaymentProviderManager } from './payment-provider-manager';
 import { SpecialCouponsManager } from './special-coupons-manager';
 import { SalesManagement } from './sales-management';
+import { SellerSidebar } from '../seller/seller-sidebar';
 
 
 type UserProfile = {
@@ -204,6 +205,18 @@ export default function AdminPage() {
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserProfile>(userDocRef);
 
+  const sellerTicketsQuery = useMemoFirebase(
+    () => user ? query(collection(firestore, 'tickets'), where('sellerId', '==', user.uid)) : null,
+    [user, firestore]
+  );
+  const { data: sellerTickets, isLoading: isLoadingSellerTickets } = useCollection<Ticket>(sellerTicketsQuery);
+
+  const unreadTicketsCount = useMemo(() => {
+    if (!sellerTickets) return 0;
+    return sellerTickets.reduce((acc, ticket) => acc + (ticket.unreadBySellerCount || 0), 0);
+  }, [sellerTickets]);
+
+
   useEffect(() => {
     const isDataLoaded = !isUserLoading && !isUserDataLoading;
     if (isDataLoaded) {
@@ -215,21 +228,12 @@ export default function AdminPage() {
     }
   }, [user, userData, isUserLoading, isUserDataLoading, router]);
 
-  const isLoading = isUserLoading || isUserDataLoading;
+  const isLoading = isUserLoading || isUserDataLoading || isLoadingSellerTickets;
 
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8 space-y-4">
-        <Skeleton className="h-10 w-1/3" />
-        <Skeleton className="h-6 w-1/2" />
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-1/4" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-40 w-full" />
-          </CardContent>
-        </Card>
+      <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -239,49 +243,51 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">
-      <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">
-          Painel do Administrador
-        </h1>
-        <p className="mt-2 text-base md:text-lg text-muted-foreground">
-          Gerencie todos os aspectos do seu marketplace.
-        </p>
-      </header>
-      
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="users">Usuários</TabsTrigger>
-          <TabsTrigger value="sales">Vendas</TabsTrigger>
-          <TabsTrigger value="coupons">Cupons</TabsTrigger>
-          <TabsTrigger value="special_coupons">Cupons Especiais</TabsTrigger>
-          <TabsTrigger value="payments">Pagamentos</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="users" className="mt-6">
-          <UserManagement />
-        </TabsContent>
-        <TabsContent value="sales" className="mt-6">
-          <SalesManagement />
-        </TabsContent>
-        <TabsContent value="coupons" className="mt-6">
-          <CouponManagement />
-        </TabsContent>
-        <TabsContent value="special_coupons" className="mt-6">
-          <SpecialCouponsManager />
-        </TabsContent>
-        <TabsContent value="payments" className="mt-6">
-            <PaymentProviderManager />
-        </TabsContent>
-        <TabsContent value="whatsapp" className="mt-6">
-          <WhatsAppManager />
-        </TabsContent>
-        <TabsContent value="mensagens" className="mt-6">
-          <WhatsappMessageManager />
-        </TabsContent>
-      </Tabs>
-      
+    <div className="flex min-h-[calc(100vh-4rem)] bg-background text-foreground">
+      <SellerSidebar unreadTicketsCount={unreadTicketsCount} isAdmin={true} />
+      <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
+        <header className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">
+            Painel do Administrador
+          </h1>
+          <p className="mt-2 text-base md:text-lg text-muted-foreground">
+            Gerencie todos os aspectos do seu marketplace.
+          </p>
+        </header>
+        
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="sales">Vendas</TabsTrigger>
+            <TabsTrigger value="coupons">Cupons</TabsTrigger>
+            <TabsTrigger value="special_coupons">Cupons Especiais</TabsTrigger>
+            <TabsTrigger value="payments">Pagamentos</TabsTrigger>
+            <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+            <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
+          </TabsList>
+          <TabsContent value="users" className="mt-6">
+            <UserManagement />
+          </TabsContent>
+          <TabsContent value="sales" className="mt-6">
+            <SalesManagement />
+          </TabsContent>
+          <TabsContent value="coupons" className="mt-6">
+            <CouponManagement />
+          </TabsContent>
+          <TabsContent value="special_coupons" className="mt-6">
+            <SpecialCouponsManager />
+          </TabsContent>
+          <TabsContent value="payments" className="mt-6">
+              <PaymentProviderManager />
+          </TabsContent>
+          <TabsContent value="whatsapp" className="mt-6">
+            <WhatsAppManager />
+          </TabsContent>
+          <TabsContent value="mensagens" className="mt-6">
+            <WhatsappMessageManager />
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 }
