@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, ArrowRight } from 'lucide-react';
+import React from 'react';
 
 export default function MyTicketsPage() {
   const { user, isUserLoading } = useUser();
@@ -23,9 +24,17 @@ export default function MyTicketsPage() {
 
   const isLoading = isUserLoading || isLoadingCustomer;
 
-  const sortedTickets = customerTickets?.sort((a, b) => 
-    new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-  ) || [];
+  const sortedTickets = React.useMemo(() => {
+    return customerTickets?.sort((a, b) => {
+      const unreadA = a.unreadByCustomerCount || 0;
+      const unreadB = b.unreadByCustomerCount || 0;
+      // Prioritize tickets with unread messages
+      if (unreadA > 0 && unreadB === 0) return -1;
+      if (unreadB > 0 && unreadA === 0) return 1;
+      // If both have or don't have unread, sort by last message date
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    }) || [];
+  }, [customerTickets]);
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4 sm:px-6 lg:px-8">

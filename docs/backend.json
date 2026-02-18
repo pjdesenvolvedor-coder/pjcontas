@@ -269,6 +269,10 @@
           "type": "string",
           "description": "Denormalized name of the customer for display."
         },
+        "customerPhone": {
+          "type": "string",
+          "description": "Denormalized phone number of the customer for display."
+        },
         "sellerId": {
           "type": "string",
           "description": "Reference to the User (seller)."
@@ -389,6 +393,14 @@
         "usageCount": {
           "type": "number",
           "description": "The number of times this coupon has been used."
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "If set, this coupon is only valid for the specified subscription plan ID."
+        },
+        "subscriptionName": {
+          "type": "string",
+          "description": "Denormalized name of the subscription plan this coupon is for."
         }
       },
       "required": [

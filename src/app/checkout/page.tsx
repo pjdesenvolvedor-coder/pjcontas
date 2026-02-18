@@ -37,7 +37,6 @@ import {
   collection,
   getDocs,
   getDoc,
-  updateDoc,
   query,
   where,
   increment,
@@ -105,11 +104,11 @@ function CheckoutForm() {
 
   const handleApplyCoupon = useCallback(async (codeToApply?: string) => {
     const effectiveCouponCode = (codeToApply || couponCode).trim();
-    if (!effectiveCouponCode || !plan) return;
+    if (!effectiveCouponCode || !plan || !planId) return;
     
     setIsApplyingCoupon(true);
     setCouponError(null);
-    const result = await validateCouponAction(effectiveCouponCode);
+    const result = await validateCouponAction(effectiveCouponCode, planId);
     if (result.error) {
         setCouponError(result.error);
         setAppliedCoupon(null);
@@ -121,7 +120,7 @@ function CheckoutForm() {
         toast({ title: "Cupom aplicado com sucesso!" });
     }
     setIsApplyingCoupon(false);
-  }, [couponCode, plan, toast]);
+  }, [couponCode, plan, planId, toast]);
   
   // Pre-apply coupon from abandoned cart flow
   useEffect(() => {
@@ -186,7 +185,8 @@ function CheckoutForm() {
         id: newTicketRef.id,
         userSubscriptionId: userSubDocRef.id,
         customerId: user.uid,
-        customerName: user.displayName || 'Cliente',
+        customerName: customerProfile.firstName || user.displayName || 'Cliente',
+        customerPhone: customerProfile.phoneNumber || '',
         sellerId: plan.sellerId,
         sellerName: plan.sellerName || plan.sellerUsername || 'Vendedor',
         subscriptionId: plan.id,
@@ -221,9 +221,9 @@ function CheckoutForm() {
           timestamp: new Date().toISOString(),
           type: 'text' as const,
         };
-        addDocument(chatMessagesCollection, stockOutMessage);
+        await addDocument(chatMessagesCollection, stockOutMessage);
         
-        updateDocument(newTicketRef, {
+        await updateDocument(newTicketRef, {
           lastMessageText: 'ATENÇÃO: Venda realizada sem estoque! Repor e entregar manualmente.',
           unreadBySellerCount: increment(1),
           unreadByCustomerCount: 1,
@@ -245,9 +245,9 @@ function CheckoutForm() {
           timestamp: new Date().toISOString(),
           type: 'text' as const,
         };
-        addDocument(chatMessagesCollection, deliveryMessage);
+        await addDocument(chatMessagesCollection, deliveryMessage);
         
-        updateDocument(newTicketRef, {
+        await updateDocument(newTicketRef, {
           lastMessageText: 'Produto entregue automaticamente.',
           unreadBySellerCount: 0,
           unreadByCustomerCount: 1,
@@ -257,7 +257,7 @@ function CheckoutForm() {
 
       // Queue Delivery Message for Buyer
       if (customerProfile?.phoneNumber) {
-          addDocument(pendingMessagesRef, {
+          await addDocument(pendingMessagesRef, {
               type: 'delivery',
               recipientPhoneNumber: customerProfile.phoneNumber,
               createdAt: new Date().toISOString(),
@@ -272,7 +272,7 @@ function CheckoutForm() {
 
       // Queue Sale Notification for Seller
       if (sellerProfile?.phoneNumber) {
-          addDocument(pendingMessagesRef, {
+          await addDocument(pendingMessagesRef, {
               type: 'sale_notification',
               recipientPhoneNumber: sellerProfile.phoneNumber,
               createdAt: new Date().toISOString(),

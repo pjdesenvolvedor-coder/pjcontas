@@ -79,6 +79,7 @@ export type Ticket = {
   userSubscriptionId: string;
   customerId: string;
   customerName: string;
+  customerPhone?: string;
   sellerId: string;
   sellerName: string;
   subscriptionId: string;
@@ -140,6 +141,8 @@ export type Coupon = {
   discountPercentage: number;
   usageLimit?: number;
   usageCount?: number;
+  subscriptionId?: string;
+  subscriptionName?: string;
 };
 
 // Represents the central payment provider configuration.

@@ -26,10 +26,11 @@ export async function checkPixStatusAction(transactionId: string) {
 
 const ValidateCouponInputSchema = z.object({
   couponCode: z.string().min(1),
+  subscriptionId: z.string().min(1),
 });
 
-export async function validateCouponAction(couponCode: string): Promise<{ data: Coupon | null; error: string | null; }> {
-  const validatedInput = ValidateCouponInputSchema.safeParse({ couponCode });
+export async function validateCouponAction(couponCode: string, subscriptionId: string): Promise<{ data: Coupon | null; error: string | null; }> {
+  const validatedInput = ValidateCouponInputSchema.safeParse({ couponCode, subscriptionId });
   if (!validatedInput.success) {
     return { data: null, error: 'Código de cupom inválido.' };
   }
@@ -49,6 +50,10 @@ export async function validateCouponAction(couponCode: string): Promise<{ data: 
     }
 
     const couponData = couponSnap.data() as Coupon;
+    
+    if (couponData.subscriptionId && couponData.subscriptionId !== validatedInput.data.subscriptionId) {
+        return { data: null, error: 'Este cupom não é válido para este produto.' };
+    }
 
     if (couponData.usageLimit && couponData.usageLimit > 0) {
       if ((couponData.usageCount || 0) >= couponData.usageLimit) {
