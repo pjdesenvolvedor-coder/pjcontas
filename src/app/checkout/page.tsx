@@ -103,7 +103,7 @@ function CheckoutForm() {
             // onAuthStateChanged will handle the UI update
         }
     } catch (error) {
-        if (error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user') {
+        if (error instanceof FirebaseError && (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request')) {
           return;
         }
         console.error("Google Sign-In error:", error);
@@ -182,7 +182,7 @@ function CheckoutForm() {
       // Increment coupon usage if one was applied
       if (appliedCoupon) {
         const couponRef = doc(firestore, 'coupons', appliedCoupon.id);
-        await updateDocument(couponRef, {
+        await updateDoc(couponRef, {
           usageCount: increment(1)
         });
       }
@@ -214,7 +214,7 @@ function CheckoutForm() {
         paymentMethod: finalPrice <= 0 && appliedCoupon ? `Cupom (${appliedCoupon.name})` : 'PIX',
         bannerUrl: plan.bannerUrl,
       };
-      const userSubDocRef = await addDocument(userSubscriptionsRef, newSubscriptionData);
+      const userSubDocRef = await addDoc(userSubscriptionsRef, newSubscriptionData);
 
       const ticketsCollection = collection(firestore, 'tickets');
       const newTicketRef = doc(ticketsCollection);
@@ -236,9 +236,9 @@ function CheckoutForm() {
         unreadBySellerCount: 1,
         unreadByCustomerCount: 0,
       };
-      await setDocument(newTicketRef, newTicketData, { merge: false });
+      await setDoc(newTicketRef, newTicketData);
       
-      await updateDocument(userSubDocRef, { ticketId: newTicketRef.id });
+      await updateDoc(userSubDocRef, { ticketId: newTicketRef.id });
 
       const deliverableCollectionRef = collection(firestore, 'subscriptions', plan.id, 'deliverables');
       const q = query(deliverableCollectionRef, where('status', '==', 'available'));
@@ -256,9 +256,9 @@ function CheckoutForm() {
           text: 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.',
           timestamp: new Date().toISOString(),
         };
-        await addDocument(chatMessagesCollection, stockOutMessage);
+        await addDoc(chatMessagesCollection, stockOutMessage);
         
-        await updateDocument(newTicketRef, {
+        await updateDoc(newTicketRef, {
           lastMessageText: 'ATENÇÃO: Venda realizada sem estoque! Repor e entregar manualmente.',
           unreadBySellerCount: increment(1),
           unreadByCustomerCount: 1,
@@ -270,7 +270,7 @@ function CheckoutForm() {
         const deliverableDoc = sortedDeliverables[0];
         const deliverableData = deliverableDoc.data() as Deliverable;
         
-        await updateDocument(deliverableDoc.ref, { status: 'sold' });
+        await updateDoc(deliverableDoc.ref, { status: 'sold' });
 
         const deliveryMessage = {
           ticketId: newTicketRef.id,
@@ -279,9 +279,9 @@ function CheckoutForm() {
           text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${deliverableData.content}\'\'\'`,
           timestamp: new Date().toISOString(),
         };
-        await addDocument(chatMessagesCollection, deliveryMessage);
+        await addDoc(chatMessagesCollection, deliveryMessage);
         
-        await updateDocument(newTicketRef, {
+        await updateDoc(newTicketRef, {
           lastMessageText: 'Produto entregue automaticamente.',
           unreadBySellerCount: 0,
           unreadByCustomerCount: 1,
@@ -291,7 +291,7 @@ function CheckoutForm() {
 
       // Queue Delivery Message for Buyer
       if (customerProfile?.phoneNumber) {
-          await addDocument(pendingMessagesRef, {
+          await addDoc(pendingMessagesRef, {
               type: 'delivery',
               recipientPhoneNumber: customerProfile.phoneNumber,
               createdAt: new Date().toISOString(),
@@ -305,7 +305,7 @@ function CheckoutForm() {
 
       // Queue Sale Notification for Seller
       if (sellerProfile?.phoneNumber) {
-          await addDocument(pendingMessagesRef, {
+          await addDoc(pendingMessagesRef, {
               type: 'sale_notification',
               recipientPhoneNumber: sellerProfile.phoneNumber,
               createdAt: new Date().toISOString(),
@@ -448,7 +448,7 @@ function CheckoutForm() {
                 <TabsTrigger value="register">Cadastrar</TabsTrigger>
               </TabsList>
               <TabsContent value="login" className="pt-4">
-                <LoginForm setActiveTab={setActiveView}>
+                <LoginForm setOpen={handleFormCompletion} setActiveTab={setActiveView}>
                    <div className="relative my-4">
                       <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                       <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">OU</span></div>
@@ -460,7 +460,7 @@ function CheckoutForm() {
                 </LoginForm>
               </TabsContent>
               <TabsContent value="register" className="pt-4">
-                <SignupForm setActiveTab={setActiveView} />
+                <SignupForm setOpen={handleFormCompletion} setActiveTab={setActiveView} />
               </TabsContent>
             </Tabs>
           )}

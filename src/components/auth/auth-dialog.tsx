@@ -51,7 +51,7 @@ export function AuthDialog() {
             setOpen(false);
         }
     } catch (error) {
-        if (error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user') {
+        if (error instanceof FirebaseError && (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request')) {
           return; // Don't show a toast if the user closes the popup
         }
         console.error("Google Sign-In error:", error);
