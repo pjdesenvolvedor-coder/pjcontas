@@ -19,13 +19,10 @@ export type Plan = {
   name: string;
   price: number;
   features: string[];
-  serviceId: string;
   sellerId: string;
   description: string;
   accountModel: 'Capturada' | 'Acesso Total';
   isBoosted?: boolean;
-  // Denormalized from Service
-  serviceName?: string;
   bannerUrl?: string;
   bannerHint?: string;
   // Denormalized from User
@@ -34,26 +31,12 @@ export type Plan = {
   sellerPhotoURL?: string;
 };
 
-// Represents a streaming service provider, corresponding to a document in the /services collection.
-export type SubscriptionService = {
-  id: string;
-  name: string;
-  description: string;
-  longDescription: string;
-  logoUrl: string;
-  imageHint: string;
-  bannerUrl: string;
-  bannerHint: string;
-};
-
 // Represents a user's purchase of a subscription plan, corresponding to a document in the /users/{userId}/userSubscriptions subcollection.
 export type UserSubscription = {
   id: string;
   userId: string;
   subscriptionId: string;
-  serviceId: string;
   planName: string;
-  serviceName: string;
   price: number;
   startDate: string;
   endDate: string;
@@ -83,7 +66,6 @@ export type Ticket = {
   sellerId: string;
   sellerName: string;
   subscriptionId: string;
-  serviceName: string;
   planName: string;
   status: 'open' | 'closed';
   createdAt: string;
@@ -125,7 +107,6 @@ export type PendingMessage = {
     customerEmail?: string;
     sellerName?: string;
     // For sales/delivery
-    serviceName?: string;
     planName?: string;
     price?: number;
     deliverableContent?: string;

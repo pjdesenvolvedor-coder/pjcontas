@@ -10,7 +10,7 @@ const recommendationSchema = z.object({
 
 type RecommendationState = {
   recommendations?: {
-    serviceName: string;
+    subscriptionName: string;
     planDetails: string;
     reason: string;
   }[];

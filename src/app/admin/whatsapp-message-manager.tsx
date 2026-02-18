@@ -184,7 +184,7 @@ export function WhatsappMessageManager() {
                     <Label htmlFor="sale-notification-message">Mensagem</Label>
                     <Textarea
                     id="sale-notification-message"
-                    placeholder="Parabéns, {vendedor}! Você vendeu o produto {produto}..."
+                    placeholder="Parabéns, {vendedor}! Você vendeu o plano {plano}..."
                     value={saleNotificationMessage}
                     onChange={(e) => setSaleNotificationMessage(e.target.value)}
                     rows={5}
@@ -194,7 +194,6 @@ export function WhatsappMessageManager() {
                     <p className="text-xs text-muted-foreground">Variáveis disponíveis:</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                         <Badge variant="outline">{'{vendedor}'}</Badge>
-                        <Badge variant="outline">{'{produto}'}</Badge>
                         <Badge variant="outline">{'{plano}'}</Badge>
                         <Badge variant="outline">{'{comprador}'}</Badge>
                         <Badge variant="outline">{'{valor}'}</Badge>
@@ -209,7 +208,7 @@ export function WhatsappMessageManager() {
                     <Label htmlFor="delivery-message">Mensagem</Label>
                     <Textarea
                     id="delivery-message"
-                    placeholder="Obrigado pela sua compra, {cliente}! Aqui está seu acesso: {acesso}"
+                    placeholder="Obrigado pela sua compra, {cliente}! Aqui está seu acesso para {plano}: {acesso}"
                     value={deliveryMessage}
                     onChange={(e) => setDeliveryMessage(e.target.value)}
                     rows={5}
@@ -219,7 +218,6 @@ export function WhatsappMessageManager() {
                     <p className="text-xs text-muted-foreground">Variáveis disponíveis:</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                         <Badge variant="outline">{'{cliente}'}</Badge>
-                        <Badge variant="outline">{'{produto}'}</Badge>
                         <Badge variant="outline">{'{plano}'}</Badge>
                         <Badge variant="outline">{'{acesso}'}</Badge>
                     </div>

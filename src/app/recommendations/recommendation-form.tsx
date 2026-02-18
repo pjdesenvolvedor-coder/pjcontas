@@ -99,7 +99,7 @@ export function RecommendationForm() {
             {state.recommendations.map((rec, index) => (
               <Card key={index} className="bg-card">
                 <CardHeader>
-                  <CardTitle className="text-primary">{rec.serviceName}</CardTitle>
+                  <CardTitle className="text-primary">{rec.subscriptionName}</CardTitle>
                   <CardDescription className="font-semibold">
                     {rec.planDetails}
                   </CardDescription>

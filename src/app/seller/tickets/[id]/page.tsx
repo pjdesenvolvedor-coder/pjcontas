@@ -3,7 +3,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocument, updateDocument } from '@/firebase';
 import { doc, collection, query, orderBy, increment } from 'firebase/firestore';
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
-import type { Ticket, ChatMessage, UserSubscription, Plan, UserProfile } from '@/lib/types';
+import type { Ticket, ChatMessage, UserSubscription, UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Send, ArrowLeft, Info, Phone, AlertCircle, Loader2, LifeBuoy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -206,13 +205,6 @@ export default function TicketChatPage() {
         return doc(firestore, 'users', ticket.sellerId);
     }, [firestore, ticket]);
     const { data: sellerData, isLoading: isSellerLoading } = useDoc<UserProfile>(sellerRef);
-
-    // Plan info (for image)
-    const planRef = useMemoFirebase(() => {
-        if (!firestore || !ticket) return null;
-        return doc(firestore, 'subscriptions', ticket.subscriptionId);
-    }, [firestore, ticket]);
-    const { data: plan, isLoading: isPlanLoading } = useDoc<Plan>(planRef);
     
     useLayoutEffect(() => {
         if (chatContainerRef.current) {
@@ -304,7 +296,7 @@ export default function TicketChatPage() {
     const handleSendSupportMessage = (data: SupportFormData) => {
         if (!user || !ticket || !firestore) return;
     
-        const productName = ticket.serviceName || "Produto";
+        const productName = ticket.planName || "Produto";
         const messageText = `🔴 ${productName.toUpperCase()} SUPORTE🔴\n\n> ✉️ Email: ${data.email}\n> 🔑 Senha: ${data.password}\n\n🚨 Proibido altera senha da conta ou dos perfis 🚨`;
     
         const messagesCollection = collection(firestore, 'tickets', ticket.id, 'messages');
@@ -342,7 +334,7 @@ export default function TicketChatPage() {
         }
     };
     
-    const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isPlanLoading || isCustomerLoading;
+    const isLoading = isUserLoading || isTicketLoading || areMessagesLoading || isUserSubscriptionLoading || isSellerLoading || isCustomerLoading;
     const isExpired = userSubscription ? new Date() > new Date(userSubscription.endDate) : false;
 
     if (isLoading) {
@@ -376,7 +368,7 @@ export default function TicketChatPage() {
                 isOpen={isSupportDialogOpen}
                 onClose={() => setIsSupportDialogOpen(false)}
                 onSubmit={handleSendSupportMessage}
-                productName={ticket?.serviceName || ''}
+                productName={ticket?.planName || ''}
             />
 
             {/* Purchase Details Section */}
@@ -432,23 +424,19 @@ export default function TicketChatPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center gap-4">
-                                {plan?.bannerUrl && (
+                                {userSubscription.bannerUrl && (
                                     <div className="relative w-24 h-16 rounded-md overflow-hidden flex-shrink-0">
                                         <Image
-                                            src={plan.bannerUrl}
-                                            alt={plan.name || 'Banner do plano'}
+                                            src={userSubscription.bannerUrl}
+                                            alt={ticket.planName}
                                             fill
                                             className="object-cover"
                                         />
                                     </div>
                                 )}
                                 <div className="flex-grow">
-                                    <p className="font-semibold">{ticket.serviceName} - {ticket.planName}</p>
-                                    <p className="text-sm text-muted-foreground">{plan?.description}</p>
+                                    <p className="font-semibold">{ticket.planName}</p>
                                 </div>
-                                <Button asChild size="sm">
-                                    <Link href={`/subscriptions/${userSubscription.serviceId}`}>Ver Anúncio</Link>
-                                </Button>
                             </div>
                         </CardContent>
                     </Card>

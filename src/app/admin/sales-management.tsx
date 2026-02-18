@@ -27,7 +27,6 @@ export function SalesManagement() {
     if (!lowercasedSearch) return tickets;
 
     return tickets.filter(ticket =>
-        (ticket.serviceName?.toLowerCase().includes(lowercasedSearch)) ||
         (ticket.planName?.toLowerCase().includes(lowercasedSearch)) ||
         (ticket.customerName?.toLowerCase().includes(lowercasedSearch)) ||
         (ticket.customerPhone?.includes(searchTerm)) ||
@@ -93,8 +92,7 @@ export function SalesManagement() {
                   <TableRow key={ticket.id}>
                     <TableCell>{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell>
-                        <div className="font-medium">{ticket.serviceName}</div>
-                        <div className="text-sm text-muted-foreground">{ticket.planName}</div>
+                        <div className="font-medium">{ticket.planName}</div>
                     </TableCell>
                     <TableCell>{ticket.customerName}</TableCell>
                     <TableCell>{ticket.customerPhone || 'N/A'}</TableCell>

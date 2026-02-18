@@ -163,7 +163,7 @@ export function CouponManagement() {
                             <SelectContent>
                                 <SelectItem value="none">Cupom Global (Todos os produtos)</SelectItem>
                                 {subscriptions?.map(sub => (
-                                    <SelectItem key={sub.id} value={sub.id}>{sub.name} ({sub.serviceName})</SelectItem>
+                                    <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

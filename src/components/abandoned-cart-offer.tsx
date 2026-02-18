@@ -11,11 +11,10 @@ interface AbandonedCartOfferProps {
   isOpen: boolean;
   onClose: () => void;
   coupon: Coupon | null;
-  serviceId: string | null;
   planId: string | null;
 }
 
-export function AbandonedCartOffer({ isOpen, onClose, coupon, serviceId, planId }: AbandonedCartOfferProps) {
+export function AbandonedCartOffer({ isOpen, onClose, coupon, planId }: AbandonedCartOfferProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isShowing, setIsShowing] = useState(false);
@@ -32,7 +31,7 @@ export function AbandonedCartOffer({ isOpen, onClose, coupon, serviceId, planId 
 
 
   const handleCopyAndBuy = () => {
-    if (!coupon || !planId || !serviceId) return;
+    if (!coupon || !planId) return;
 
     navigator.clipboard.writeText(coupon.name);
     toast({
@@ -42,7 +41,7 @@ export function AbandonedCartOffer({ isOpen, onClose, coupon, serviceId, planId 
 
     sessionStorage.setItem('applied_coupon_code', coupon.name);
     onClose(); // This also clears the abandonment flag in the parent
-    router.push(`/checkout?serviceId=${serviceId}&planId=${planId}`);
+    router.push(`/checkout?planId=${planId}`);
   };
   
   if (!isShowing || !coupon) {

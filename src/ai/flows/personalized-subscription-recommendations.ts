@@ -22,11 +22,11 @@ export type SubscriptionRecommendationInput = z.infer<typeof SubscriptionRecomme
 const SubscriptionRecommendationOutputSchema = z.object({
   recommendations: z.array(
     z.object({
-      serviceName: z.string().describe('The name of the streaming service.'),
+      subscriptionName: z.string().describe('The name of the subscription plan.'),
       planDetails: z.string().describe('Details of the recommended subscription plan, including price and features.'),
-      reason: z.string().describe('The reason why this subscription is recommended based on the user\u0027s viewing history and preferences.'),
+      reason: z.string().describe('The reason why this subscription is recommended based on the user\u0s27s viewing history and preferences.'),
     })
-  ).describe('A list of recommended streaming service subscriptions.'),
+  ).describe('A list of recommended subscription plans.'),
 });
 export type SubscriptionRecommendationOutput = z.infer<typeof SubscriptionRecommendationOutputSchema>;
 
@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'subscriptionRecommendationPrompt',
   input: {schema: SubscriptionRecommendationInputSchema},
   output: {schema: SubscriptionRecommendationOutputSchema},
-  prompt: `Based on the user's viewing history and preferences, recommend the best streaming service subscriptions for them.
+  prompt: `Based on the user's viewing history and preferences, recommend the best subscription plans for them.
 
 Here is the user's viewing history:
 {{viewingHistory}}
@@ -46,7 +46,7 @@ Here is the user's viewing history:
 Here are the user's preferences:
 {{preferences}}
 
-Consider services like Netflix, Disney+, HBO Max, Amazon Prime Video, Hulu, etc. Provide specific plan details and justify each recommendation based on the user's input.`, 
+Consider all available subscription plans. Provide specific plan details and justify each recommendation based on the user's input.`, 
 });
 
 const personalizedSubscriptionRecommendationsFlow = ai.defineFlow(

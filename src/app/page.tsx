@@ -47,7 +47,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         </div>
         <div>
           <Button asChild className="w-full mt-4 bg-blue-600 text-white hover:bg-blue-700">
-            <Link href={`/checkout?serviceId=${plan.serviceId}&planId=${plan.id}`}>Comprar Agora</Link>
+            <Link href={`/checkout?planId=${plan.id}`}>Comprar Agora</Link>
           </Button>
         </div>
       </div>
@@ -119,7 +119,6 @@ export default function Home() {
             sessionStorage.removeItem('abandoned_checkout_plan_id');
         }}
         coupon={specialCoupon}
-        serviceId={abandonedPlan?.serviceId || null}
         planId={abandonedPlan?.id || null}
       />
       <section className="pt-16 md:pt-24 pb-8 bg-card">

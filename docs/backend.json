@@ -64,52 +64,11 @@
         "role"
       ]
     },
-    "Service": {
-      "title": "Service",
-      "description": "Represents a streaming service provider like Netflix or Disney+.",
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "longDescription": {
-          "type": "string"
-        },
-        "logoUrl": {
-          "type": "string",
-          "format": "uri"
-        },
-        "imageHint": {
-          "type": "string"
-        },
-        "bannerUrl": {
-          "type": "string",
-          "format": "uri"
-        },
-        "bannerHint": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "longDescription",
-        "logoUrl",
-        "bannerUrl"
-      ]
-    },
     "Subscription": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Subscription",
       "type": "object",
-      "description": "Represents a purchasable subscription plan for a service, created by a seller.",
+      "description": "Represents a purchasable subscription plan, created by a seller.",
       "properties": {
         "id": {
           "type": "string",
@@ -126,10 +85,6 @@
         "price": {
           "type": "number",
           "description": "Monthly price of the subscription plan."
-        },
-        "serviceId": {
-          "type": "string",
-          "description": "Reference to the Service this plan belongs to."
         },
         "sellerId": {
           "type": "string",
@@ -159,7 +114,6 @@
         "id",
         "name",
         "price",
-        "serviceId",
         "sellerId",
         "features",
         "accountModel"
@@ -284,10 +238,6 @@
         "subscriptionId": {
           "type": "string",
           "description": "Reference to the Subscription plan purchased."
-        },
-        "serviceName": {
-          "type": "string",
-          "description": "Denormalized name of the service for display."
         },
         "planName": {
           "type": "string",
@@ -429,22 +379,6 @@
             {
               "name": "userId",
               "description": "The unique identifier of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/services/{serviceId}",
-        "definition": {
-          "entityName": "Service",
-          "schema": {
-            "$ref": "#/backend/entities/Service"
-          },
-          "description": "Stores details about streaming service providers (e.g., Netflix). Publicly readable, but only writable by admins.",
-          "params": [
-            {
-              "name": "serviceId",
-              "description": "The unique identifier of the service."
             }
           ]
         }

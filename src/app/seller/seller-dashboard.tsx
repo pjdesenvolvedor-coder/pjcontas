@@ -16,7 +16,7 @@ import {
   useDoc,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import type { Plan, SubscriptionService, Deliverable, UserProfile, Ticket } from '@/lib/types';
+import type { Plan, Deliverable, UserProfile, Ticket } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -94,7 +94,6 @@ const subscriptionSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres."),
   price: z.coerce.number().positive("O preço deve ser um número positivo."),
-  serviceId: z.string({ required_error: "Por favor, selecione um serviço." }),
   accountModel: z.enum(['Capturada', 'Acesso Total'], { required_error: "Por favor, selecione o modelo da conta." }),
   features: z.string().min(10, "Liste pelo menos uma característica."),
   bannerUrl: z.string().min(1, "É obrigatório selecionar uma imagem para o anúncio."),
@@ -104,12 +103,10 @@ const subscriptionSchema = z.object({
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
 
 function SubscriptionForm({
-  services,
   onSave,
   onClose,
   subscription,
 }: {
-  services: SubscriptionService[];
   onSave: (data: SubscriptionFormData) => void;
   onClose: () => void;
   subscription?: Plan | null;
@@ -120,7 +117,6 @@ function SubscriptionForm({
       name: subscription?.name || '',
       description: subscription?.description || '',
       price: subscription?.price || 0,
-      serviceId: subscription?.serviceId || '',
       accountModel: subscription?.accountModel || undefined,
       features: subscription?.features.join('\n') || '',
       bannerUrl: subscription?.bannerUrl || '',
@@ -147,30 +143,6 @@ function SubscriptionForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="serviceId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Serviço de Streaming</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!subscription}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um serviço" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="accountModel"
@@ -495,12 +467,6 @@ export function SellerDashboard() {
     [user?.uid, firestore]
   );
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
-
-  const servicesRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'services') : null),
-    [firestore]
-  );
-  const { data: services, isLoading: isLoadingServices } = useCollection<SubscriptionService>(servicesRef);
   
   const subscriptionsQuery = useMemoFirebase(
     () => (user ? query(collection(firestore, 'subscriptions'), where('sellerId', '==', user.uid)) : null),
@@ -604,17 +570,6 @@ export function SellerDashboard() {
     if (!user || !firestore || !userProfile) return;
 
     const featuresArray = values.features.split('\n').filter(f => f.trim() !== '');
-
-    const service = services?.find(s => s.id === values.serviceId);
-    if (!service) {
-        toast({
-            variant: "destructive",
-            title: "Erro de Validação",
-            description: "Por favor, selecione um serviço válido.",
-        });
-        return;
-    }
-
     const bannerUrl = values.bannerUrl;
 
     if (editingSubscription) {
@@ -622,9 +577,7 @@ export function SellerDashboard() {
       const updatedData = { 
           ...values, 
           features: featuresArray,
-          serviceName: service.name,
           bannerUrl: bannerUrl,
-          bannerHint: service.bannerHint,
           sellerId: user.uid,
           sellerName: userProfile.firstName || user.displayName,
           sellerUsername: userProfile.sellerUsername || userProfile.firstName,
@@ -643,9 +596,7 @@ export function SellerDashboard() {
         id: newSubRef.id,
         features: featuresArray,
         sellerId: user.uid,
-        serviceName: service.name,
         bannerUrl: bannerUrl,
-        bannerHint: service.bannerHint,
         sellerName: userProfile.firstName || user.displayName,
         sellerUsername: userProfile.sellerUsername || userProfile.firstName,
         sellerPhotoURL: userProfile.photoURL || user.photoURL,
@@ -661,7 +612,7 @@ export function SellerDashboard() {
     setEditingSubscription(null);
   };
   
-  const isLoading = isLoadingServices || isLoadingSubscriptions || isLoadingSellerTickets;
+  const isLoading = isLoadingSubscriptions || isLoadingSellerTickets;
 
   return (
     <>
@@ -685,16 +636,11 @@ export function SellerDashboard() {
               <DialogHeader>
                   <DialogTitle>{editingSubscription ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</DialogTitle>
               </DialogHeader>
-              {isLoadingServices ? (
-                  <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-              ) : (
-                  <SubscriptionForm 
-                      services={services || []} 
-                      onSave={handleSave} 
-                      onClose={() => setIsDialogOpen(false)} 
-                      subscription={editingSubscription}
-                  />
-              )}
+              <SubscriptionForm 
+                  onSave={handleSave} 
+                  onClose={() => setIsDialogOpen(false)} 
+                  subscription={editingSubscription}
+              />
           </DialogContent>
       </Dialog>
       
@@ -778,7 +724,6 @@ export function SellerDashboard() {
                         <TableRow key={sub.id}>
                         <TableCell>
                           <div className="font-medium">{sub.name}</div>
-                          <div className="text-sm text-muted-foreground">{sub.serviceName || services?.find(s => s.id === sub.serviceId)?.name || 'N/A'}</div>
                         </TableCell>
                         <TableCell>{sub.accountModel}</TableCell>
                         <TableCell>R$ {sub.price.toFixed(2)}</TableCell>

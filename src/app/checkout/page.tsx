@@ -42,7 +42,7 @@ import {
   increment,
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Plan, SubscriptionService, Deliverable, UserProfile, Coupon } from '@/lib/types';
+import type { Plan, Deliverable, UserProfile, Coupon } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { generatePixAction, checkPixStatusAction, validateCouponAction } from './actions';
@@ -61,7 +61,6 @@ function CheckoutForm() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  const serviceId = searchParams.get('serviceId');
   const planId = searchParams.get('planId');
 
   const [checkoutStep, setCheckoutStep] = useState<'coupon' | 'payment'>('coupon');
@@ -75,13 +74,6 @@ function CheckoutForm() {
   const [isGeneratingPix, setIsGeneratingPix] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
-
-  const serviceRef = useMemoFirebase(
-    () => (firestore && serviceId ? doc(firestore, 'services', serviceId) : null),
-    [firestore, serviceId]
-  );
-  const { data: service, isLoading: isServiceLoading } =
-    useDoc<SubscriptionService>(serviceRef);
 
   const planRef = useMemoFirebase(
     () => (firestore && planId ? doc(firestore, 'subscriptions', planId) : null),
@@ -134,7 +126,8 @@ function CheckoutForm() {
 
 
   const handleSuccessfulPayment = useCallback(async () => {
-    if (isProcessingOrder || !user || !plan || !service || !firestore || finalPrice === null) return;
+    if (isProcessingOrder || !user || !plan || finalPrice === null) return;
+    if (!firestore) return;
     
     sessionStorage.removeItem('abandoned_checkout_plan_id');
     setIsProcessingOrder(true);
@@ -168,9 +161,7 @@ function CheckoutForm() {
       const newSubscriptionData = {
         userId: user.uid,
         subscriptionId: plan.id,
-        serviceId: service.id,
         planName: plan.name,
-        serviceName: service.name,
         price: finalPrice, // Use final discounted price
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -190,7 +181,6 @@ function CheckoutForm() {
         sellerId: plan.sellerId,
         sellerName: plan.sellerName || plan.sellerUsername || 'Vendedor',
         subscriptionId: plan.id,
-        serviceName: service.name,
         planName: plan.name,
         price: finalPrice,
         status: 'open' as const,
@@ -263,7 +253,6 @@ function CheckoutForm() {
               createdAt: new Date().toISOString(),
               data: {
                   customerName: customerProfile.firstName,
-                  serviceName: service.name,
                   planName: plan.name,
                   deliverableContent: deliverableContentForMessage,
               }
@@ -279,7 +268,6 @@ function CheckoutForm() {
               data: {
                   sellerName: sellerProfile.firstName,
                   customerName: customerProfile.firstName,
-                  serviceName: service.name,
                   planName: plan.name,
                   price: finalPrice
               }
@@ -288,7 +276,7 @@ function CheckoutForm() {
       
       toast({
         title: 'Pagamento bem-sucedido!',
-        description: `Sua assinatura do ${service.name} está ativa. Um ticket foi aberto.`,
+        description: `Sua assinatura do ${plan.name} está ativa. Um ticket foi aberto.`,
       });
       
       router.push(`/meus-tickets/${newTicketRef.id}`);
@@ -302,7 +290,7 @@ function CheckoutForm() {
       });
       setIsProcessingOrder(false);
     }
-  }, [user, plan, service, firestore, toast, router, isProcessingOrder, finalPrice, appliedCoupon]);
+  }, [user, plan, firestore, toast, router, isProcessingOrder, finalPrice, appliedCoupon]);
 
   useEffect(() => {
     if (checkoutStep === 'payment' && finalPrice !== null && finalPrice > 0 && !pixDetails && isGeneratingPix) {
@@ -385,7 +373,7 @@ function CheckoutForm() {
     toast({ title: "Código PIX copiado!" });
   };
 
-  const isLoading = isUserLoading || isServiceLoading || isPlanLoading;
+  const isLoading = isUserLoading || isPlanLoading;
 
   if (isLoading) {
     return (
@@ -421,7 +409,7 @@ function CheckoutForm() {
     );
   }
 
-  if (!service || !plan) {
+  if (!plan) {
     return (
       <Card>
         <CardHeader><CardTitle>Erro</CardTitle></CardHeader>
