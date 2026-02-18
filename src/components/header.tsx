@@ -13,7 +13,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocument } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,7 +33,7 @@ export function Header() {
   const { data: userData, isLoading: isUserDataLoading } = useDoc<{ role: string; lastSeen?: string }>(userDocRef);
 
   useEffect(() => {
-    if (user && firestore) {
+    if (user && firestore && userData) {
       const userRef = doc(firestore, 'users', user.uid);
       // Only update if last seen was more than a minute ago to avoid excessive writes
       const now = new Date();
@@ -41,7 +41,7 @@ export function Header() {
       const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
       
       if (diffMinutes > 1) {
-          updateDocument(userRef, {
+          updateDocumentNonBlocking(userRef, {
             lastSeen: now.toISOString()
           });
       }
