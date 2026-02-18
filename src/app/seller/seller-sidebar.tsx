@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
@@ -14,15 +14,22 @@ import {
   LifeBuoy,
   PackageCheck,
   Percent,
+  Users,
+  Settings,
+  Smartphone,
+  MessageSquare,
+  Ticket as CouponIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface SellerSidebarProps {
     unreadTicketsCount: number;
+    isAdmin: boolean;
 }
 
-export function SellerSidebar({ unreadTicketsCount }: SellerSidebarProps) {
+export function SellerSidebar({ unreadTicketsCount, isAdmin }: SellerSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const auth = useAuth();
   
   const menuItems = [
@@ -42,6 +49,18 @@ export function SellerSidebar({ unreadTicketsCount }: SellerSidebarProps) {
         { href: '#', label: 'Notificações', icon: Bell, disabled: true, count: 0 },
       ],
     },
+    ...(isAdmin ? [{
+      group: 'MENU ADMIN',
+      items: [
+        { href: '/admin?tab=users', label: 'Usuários', icon: Users, count: 0 },
+        { href: '/admin?tab=sales', label: 'Vendas', icon: CreditCard, count: 0 },
+        { href: '/admin?tab=coupons', label: 'Cupons', icon: CouponIcon, count: 0 },
+        { href: '/admin?tab=special_coupons', label: 'Cupons Especiais', icon: CouponIcon, count: 0 },
+        { href: '/admin?tab=payments', label: 'Pagamentos', icon: Settings, count: 0 },
+        { href: '/admin?tab=whatsapp', label: 'WhatsApp', icon: Smartphone, count: 0 },
+        { href: '/admin?tab=mensagens', label: 'WhatsApp Msgs', icon: MessageSquare, count: 0 },
+      ],
+    }] : [])
   ];
 
   return (
@@ -56,32 +75,52 @@ export function SellerSidebar({ unreadTicketsCount }: SellerSidebarProps) {
               {group.group}
             </h3>
             <ul>
-              {group.items.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      'flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                      pathname === item.href && !item.disabled
-                        ? 'bg-secondary text-primary font-semibold'
-                        : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
-                      item.disabled && 'opacity-50 cursor-not-allowed'
-                    )}
-                    aria-disabled={item.disabled}
-                    onClick={(e) => item.disabled && e.preventDefault()}
-                  >
-                    <div className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                    </div>
-                    {item.count > 0 && (
-                        <Badge variant="destructive" className="h-5 px-1.5 text-xs">
-                            {item.count}
-                        </Badge>
-                    )}
-                  </Link>
-                </li>
-              ))}
+              {group.items.map((item) => {
+                const itemPath = item.href.split('?')[0];
+                const itemTabQuery = item.href.split('tab=')[1];
+                const currentTab = searchParams.get('tab');
+                
+                let isActive = false;
+                if (pathname === itemPath) {
+                    if (itemTabQuery) {
+                        const isDefaultAdminTab = itemTabQuery === 'users';
+                        if (currentTab) {
+                            isActive = itemTabQuery === currentTab;
+                        } else if (isDefaultAdminTab) {
+                            isActive = true;
+                        }
+                    } else {
+                        isActive = true;
+                    }
+                }
+
+                return (
+                    <li key={item.label}>
+                    <Link
+                        href={item.href}
+                        className={cn(
+                        'flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                        isActive && !item.disabled
+                            ? 'bg-secondary text-primary font-semibold'
+                            : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                        item.disabled && 'opacity-50 cursor-not-allowed'
+                        )}
+                        aria-disabled={item.disabled}
+                        onClick={(e) => item.disabled && e.preventDefault()}
+                    >
+                        <div className="flex items-center gap-3">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                        </div>
+                        {item.count > 0 && (
+                            <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                                {item.count}
+                            </Badge>
+                        )}
+                    </Link>
+                    </li>
+                );
+              })}
             </ul>
           </div>
         ))}

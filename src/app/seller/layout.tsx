@@ -46,11 +46,12 @@ export default function SellerLayout({
   }
 
   const isSeller = userData?.role === 'seller' || userData?.role === 'admin';
+  const isAdmin = userData?.role === 'admin';
 
   if (isSeller) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] bg-background text-foreground">
-        <SellerSidebar unreadTicketsCount={unreadTicketsCount} />
+        <SellerSidebar unreadTicketsCount={unreadTicketsCount} isAdmin={isAdmin} />
         <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
           {children}
         </main>
