@@ -2,7 +2,7 @@
 
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +18,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PlusCircle, Edit, Trash, Loader2, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile as UserProfileType, Ticket } from '@/lib/types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -197,6 +196,9 @@ export default function AdminPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'users';
+
 
   const userDocRef = useMemoFirebase(() => {
     if (!user?.uid) return null;
@@ -241,6 +243,27 @@ export default function AdminPage() {
   if (userData?.role !== 'admin') {
     return null;
   }
+  
+  const renderContent = () => {
+    switch (currentTab) {
+      case 'users':
+        return <UserManagement />;
+      case 'sales':
+        return <SalesManagement />;
+      case 'coupons':
+        return <CouponManagement />;
+      case 'special_coupons':
+        return <SpecialCouponsManager />;
+      case 'payments':
+        return <PaymentProviderManager />;
+      case 'whatsapp':
+        return <WhatsAppManager />;
+      case 'mensagens':
+        return <WhatsappMessageManager />;
+      default:
+        return <UserManagement />;
+    }
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] bg-background text-foreground">
@@ -255,38 +278,9 @@ export default function AdminPage() {
           </p>
         </header>
         
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="users">Usuários</TabsTrigger>
-            <TabsTrigger value="sales">Vendas</TabsTrigger>
-            <TabsTrigger value="coupons">Cupons</TabsTrigger>
-            <TabsTrigger value="special_coupons">Cupons Especiais</TabsTrigger>
-            <TabsTrigger value="payments">Pagamentos</TabsTrigger>
-            <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-            <TabsTrigger value="mensagens">WhatsApp Msgs</TabsTrigger>
-          </TabsList>
-          <TabsContent value="users" className="mt-6">
-            <UserManagement />
-          </TabsContent>
-          <TabsContent value="sales" className="mt-6">
-            <SalesManagement />
-          </TabsContent>
-          <TabsContent value="coupons" className="mt-6">
-            <CouponManagement />
-          </TabsContent>
-          <TabsContent value="special_coupons" className="mt-6">
-            <SpecialCouponsManager />
-          </TabsContent>
-          <TabsContent value="payments" className="mt-6">
-              <PaymentProviderManager />
-          </TabsContent>
-          <TabsContent value="whatsapp" className="mt-6">
-            <WhatsAppManager />
-          </TabsContent>
-          <TabsContent value="mensagens" className="mt-6">
-            <WhatsappMessageManager />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          {renderContent()}
+        </div>
       </main>
     </div>
   );
