@@ -112,7 +112,7 @@ function CheckoutForm() {
           toast({
               variant: "destructive",
               title: 'Falha no login com Google',
-              description: "Ocorreu um erro ao tentar fazer login. Tente novamente.",
+              description: (error as Error).message || "Ocorreu um erro ao tentar fazer login. Tente novamente.",
           });
         }
     } finally {

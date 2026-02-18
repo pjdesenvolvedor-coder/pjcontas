@@ -56,13 +56,13 @@ export function AuthDialog() {
         }
     } catch (error) {
         if (error instanceof FirebaseError && (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request')) {
-          // Don't show a toast if the user closes the popup
+          // Do nothing, user closed the popup.
         } else {
             console.error("Google Sign-In error:", error);
             toast({
                 variant: "destructive",
                 title: 'Falha no login com Google',
-                description: "Ocorreu um erro ao tentar fazer login. Tente novamente.",
+                description: (error as Error).message || "Ocorreu um erro ao tentar fazer login. Tente novamente.",
             });
         }
     } finally {
