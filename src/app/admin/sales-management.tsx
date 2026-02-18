@@ -74,7 +74,7 @@ export function SalesManagement() {
                     <TableCell>{ticket.customerName}</TableCell>
                     <TableCell>{ticket.customerPhone || 'N/A'}</TableCell>
                     <TableCell>{ticket.sellerName}</TableCell>
-                    <TableCell className="text-right">R$ {ticket.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {(ticket.price || 0).toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
