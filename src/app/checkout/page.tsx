@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Loader2, QrCode, CheckCircle, Info, Ticket as CouponIcon, Gift } from 'lucide-react';
+import { Copy, Loader2, QrCode, CheckCircle, Info, Ticket as CouponIcon, Gift, AlertTriangle } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -558,6 +558,13 @@ function CheckoutForm() {
                       Clique no campo acima para copiar o código.
                     </p>
                   </div>
+                  <Alert variant="destructive" className="w-full">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Importante!</AlertTitle>
+                    <AlertDescription>
+                      Não feche esta página após realizar o pagamento. Aguarde a confirmação e o redirecionamento para garantir a entrega do seu produto.
+                    </AlertDescription>
+                  </Alert>
                 </>
               )}
 
