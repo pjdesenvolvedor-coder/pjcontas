@@ -6,9 +6,9 @@
  * ensuring that this shared data can only be managed through a trusted backend environment (e.g., using the Admin SDK).
  *
  * NOTE ON 'auth/operation-not-allowed' ERROR:
- * This error indicates that the sign-in method being used (e.g., Anonymous, Email/Password) has not been
+ * This error indicates that the sign-in method being used (e.g., Anonymous, Email/Password, Google) has not been
  * enabled in the Firebase Authentication > Sign-in method tab of your Firebase console. Please ensure that
- * both 'Anonymous' and 'Email/Password' providers are enabled to resolve this specific error.
+ * the appropriate providers are enabled to resolve this specific error.
  *
  * Data Structure:
  * - /users/{userId}: Contains all data private to a single user. The {userId} MUST match the user's Firebase Auth UID.

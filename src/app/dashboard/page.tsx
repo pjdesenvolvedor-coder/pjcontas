@@ -12,10 +12,9 @@ import {
   useFirestore,
   useMemoFirebase,
   useDoc,
-  updateDocument,
   useAuth,
 } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -101,7 +100,7 @@ function UserProfileCard({
     }
 
     // Update Firestore document
-    updateDocument(userRef, updateData);
+    updateDoc(userRef, updateData);
 
     // Update Auth profile
     if (

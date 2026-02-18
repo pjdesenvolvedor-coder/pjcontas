@@ -1,7 +1,7 @@
 'use client';
 
-import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection, setDocument, deleteDocument, updateDocument } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -68,7 +68,7 @@ function UserManagement() {
     const userRef = doc(firestore, 'users', userToUpdate.id);
     const newRole = userToUpdate.role === 'admin' ? 'customer' : 'admin';
 
-    updateDocument(userRef, { role: newRole });
+    updateDoc(userRef, { role: newRole });
     toast({
       title: "Função do Usuário Atualizada!",
       description: `${userToUpdate.firstName} agora é ${newRole === 'admin' ? 'administrador(a)' : 'cliente'}.`
@@ -88,7 +88,7 @@ function UserManagement() {
     if (!selectedUser || !firestore) return;
 
     const userRef = doc(firestore, 'users', selectedUser.id);
-    deleteDocument(userRef);
+    deleteDoc(userRef);
 
     toast({
       title: "Usuário Apagado!",

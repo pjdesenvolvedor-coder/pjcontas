@@ -14,9 +14,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, setDocument, addDocument } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, setDoc, addDoc } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { Loader2 } from 'lucide-react';
 
@@ -72,13 +72,13 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        const userDocPromise = setDocument(userRef, userData, { merge: false });
+        const userDocPromise = setDoc(userRef, userData, { merge: false });
         
         // 3. Queue welcome message
         let welcomeMessagePromise = Promise.resolve();
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            welcomeMessagePromise = addDocument(pendingMessagesRef, {
+            welcomeMessagePromise = addDoc(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),

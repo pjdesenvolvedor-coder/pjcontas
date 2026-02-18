@@ -14,9 +14,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, setDocument, addDocument } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, setDoc, addDoc } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { Loader2 } from 'lucide-react';
 
@@ -31,9 +31,10 @@ const formSchema = z.object({
 
 interface SignupFormProps {
   setOpen?: (open: boolean) => void;
+  setActiveTab?: (tab: string) => void;
 }
 
-export function SignupForm({ setOpen }: SignupFormProps) {
+export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -71,13 +72,13 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        const userDocPromise = setDocument(userRef, userData, { merge: false });
+        const userDocPromise = setDoc(userRef, userData, { merge: false });
         
         // 3. Queue welcome message
         let welcomeMessagePromise = Promise.resolve();
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            welcomeMessagePromise = addDocument(pendingMessagesRef, {
+            welcomeMessagePromise = addDoc(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),
@@ -187,6 +188,19 @@ export function SignupForm({ setOpen }: SignupFormProps) {
           {formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Criar Conta
         </Button>
+        {setActiveTab && (
+          <div className="text-center text-sm text-muted-foreground pt-2">
+            Já tem uma conta?{' '}
+            <Button
+              type="button"
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => setActiveTab('login')}
+            >
+              Entrar agora
+            </Button>
+          </div>
+        )}
       </form>
     </Form>
   );

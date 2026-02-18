@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, setDocument, addDocument } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { doc, collection, setDoc, addDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
@@ -57,12 +57,12 @@ export function CompleteGoogleSignupForm({ user, onComplete }: CompleteGoogleSig
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        const userDocPromise = setDocument(userRef, userData, { merge: false });
+        const userDocPromise = setDoc(userRef, userData, { merge: false });
 
         let welcomeMessagePromise = Promise.resolve();
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            welcomeMessagePromise = addDocument(pendingMessagesRef, {
+            welcomeMessagePromise = addDoc(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),

@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useDoc, useMemoFirebase, setDocument } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import type { PaymentConfig } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,7 +87,7 @@ export function PaymentProviderManager() {
       },
     };
 
-    setDocument(configDocRef, configData, { merge: true });
+    setDoc(configDocRef, configData, { merge: true });
     toast({
       title: 'Configurações de Pagamento Salvas!',
       description: `O provedor ativo agora é ${values.activeProvider}.`,

@@ -10,12 +10,9 @@ import {
   useFirestore,
   useCollection,
   useMemoFirebase,
-  setDocument,
-  deleteDocument,
-  addDocument,
   useDoc,
 } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import type { Plan, Deliverable, UserProfile, Ticket } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -326,7 +323,7 @@ function DeliverablesManagerDialog({
         createdAt: new Date().toISOString(),
     };
 
-    const newDocRef = await addDocument(deliverablesCollection, newDeliverableData);
+    const newDocRef = await addDoc(deliverablesCollection, newDeliverableData);
 
     if (newDocRef) {
         toast({ title: "Entregável adicionado!" });
@@ -345,7 +342,7 @@ function DeliverablesManagerDialog({
   const handleDeleteDeliverable = (deliverableId: string) => {
     if (!firestore || !subscription) return;
     const deliverableRef = doc(firestore, `subscriptions/${subscription.id}/deliverables`, deliverableId);
-    deleteDocument(deliverableRef);
+    deleteDoc(deliverableRef);
     toast({ title: "Entregável removido." });
   };
   
@@ -551,7 +548,7 @@ export function SellerDashboard() {
     if (!deletingSubscriptionId || !firestore) return;
     
     const subRef = doc(firestore, 'subscriptions', deletingSubscriptionId);
-    deleteDocument(subRef);
+    deleteDoc(subRef);
 
     toast({
         title: "Anúncio apagado!",
@@ -583,7 +580,7 @@ export function SellerDashboard() {
           sellerUsername: userProfile.sellerUsername || userProfile.firstName,
           sellerPhotoURL: userProfile.photoURL || user.photoURL,
       };
-      setDocument(subRef, updatedData, { merge: true });
+      setDoc(subRef, updatedData, { merge: true });
       toast({
         title: 'Anúncio Atualizado!',
         description: 'As alterações no seu anúncio foram salvas.',
@@ -601,7 +598,7 @@ export function SellerDashboard() {
         sellerUsername: userProfile.sellerUsername || userProfile.firstName,
         sellerPhotoURL: userProfile.photoURL || user.photoURL,
       };
-      setDocument(newSubRef, newSubscriptionData, { merge: false });
+      setDoc(newSubRef, newSubscriptionData, { merge: false });
       toast({
         title: 'Anúncio Criado!',
         description: 'Seu novo anúncio de assinatura está agora disponível no marketplace.',

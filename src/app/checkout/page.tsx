@@ -28,9 +28,6 @@ import {
   useDoc,
   useFirestore,
   useMemoFirebase,
-  addDocument,
-  setDocument,
-  updateDocument,
   useAuth,
 } from '@/firebase';
 import {
@@ -41,6 +38,9 @@ import {
   query,
   where,
   increment,
+  addDoc,
+  setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Plan, Deliverable, UserProfile, Coupon } from '@/lib/types';

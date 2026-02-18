@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase, setDocument, deleteDocument } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import type { Coupon, Plan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ export function CouponManagement() {
       subscriptionName: values.subscriptionId === 'none' ? '' : selectedSubscription?.name,
     };
 
-    setDocument(newCouponRef, newCouponData, { merge: false });
+    setDoc(newCouponRef, newCouponData, { merge: false });
     toast({
       title: 'Cupom Criado!',
       description: `O cupom "${values.name}" foi criado com ${values.discountPercentage}% de desconto.`,
@@ -78,7 +78,7 @@ export function CouponManagement() {
   const handleConfirmDelete = () => {
     if (!deletingCoupon) return;
     const couponRef = doc(firestore, 'coupons', deletingCoupon.id);
-    deleteDocument(couponRef);
+    deleteDoc(couponRef);
     toast({
       title: "Cupom apagado!",
       description: `O cupom "${deletingCoupon.name}" foi removido.`,
