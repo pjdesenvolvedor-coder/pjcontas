@@ -1,195 +1,95 @@
-/**
- * Core Philosophy: This ruleset enforces a strict user-ownership model for personal data,
- * with public read access for shared application data. User profiles, subscriptions, and
- * payment histories are private and can only be accessed by the owning user. Global data,
- * such as streaming services and subscription plans, is publicly readable by anyone.
- *
- * Data Structure: All private, user-specific data is hierarchically organized under the
- * `/users/{userId}` path, where `{userId}` corresponds to the user's Firebase Authentication UID.
- * This structure provides a secure and scalable foundation. Global, application-wide data
- * resides in top-level collections like `/streaming_services` and `/subscription_plans`.
- *
- * Key Security Decisions:
- * - User Enumeration is Disabled: Listing the top-level `/users` collection is explicitly
- *   denied to protect user privacy and prevent data scraping.
- * - Public Data is Read-Only: Collections like `/streaming_services` and `/subscription_plans`
- *   are publicly readable by all clients, but writes are disabled by default. This assumes
- *   that such data is managed by administrators through a separate, trusted environment
- *   (e.g., a backend server with Admin SDK access).
- * - Default Deny: Any operation not explicitly allowed is denied.
- *
- * Denormalization for Authorization: To ensure performant and simple authorization checks,
- * a `userId` field is denormalized onto all documents within a user's private subcollections
- * (e.g., `user_subscriptions`, `payments`). This avoids slow and costly `get()` calls to
- * parent documents, enabling rules to make authorization decisions based solely on the data
- * within the requested document.
- *
- * Structural Segregation: The ruleset leverages separate collections for private and public
- * data. User-owned documents are placed in subcollections under `/users/{userId}`, while
- * public, global documents are in their own top-level collections. This clear separation
- * allows for simple, performant, and secure rules for list operations.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------------------------
-    // ---   Helper Functions  ---
-    // ---------------------------
-
-    /**
-     * Checks if a user is authenticated.
-     */
+    // Helper Functions
     function isSignedIn() {
       return request.auth != null;
     }
-
-    /**
-     * Checks if the currently authenticated user's UID matches the provided userId.
-     * This is the foundation of the user-ownership model.
-     * @param userId The UID of the user to check against.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    /**
-     * Checks if a document currently exists in the database.
-     * Used to protect against updates or deletes on non-existent documents.
-     */
-    function isExistingDoc() {
-      return resource != null;
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /**
-     * A convenience function that combines ownership and existence checks.
-     * Essential for securing all update and delete operations.
-     * @param userId The UID of the document's owner.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && isExistingDoc();
-    }
-
-    /**
-     * Validates required ownership fields when a user creates their own profile.
-     * Enforces consistency between the document path and the internal data.
-     * @param userId The UID from the document path.
-     */
-    function isValidUserProfileOnCreate(userId) {
-      let data = request.resource.data;
-      return data.id == userId && data.externalAuthId == userId;
-    }
-
-    /**
-     * Enforces immutability of critical identity and ownership fields on a UserProfile.
-     */
-    function isImmutableUserProfileIdentity() {
-      let before = resource.data;
-      let after = request.resource.data;
-      return after.id == before.id && after.externalAuthId == before.externalAuthId;
-    }
-
-    /**
-     * Validates the denormalized `userId` field for any new document in a user's subcollection.
-     * @param userId The UID from the document path.
-     */
-    function isValidUserSubdocumentOnCreate(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * Enforces the immutability of the denormalized `userId` field in a user's subcollection.
-     */
-    function isImmutableUserSubdocumentOwner() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    // ---------------------------
-    // --- Collection: users   ---
-    // ---------------------------
-
-    /**
-     * @description Manages user profiles. A user can create their own profile, and can
-     *   only read or modify their own data post-creation.
-     * @path /users/{userId}
-     * @allow A signed-in user (UID 'user123') creating their own profile at `/users/user123`. (create)
-     * @deny A signed-in user trying to read another user's profile. (get, list)
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
-     */
+    // User Data
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // CRITICAL: Prevents listing all users in the application.
-      allow create: if isOwner(userId) && isValidUserProfileOnCreate(userId);
-      allow update: if isExistingOwner(userId) && isImmutableUserProfileIdentity();
-      allow delete: if isExistingOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId); // On signup
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
 
-      // --- Subcollection: user_subscriptions ---
-      /**
-       * @description Manages the subscriptions belonging to a specific user.
-       * @path /users/{userId}/user_subscriptions/{userSubscriptionId}
-       * @allow User 'user123' reading or creating a new subscription in their own subcollection. (get, list, create)
-       * @deny User 'user456' attempting to read subscriptions for 'user123'. (get, list)
-       * @principle Enforces document ownership within a user-specific subcollection.
-       */
-      match /user_subscriptions/{userSubscriptionId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidUserSubdocumentOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isImmutableUserSubdocumentOwner();
-        allow delete: if isExistingOwner(userId);
-      }
-
-      // --- Subcollection: payments ---
-      /**
-       * @description Manages the payment records belonging to a specific user.
-       * @path /users/{userId}/payments/{paymentId}
-       * @allow User 'user123' reading or creating a new payment record in their own subcollection. (get, list, create)
-       * @deny User 'user456' attempting to read payment history for 'user123'. (get, list)
-       * @principle Enforces document ownership within a user-specific subcollection.
-       */
-      match /payments/{paymentId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidUserSubdocumentOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isImmutableUserSubdocumentOwner();
-        allow delete: if isExistingOwner(userId);
+      // User's own purchases
+      match /userSubscriptions/{subscriptionId} {
+        allow read, create, update, delete: if isOwner(userId);
       }
     }
 
-    // -------------------------------------
-    // --- Collection: streaming_services --
-    // -------------------------------------
+    // Public & Semi-Public Data
+    
+    // Subscriptions (Plans/Announcements)
+    match /subscriptions/{subscriptionId} {
+        allow get, list: if true; // Anyone can see plans
+        // Seller who owns the plan or admin can write
+        allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+        allow update: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+        allow delete: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
 
-    /**
-     * @description Contains public information about streaming services. This data is
-     *   readable by anyone, including unauthenticated users, but cannot be modified by clients.
-     * @path /streaming_services/{serviceId}
-     * @allow Any user, signed-in or not, reading a list of streaming services. (get, list)
-     * @deny Any client attempting to create, update, or delete a service document. (create, update, delete)
-     * @principle Provides public read access for global, non-sensitive data.
-     */
-    match /streaming_services/{serviceId} {
-      allow get, list: if true;
-      allow create: if false; // Managed by administrators via Admin SDK
-      allow update: if false; // Managed by administrators via Admin SDK
-      allow delete: if false; // Managed by administrators via Admin SDK
+        // Deliverables for a subscription
+        match /deliverables/{deliverableId} {
+          // Seller can manage everything.
+          allow read, write: if isSignedIn() && get(/databases/$(database)/documents/subscriptions/$(subscriptionId)).data.sellerId == request.auth.uid;
+          // Buyer can update status from 'available' to 'sold' upon purchase.
+          allow update: if isSignedIn() && 
+            resource.data.status == 'available' &&
+            request.resource.data.status == 'sold' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+        }
+     }
+     
+    // Tickets for buyer/seller communication
+    match /tickets/{ticketId} {
+        allow get, update: if isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.sellerId);
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.customerId;
+        allow list: if isSignedIn(); // Client-side queries must enforce userId == customerId or sellerId
+
+        match /messages/{messageId} {
+            allow read, create: if isSignedIn() && (request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.customerId || request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.sellerId);
+            allow update, delete: if false; // Messages are append-only
+        }
     }
 
-    // -----------------------------------------
-    // --- Collection: subscription_plans    ---
-    // -----------------------------------------
-
-    /**
-     * @description Contains public information about subscription plans. This data is
-     *   readable by anyone, including unauthenticated users, but cannot be modified by clients.
-     * @path /subscription_plans/{planId}
-     * @allow Any user, signed-in or not, reading a list of subscription plans. (get, list)
-     * @deny Any client attempting to create, update, or delete a plan document. (create, update, delete)
-     * @principle Provides public read access for global, non-sensitive data.
-     */
-    match /subscription_plans/{planId} {
-      allow get, list: if true;
-      allow create: if false; // Managed by administrators via Admin SDK
-      allow update: if false; // Managed by administrators via Admin SDK
-      allow delete: if false; // Managed by administrators via Admin SDK
+    // App configurations
+    match /configs/{configId} {
+      allow get, list: if true; // Publicly readable
+      allow write: if isAdmin(); // Only admin can change configs
     }
+    
+    // Discount coupons
+    match /coupons/{couponId} {
+        allow get, list: if true; // Publicly readable
+        // Admin manages coupons
+        allow create, delete: if isAdmin();
+        // Admin can update. Users can only increment usageCount.
+        allow update: if isAdmin() || 
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount']) && 
+            request.resource.data.usageCount == resource.data.usageCount + 1
+          );
+    }
+
+    // WhatsApp message queue
+    match /pending_whatsapp_messages/{messageId} {
+        allow create: if isSignedIn(); // Users can queue messages
+        // Processed by a backend/admin daemon. Deny client access to prevent snooping or tampering.
+        allow read, update, delete: if false; 
+    }
+    
+    // Lock down legacy collections that are no longer in use.
+    match /streaming_services/{serviceId} { allow read, write: if false; }
+    match /subscription_plans/{planId} { allow read, write: if false; }
+    match /payments/{paymentId} { allow read, write: if false; }
   }
 }
