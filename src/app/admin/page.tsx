@@ -36,10 +36,6 @@ import { SalesManagement } from './sales-management';
 import { SellerSidebar } from '../seller/seller-sidebar';
 
 
-type UserProfile = {
-  role: 'admin' | 'customer';
-};
-
 function UserManagement() {
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
@@ -205,7 +201,7 @@ export default function AdminPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user?.uid]);
 
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserProfile>(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserProfileType>(userDocRef);
 
   const sellerTicketsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'tickets'), where('sellerId', '==', user.uid)) : null,
