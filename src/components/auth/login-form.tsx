@@ -15,7 +15,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
-import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
@@ -40,18 +42,48 @@ export function LoginForm({ setOpen }: LoginFormProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    initiateEmailSignIn(auth, values.email, values.password);
-    toast({
-      title: 'Fazendo login...',
-      description: "Verificando suas credenciais.",
-    });
-    setOpen?.(false);
+  const { formState, handleSubmit } = form;
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: 'Login bem-sucedido!',
+        description: 'Bem-vindo(a) de volta.',
+      });
+      setOpen?.(false);
+    } catch (error) {
+      console.error("Login error:", error);
+      let description = "Ocorreu um erro inesperado. Tente novamente.";
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            description = 'Email ou senha incorretos. Por favor, verifique e tente novamente.';
+            break;
+          case 'auth/invalid-email':
+            description = 'O formato do email é inválido.';
+            break;
+          case 'auth/too-many-requests':
+            description = 'Muitas tentativas de login. Por favor, tente novamente mais tarde.';
+            break;
+          default:
+            description = 'Ocorreu um erro ao tentar fazer login.';
+            break;
+        }
+      }
+      toast({
+        variant: "destructive",
+        title: 'Falha no login',
+        description: description,
+      });
+    }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
         <FormField
           control={form.control}
           name="email"
@@ -82,7 +114,8 @@ export function LoginForm({ setOpen }: LoginFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={formState.isSubmitting}>
+          {formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Entrar
         </Button>
       </form>

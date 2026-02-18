@@ -15,9 +15,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore, setDocument, addDocument } from '@/firebase';
-import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
-import { onAuthStateChanged, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, collection } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   firstName: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
@@ -47,17 +48,18 @@ export function SignupForm({ setOpen }: SignupFormProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const unsubscribe = onAuthStateChanged(auth, (newUser) => {
-      // We only want to act on the successful creation of a user with a matching email
-      if (newUser && newUser.email === values.email && !newUser.displayName) {
-        unsubscribe(); // Unsubscribe to avoid running this for other auth state changes
-        
+  const { formState, handleSubmit } = form;
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const newUser = userCredential.user;
+
         const displayName = values.firstName;
         const formattedPhoneNumber = values.phoneNumber.replace(/\D/g, '');
 
         // 1. Update user profile in Auth
-        updateProfile(newUser, { displayName }).catch(err => console.error("Update profile error", err));
+        const profileUpdatePromise = updateProfile(newUser, { displayName });
 
         // 2. Create user document in Firestore
         const userRef = doc(firestore, 'users', newUser.uid);
@@ -69,12 +71,13 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        setDocument(userRef, userData, { merge: false });
+        const userDocPromise = setDocument(userRef, userData, { merge: false });
         
         // 3. Queue welcome message
+        let welcomeMessagePromise = Promise.resolve();
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            addDocument(pendingMessagesRef, {
+            welcomeMessagePromise = addDocument(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),
@@ -84,6 +87,8 @@ export function SignupForm({ setOpen }: SignupFormProps) {
                 }
             });
         }
+        
+        await Promise.all([profileUpdatePromise, userDocPromise, welcomeMessagePromise]);
 
         toast({
             title: 'Conta Criada!',
@@ -91,15 +96,37 @@ export function SignupForm({ setOpen }: SignupFormProps) {
         });
         
         setOpen?.(false);
-      }
-    });
 
-    initiateEmailSignUp(auth, values.email, values.password);
+    } catch (error) {
+        console.error("Signup error:", error);
+        let description = "Ocorreu um erro inesperado. Tente novamente.";
+        if (error instanceof FirebaseError) {
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    description = 'Este endereço de email já está em uso.';
+                    break;
+                case 'auth/invalid-email':
+                    description = 'O endereço de email fornecido é inválido.';
+                    break;
+                case 'auth/weak-password':
+                    description = 'A senha é muito fraca. Tente uma mais forte.';
+                    break;
+                default:
+                    description = 'Ocorreu um erro ao criar a conta.';
+                    break;
+            }
+        }
+        toast({
+            variant: "destructive",
+            title: 'Falha no cadastro',
+            description: description,
+        });
+    }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
         <FormField
           control={form.control}
           name="firstName"
@@ -156,7 +183,8 @@ export function SignupForm({ setOpen }: SignupFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
+        <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={formState.isSubmitting}>
+          {formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Criar Conta
         </Button>
       </form>
