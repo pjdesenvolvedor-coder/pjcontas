@@ -87,8 +87,10 @@ function CheckoutForm() {
   // Auth state
   const [activeView, setActiveView] = useState<'login' | 'register' | 'complete-google-signup'>('login');
   const [googleUser, setGoogleUser] = useState<User | null>(null);
+  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
+    setIsGoogleSignInLoading(true);
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -104,14 +106,17 @@ function CheckoutForm() {
         }
     } catch (error) {
         if (error instanceof FirebaseError && (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request')) {
-          return;
+          // User closed the popup, do nothing.
+        } else {
+          console.error("Google Sign-In error:", error);
+          toast({
+              variant: "destructive",
+              title: 'Falha no login com Google',
+              description: "Ocorreu um erro ao tentar fazer login. Tente novamente.",
+          });
         }
-        console.error("Google Sign-In error:", error);
-        toast({
-            variant: "destructive",
-            title: 'Falha no login com Google',
-            description: "Ocorreu um erro ao tentar fazer login. Tente novamente.",
-        });
+    } finally {
+        setIsGoogleSignInLoading(false);
     }
   };
 
@@ -425,6 +430,20 @@ function CheckoutForm() {
         <Card><CardHeader><Skeleton className="h-64 w-full" /></CardHeader></Card>
         <Card><CardHeader><Skeleton className="h-64 w-full" /></CardHeader></Card>
       </div>
+    );
+  }
+
+  if (isGoogleSignInLoading) {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardHeader className="text-center">
+            <CardTitle>Aguarde...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center gap-4 py-8 min-h-[250px]">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-muted-foreground">Finalizando login com Google...</p>
+        </CardContent>
+      </Card>
     );
   }
 
