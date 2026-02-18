@@ -1,60 +1,41 @@
 {
   "entities": {
-    "UserProfile": {
+    "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
+      "title": "User",
       "type": "object",
-      "description": "Represents a user's profile within the StreamShare application, linked to an external authentication system. Contains personal details and preferences for subscription recommendations.",
+      "description": "Represents a user account in the StreamShare application.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "externalAuthId": {
-          "type": "string",
-          "description": "Unique identifier from the external authentication system (e.g., Firebase UID, Google ID) to link the user's authentication credentials to their application profile."
+          "description": "Unique identifier for the User entity."
         },
         "email": {
           "type": "string",
-          "description": "The user's email address.",
+          "description": "The user's email address, used for communication and as a unique identifier (alongside the external authentication system).",
           "format": "email"
         },
         "firstName": {
           "type": "string",
-          "description": "The first name of the user."
+          "description": "The user's first name."
         },
         "lastName": {
           "type": "string",
-          "description": "The last name of the user."
-        },
-        "preferredGenres": {
-          "type": "array",
-          "description": "A list of preferred content genres for subscription recommendations.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "preferredServices": {
-          "type": "array",
-          "description": "References to StreamingService IDs that the user prefers or is interested in. (Relationship: StreamingService N:N UserProfile)",
-          "items": {
-            "type": "string"
-          }
+          "description": "The user's last name."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
+          "description": "Timestamp when the user account was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
+          "description": "Timestamp when the user account was last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "externalAuthId",
         "email",
         "createdAt",
         "updatedAt"
@@ -64,7 +45,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StreamingService",
       "type": "object",
-      "description": "Represents a streaming service provider like Netflix, Disney+, or HBO Max.",
+      "description": "Represents a streaming service provider like Netflix, Disney+, or HBO.",
       "properties": {
         "id": {
           "type": "string",
@@ -72,7 +53,7 @@
         },
         "name": {
           "type": "string",
-          "description": "The official name of the streaming service (e.g., 'Netflix', 'Disney+')."
+          "description": "The common name of the streaming service (e.g., 'Netflix', 'Disney+')."
         },
         "description": {
           "type": "string",
@@ -80,40 +61,31 @@
         },
         "logoUrl": {
           "type": "string",
-          "description": "URL to the official logo of the streaming service.",
+          "description": "URL to the streaming service's logo image.",
           "format": "uri"
         },
         "websiteUrl": {
           "type": "string",
-          "description": "Official website URL for the streaming service.",
+          "description": "The official website URL for the streaming service.",
           "format": "uri"
         },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the streaming service record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the streaming service record was last updated.",
-          "format": "date-time"
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Indicates if the streaming service is currently offered through StreamShare."
         }
       },
       "required": [
         "id",
         "name",
         "description",
-        "logoUrl",
-        "websiteUrl",
-        "createdAt",
-        "updatedAt"
+        "isAvailable"
       ]
     },
     "SubscriptionPlan": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubscriptionPlan",
       "type": "object",
-      "description": "Defines a specific subscription plan offered by a streaming service.",
+      "description": "Represents a specific subscription plan offered by a StreamingService.",
       "properties": {
         "id": {
           "type": "string",
@@ -121,73 +93,62 @@
         },
         "serviceId": {
           "type": "string",
-          "description": "Reference to the StreamingService offering this plan. (Relationship: StreamingService 1:N SubscriptionPlan)"
+          "description": "Reference to the StreamingService this plan belongs to. (Relationship: StreamingService 1:N SubscriptionPlan)"
         },
         "name": {
           "type": "string",
           "description": "The name of the subscription plan (e.g., 'Basic', 'Standard', 'Premium')."
         },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of what the plan offers."
-        },
         "price": {
           "type": "number",
-          "description": "The monthly or annual price of the subscription plan."
+          "description": "The monthly price of the subscription plan."
         },
         "currency": {
           "type": "string",
-          "description": "The currency of the subscription price (e.g., 'USD', 'BRL')."
+          "description": "The currency in which the price is denominated (e.g., 'USD', 'BRL')."
         },
         "resolution": {
           "type": "string",
-          "description": "The maximum video resolution offered by the plan (e.g., 'SD', 'HD', '4K UHD')."
+          "description": "The maximum video resolution offered by this plan (e.g., 'SD', 'HD', '4K')."
         },
-        "maxScreens": {
+        "maxUsers": {
           "type": "number",
-          "description": "The maximum number of simultaneous screens allowed with this plan."
+          "description": "The maximum number of distinct user profiles allowed on this plan."
+        },
+        "concurrentStreams": {
+          "type": "number",
+          "description": "The maximum number of simultaneous streams allowed on this plan."
         },
         "features": {
           "type": "array",
-          "description": "A list of key features included in the plan (e.g., 'Downloadable Content', 'Ad-Free').",
+          "description": "A list of key features included in this plan (e.g., 'Download content', 'Ad-free viewing').",
           "items": {
             "type": "string"
           }
         },
+        "durationMonths": {
+          "type": "number",
+          "description": "The billing cycle duration in months (e.g., 1 for monthly, 12 for annual)."
+        },
         "isActive": {
           "type": "boolean",
-          "description": "Indicates whether this subscription plan is currently available for purchase."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the subscription plan record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the subscription plan record was last updated.",
-          "format": "date-time"
+          "description": "Indicates if this subscription plan is currently available for purchase."
         }
       },
       "required": [
         "id",
         "serviceId",
         "name",
-        "description",
         "price",
         "currency",
-        "resolution",
-        "maxScreens",
-        "isActive",
-        "createdAt",
-        "updatedAt"
+        "isActive"
       ]
     },
     "UserSubscription": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserSubscription",
       "type": "object",
-      "description": "Represents a specific subscription that a user has purchased, linking a user to a subscription plan.",
+      "description": "Records a specific user's subscription to a particular plan, including its status and dates.",
       "properties": {
         "id": {
           "type": "string",
@@ -195,7 +156,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who owns this subscription. (Relationship: UserProfile 1:N UserSubscription)"
+          "description": "Reference to the User who owns this subscription. (Relationship: User 1:N UserSubscription)"
         },
         "planId": {
           "type": "string",
@@ -208,25 +169,24 @@
         },
         "endDate": {
           "type": "string",
-          "description": "The date when the subscription is scheduled to end or did end. Null if ongoing with no set end date.",
+          "description": "The date when the subscription is set to expire or was cancelled.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The current status of the user's subscription (e.g., 'active', 'cancelled', 'expired', 'pending')."
+          "description": "The current status of the subscription (e.g., 'active', 'cancelled', 'expired', 'pending_payment')."
         },
-        "autoRenew": {
-          "type": "boolean",
-          "description": "Indicates whether the subscription is set to automatically renew."
-        },
-        "createdAt": {
+        "paymentReferenceId": {
           "type": "string",
-          "description": "Timestamp when the user subscription record was created.",
-          "format": "date-time"
+          "description": "A reference ID from the external payment gateway for this subscription's transaction."
         },
-        "updatedAt": {
+        "subscribedPrice": {
+          "type": "number",
+          "description": "The price at which the user initially subscribed, in case plan prices change over time."
+        },
+        "nextBillingDate": {
           "type": "string",
-          "description": "Timestamp when the user subscription record was last updated.",
+          "description": "The next scheduled date for billing this recurring subscription.",
           "format": "date-time"
         }
       },
@@ -236,80 +196,78 @@
         "planId",
         "startDate",
         "status",
-        "autoRenew",
-        "createdAt",
-        "updatedAt"
+        "paymentReferenceId",
+        "subscribedPrice"
       ]
     },
-    "Payment": {
+    "UserPreference": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Payment",
+      "title": "UserPreference",
       "type": "object",
-      "description": "Records details of a payment made by a user for a subscription.",
+      "description": "Stores user preferences and data points for the AI-powered subscription recommendation engine.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Payment entity."
+          "description": "Unique identifier for the UserPreference entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who made the payment. (Relationship: UserProfile 1:N Payment)"
+          "description": "Reference to the User whose preferences are stored. (Relationship: User 1:1 UserPreference)"
         },
-        "userSubscriptionId": {
+        "genrePreferences": {
+          "type": "array",
+          "description": "A list of preferred content genres (e.g., 'Action', 'Comedy', 'Sci-Fi').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contentQualityPreference": {
           "type": "string",
-          "description": "Reference to the UserSubscription this payment is for. (Relationship: UserSubscription 1:N Payment)"
+          "description": "User's preference for content quality (e.g., 'SD', 'HD', '4K')."
         },
-        "amount": {
+        "preferredPriceRangeMin": {
           "type": "number",
-          "description": "The amount paid for the subscription."
+          "description": "The minimum preferred monthly price for subscriptions."
         },
-        "currency": {
-          "type": "string",
-          "description": "The currency of the payment (e.g., 'USD', 'BRL')."
+        "preferredPriceRangeMax": {
+          "type": "number",
+          "description": "The maximum preferred monthly price for subscriptions."
         },
-        "paymentDate": {
-          "type": "string",
-          "description": "The date and time the payment was successfully processed.",
-          "format": "date-time"
+        "preferredUserLimit": {
+          "type": "number",
+          "description": "The preferred minimum number of users supported by a subscription plan."
         },
-        "status": {
-          "type": "string",
-          "description": "The status of the payment (e.g., 'completed', 'failed', 'refunded', 'pending')."
+        "explicitLikedServices": {
+          "type": "array",
+          "description": "References to StreamingServices explicitly indicated as liked by the user. (Relationship: StreamingService N:N UserPreference)",
+          "items": {
+            "type": "string"
+          }
         },
-        "paymentGatewayTransactionId": {
-          "type": "string",
-          "description": "The transaction ID provided by the external payment gateway for reconciliation."
+        "explicitDislikedServices": {
+          "type": "array",
+          "description": "References to StreamingServices explicitly indicated as disliked by the user. (Relationship: StreamingService N:N UserPreference)",
+          "items": {
+            "type": "string"
+          }
         },
-        "createdAt": {
+        "lastUpdated": {
           "type": "string",
-          "description": "Timestamp when the payment record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the payment record was last updated.",
+          "description": "Timestamp when the user preferences were last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
-        "userSubscriptionId",
-        "amount",
-        "currency",
-        "paymentDate",
-        "status",
-        "paymentGatewayTransactionId",
-        "createdAt",
-        "updatedAt"
+        "lastUpdated"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
@@ -317,31 +275,27 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "UserProfile",
+          "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/UserProfile"
+            "$ref": "#/backend/entities/User"
           },
-          "description": "Stores individual user profiles. The document ID `{userId}` directly corresponds to the Firebase Authentication UID (`request.auth.uid`) for that user. The 'id' field within the document also stores this UID, ensuring path-based ownership for simple and robust security rules."
+          "description": "Stores individual user profiles. Access is restricted to the user identified by `userId` in the path, which must match `request.auth.uid`."
         }
       },
       {
-        "path": "/streaming_services/{serviceId}",
+        "path": "/users/{userId}/user_preferences/profile",
         "definition": {
-          "entityName": "StreamingService",
+          "entityName": "UserPreference",
           "schema": {
-            "$ref": "#/backend/entities/StreamingService"
+            "$ref": "#/backend/entities/UserPreference"
           },
-          "description": "Contains global, publicly accessible information about each streaming service. These documents are read-only for all users and managed by administrators. The `{serviceId}` wildcard is the unique identifier for each service."
-        }
-      },
-      {
-        "path": "/subscription_plans/{planId}",
-        "definition": {
-          "entityName": "SubscriptionPlan",
-          "schema": {
-            "$ref": "#/backend/entities/SubscriptionPlan"
-          },
-          "description": "Stores details about specific subscription plans offered by various streaming services. This is a top-level collection to facilitate global listing and querying of plans (QAP compliance). Each document includes a 'serviceId' field to link it to its parent StreamingService. Publicly readable for all users. The `{planId}` wildcard is the unique identifier for each plan."
+          "description": "Stores a single document containing preferences for the user identified by `userId`. Access is restricted to the user themselves. The fixed document ID 'profile' ensures a 1:1 relationship. Includes denormalized 'userId' field (also in path) for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, matching `request.auth.uid`."
+            }
+          ]
         }
       },
       {
@@ -351,20 +305,52 @@
           "schema": {
             "$ref": "#/backend/entities/UserSubscription"
           },
-          "description": "Stores details of a user's active or past subscriptions. This is a subcollection under a specific user's profile. Includes denormalized 'userId' field matching the `{userId}` path wildcard for authorization independence and secure QAPs. Only the owning user can read/write their subscriptions. The `{userSubscriptionId}` wildcard is the unique identifier for each user subscription."
+          "description": "Records a specific user's active or past subscriptions to various plans. Access is restricted to the user identified by `userId`. Includes denormalized 'userId' field (also in path) for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, matching `request.auth.uid`."
+            },
+            {
+              "name": "userSubscriptionId",
+              "description": "The unique ID of the user's specific subscription record."
+            }
+          ]
         }
       },
       {
-        "path": "/users/{userId}/payments/{paymentId}",
+        "path": "/streaming_services/{serviceId}",
         "definition": {
-          "entityName": "Payment",
+          "entityName": "StreamingService",
           "schema": {
-            "$ref": "#/backend/entities/Payment"
+            "$ref": "#/backend/entities/StreamingService"
           },
-          "description": "Records individual payment transactions made by a user. This is a subcollection under a specific user's profile. Includes denormalized 'userId' field matching the `{userId}` path wildcard for authorization independence and secure QAPs. Only the owning user can read/write their payment records. The `{paymentId}` wildcard is the unique identifier for each payment."
+          "description": "Contains publicly available information about streaming service providers. Read access is granted to all users (authenticated and unauthenticated). Write access would typically be restricted to administrators or backend services.",
+          "params": [
+            {
+              "name": "serviceId",
+              "description": "The unique ID of the streaming service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscription_plans/{planId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Contains publicly available details of all subscription plans offered by various streaming services. This is a top-level collection for efficient global querying. Read access is granted to all users. Includes 'serviceId' for linking to a specific StreamingService.",
+          "params": [
+            {
+              "name": "planId",
+              "description": "The unique ID of the subscription plan."
+            }
+          ]
         }
       }
     ],
-    "reasoning": "The recommended Firestore structure is designed with a strong emphasis on Authorization Independence, Structural Segregation, and clear Access Modeling, ensuring robust security rules and efficient querying as per the core design principles. The structure separates global, public data from private, user-specific data to provide homogeneous security postures for collections.\n\n**Authorization Independence (CRITICAL):**\n1.  **User-Owned Data (`/users/{userId}/...`):** All user-specific data, such as `UserProfile`, `UserSubscription`, and `Payment`, are stored under a path segmented by the user's Firebase Authentication UID (`/users/{userId}`). Crucially, the documents within these subcollections (e.g., `UserSubscription`, `Payment`) include a denormalized `userId` field. This `userId` field in the document **must** match the `{userId}` wildcard in the path, as well as `request.auth.uid`. This design completely eliminates the need for `get()` calls in security rules to check parent ownership, thereby preventing atomic operation failures and simplifying rule logic. For example, to read a `UserSubscription`, the rule simply checks `request.auth.uid == resource.data.userId && request.auth.uid == userId` (where `userId` is the path wildcard), which is efficient and independent.\n2.  **Global Data (`/streaming_services`, `/subscription_plans`):** These collections contain publicly readable data. Since their access doesn't depend on a parent document's attributes or user-specific roles (other than potentially admin write access, which is usually handled by `request.auth.uid` directly or a top-level roles collection), no denormalization for authorization is needed. They are inherently authorization-independent for reads.\n\n**QAPs (Rules are not Filters):**\n1.  **Public Collections (`/streaming_services`, `/subscription_plans`):** These collections are intended for public read. Any user can `list` and `get` documents from these collections. The security rules for these collections will simply `allow read: if true;`, which is a query-safe operation as all data is accessible. Users can then apply client-side filtering (e.g., filter `SubscriptionPlans` by `serviceId`) after fetching, or use server-side queries on fields like `serviceId`, which are secure due to the public nature of the data.\n2.  **Private User Collections (`/users/{userId}/user_subscriptions`, `/users/{userId}/payments`):** By structuring these as subcollections under `/users/{userId}`, security rules can enforce that a user can only `list` or `get` documents within their own `/users/{request.auth.uid}/...` path. The rule would check `allow read: if request.auth.uid == userId;` (for the path wildcard) and `request.auth.uid == resource.data.userId` (for the denormalized field). This ensures that `list` operations implicitly filter by the authenticated user, satisfying the QAPs principle by making unauthorized reads impossible rather than relying on rules to filter results after the fact. The `UserProfile` itself, located at `/users/{userId}`, is also exclusively owned and accessible by `request.auth.uid`."
+    "reasoning": "The recommended Firestore structure prioritizes robust security rules, scalability, and debuggability by adhering to the core design principles. \n\n**Authorization Independence via Denormalization:** This design eliminates the need for `get()` calls in Firestore Security Rules, which is critical for performance and atomic operations. For user-specific data such as `UserSubscription` and `UserPreference`, the `userId` is embedded directly into the path (`/users/{userId}/...`). This means authorization rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, ensuring that users can only access their own data without needing to fetch parent documents. The `UserSubscription` and `UserPreference` entities also include a `userId` field in their document schemas, which, while not strictly necessary for path-based authorization, adds an explicit data invariant and aids in data consistency and easier client-side querying.\n\n**QAPs (Rules are not Filters):**\n*   **Public Data:** `streaming_services` and `subscription_plans` are structured as top-level collections. This allows for efficient `list` queries (Collection Group queries are not even needed here) as all documents within these collections share the same security posture (public read-only). For example, to list all streaming services, an application can simply query `/streaming_services`, and the rules will grant access to all documents without filtering. Similarly for `/subscription_plans`.\n*   **Private User Data:** For user-owned data like `user_subscriptions` and `user_preferences`, these are implemented as subcollections under `/users/{userId}/`. This path structure inherently filters the data by `userId`. When a user requests their subscriptions (e.g., `db.collection('users').doc(request.auth.uid).collection('user_subscriptions').get()`), the `request.auth.uid` is used in the path itself, ensuring that the query only attempts to fetch documents belonging to the authenticated user. The security rules will then simply verify `request.auth.uid == userId` for the specific path, fulfilling the QAP principle.\n\n**Structural Segregation:** Data with different security requirements is segregated into distinct collections or subcollections. Publicly browsable information (`streaming_services`, `subscription_plans`) is kept separate from private user data (`users`, `user_subscriptions`, `user_preferences`). This simplifies security rules, as each collection/subcollection can have a uniform set of access permissions.\n\n**Access Modeling:** Path-based ownership (`/users/{userId}/...`) is consistently applied for all user-specific and user-owned data. Collaborative data is not explicitly in this schema, but if it were, the membership map pattern would be used and denormalized. Global roles, if needed, would use dedicated collections (e.g., `/roles_admin/{uid}`).\n\n**Data Clarity and Predictability:** Semantic naming (`userId`, `serviceId`, `planId`) and descriptive wildcards are used throughout. The 1:1 `UserPreference` entity is stored as a fixed-document subcollection (`/users/{userId}/user_preferences/profile`) for predictable access."
   }
 }

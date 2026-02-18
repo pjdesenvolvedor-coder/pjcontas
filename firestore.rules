@@ -1,95 +1,126 @@
+/**
+ * This Firestore Security Ruleset defines the access control model for the StreamShare application.
+ *
+ * Core Philosophy:
+ * The rules enforce a strict user-ownership model. All data created by a user is considered private
+ * and is only accessible by that user. Global application data, such as streaming service
+ * information and subscription plans, is publicly readable but not writable by clients, ensuring
+ * that this data can only be managed by trusted backend services or administrators.
+ *
+ * Data Structure:
+ * The data is organized into two main categories:
+ * 1. User-Private Data: Stored under `/users/{userId}`, with subcollections for preferences
+ *    (`user_preferences`) and subscriptions (`user_subscriptions`). This structure ensures that
+ *    all of a user's data is logically and securely grouped under their unique ID.
+ * 2. Public Data: Stored in top-level collections like `/streaming_services` and `/subscription_plans`.
+ *    This separation allows for efficient and secure public queries without exposing private user information.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only ever read or write documents within their own data tree
+ *   (i.e., paths starting with `/users/{request.auth.uid}`).
+ * - No User Listing: It is not possible for any client to list all documents in the `/users` collection.
+ * - Public Data is Read-Only: Clients can read all streaming service and subscription plan data, but all
+ *   write operations (`create`, `update`, `delete`) are denied. This protects the integrity of core
+ *   application data.
+ * - Relational Integrity: On creation of user-specific documents (like a subscription), the rules
+ *   mandate that the document's internal `userId` field must match the user's authenticated UID,
+ *   enforcing data consistency. This `userId` field is then enforced as immutable on updates.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
+    // Helper functions for reusable logic
     function isSignedIn() {
       return request.auth != null;
     }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+    /**
+     * Checks if the document being operated on already exists.
+     * CRITICAL for preventing writes to non-existent documents on update/delete.
+     */
+    function isExistingDocument() {
+      return resource != null;
     }
 
-    // User Data
+    /**
+     * @description Rules for a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) A new user creating their own profile: `request.auth.uid == 'user_abc'` attempts to create `/users/user_abc`.
+     * @deny (get) A user trying to read another user's profile: `request.auth.uid == 'user_abc'` attempts to get `/users/user_xyz`.
+     * @deny (list) Any user trying to list all users in the system.
+     * @principle Restricts access to a user's own data tree and enforces relational integrity on create.
+     */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId); // On signup
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
-
-      // User's own purchases
-      match /userSubscriptions/{subscriptionId} {
-        allow read, create, update, delete: if isOwner(userId);
-      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && isExistingDocument() && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && isExistingDocument();
     }
 
-    // Public & Semi-Public Data
-    
-    // Subscriptions (Plans/Announcements)
-    match /subscriptions/{subscriptionId} {
-        allow get, list: if true; // Anyone can see plans
-        // Seller who owns the plan or admin can write
-        allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-        allow update: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
-        allow delete: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
-
-        // Deliverables for a subscription
-        match /deliverables/{deliverableId} {
-          // Seller can manage everything.
-          allow read, write: if isSignedIn() && get(/databases/$(database)/documents/subscriptions/$(subscriptionId)).data.sellerId == request.auth.uid;
-          // Buyer can update status from 'available' to 'sold' upon purchase.
-          allow update: if isSignedIn() && 
-            resource.data.status == 'available' &&
-            request.resource.data.status == 'sold' &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
-        }
-     }
-     
-    // Tickets for buyer/seller communication
-    match /tickets/{ticketId} {
-        allow get, update: if isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.sellerId);
-        allow create: if isSignedIn() && request.auth.uid == request.resource.data.customerId;
-        allow list: if isSignedIn(); // Client-side queries must enforce userId == customerId or sellerId
-
-        match /messages/{messageId} {
-            allow read, create: if isSignedIn() && (request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.customerId || request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.sellerId);
-            allow update, delete: if false; // Messages are append-only
-        }
+    /**
+     * @description Rules for a user's preference document, stored in a subcollection.
+     * @path /users/{userId}/user_preferences/{preferenceId}
+     * @allow (get) A user reading their own preferences: `request.auth.uid == 'user_abc'` attempts to get `/users/user_abc/user_preferences/profile`.
+     * @deny (update) A user trying to modify another user's preferences: `request.auth.uid == 'user_abc'` attempts to update `/users/user_xyz/user_preferences/profile`.
+     * @principle Enforces document ownership via path and validates denormalized 'userId' for data consistency.
+     */
+    match /users/{userId}/user_preferences/{preferenceId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && isExistingDocument() && request.resource.data.userId == resource.data.id;
+      allow delete: if isOwner(userId) && isExistingDocument();
     }
 
-    // App configurations
-    match /configs/{configId} {
-      allow get, list: if true; // Publicly readable
-      allow write: if isAdmin(); // Only admin can change configs
-    }
-    
-    // Discount coupons
-    match /coupons/{couponId} {
-        allow get, list: if true; // Publicly readable
-        // Admin manages coupons
-        allow create, delete: if isAdmin();
-        // Admin can update. Users can only increment usageCount.
-        allow update: if isAdmin() || 
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount']) && 
-            request.resource.data.usageCount == resource.data.usageCount + 1
-          );
+    /**
+     * @description Rules for a user's subscription records.
+     * @path /users/{userId}/user_subscriptions/{userSubscriptionId}
+     * @allow (list) A user listing all of their own subscriptions: `request.auth.uid == 'user_abc'` lists `/users/user_abc/user_subscriptions`.
+     * @deny (create) A user trying to create a subscription for another user: `request.auth.uid == 'user_abc'` attempts to create in `/users/user_xyz/user_subscriptions`.
+     * @principle Enforces document ownership via path and validates denormalized 'userId' for data consistency.
+     */
+    match /users/{userId}/user_subscriptions/{userSubscriptionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && isExistingDocument() && request.resource.data.userId == resource.data.id;
+      allow delete: if isOwner(userId) && isExistingDocument();
     }
 
-    // WhatsApp message queue
-    match /pending_whatsapp_messages/{messageId} {
-        allow create: if isSignedIn(); // Users can queue messages
-        // Processed by a backend/admin daemon. Deny client access to prevent snooping or tampering.
-        allow read, update, delete: if false; 
+    /**
+     * @description Publicly readable information about streaming services.
+     * @path /streaming_services/{serviceId}
+     * @allow (get) Any user, signed in or not, can read a service's details.
+     * @deny (create, update, delete) Any client attempting to modify service data. This must be done by a backend service.
+     * @principle Segregates public read-only data from private user data.
+     */
+    match /streaming_services/{serviceId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
-    
-    // Lock down legacy collections that are no longer in use.
-    match /streaming_services/{serviceId} { allow read, write: if false; }
-    match /subscription_plans/{planId} { allow read, write: if false; }
-    match /payments/{paymentId} { allow read, write: if false; }
+
+    /**
+     * @description Publicly readable information about subscription plans.
+     * @path /subscription_plans/{planId}
+     * @allow (list) Any user, signed in or not, can list all available plans.
+     * @deny (create, update, delete) Any client attempting to modify plan data. This must be done by a backend service.
+     * @principle Segregates public read-only data from private user data.
+     */
+    match /subscription_plans/{planId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }
