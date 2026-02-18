@@ -194,7 +194,11 @@ export default function AdminPage() {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('tab') || 'users';
+  const [isClient, setIsClient] = useState(false);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user?.uid) return null;
@@ -275,7 +279,17 @@ export default function AdminPage() {
         </header>
         
         <div className="w-full">
-          {renderContent()}
+          {isClient ? renderContent() : (
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-40 w-full" />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>
