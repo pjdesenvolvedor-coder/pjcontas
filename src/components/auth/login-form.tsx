@@ -29,10 +29,9 @@ const formSchema = z.object({
 interface LoginFormProps {
   setOpen?: (open: boolean) => void;
   setActiveTab?: (tab: string) => void;
-  children?: React.ReactNode;
 }
 
-export function LoginForm({ setOpen, setActiveTab, children }: LoginFormProps) {
+export function LoginForm({ setOpen, setActiveTab }: LoginFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
 
@@ -120,8 +119,6 @@ export function LoginForm({ setOpen, setActiveTab, children }: LoginFormProps) {
           {formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Entrar
         </Button>
-
-        {children}
 
         {setActiveTab && (
           <div className="text-center text-sm text-muted-foreground pt-2">

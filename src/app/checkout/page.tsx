@@ -48,19 +48,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { generatePixAction, checkPixStatusAction, validateCouponAction } from './actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FirebaseError } from 'firebase/app';
-import { User, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
-import { CompleteGoogleSignupForm } from '@/components/auth/complete-google-signup-form';
 
 type PixDetails = {
   id: string;
   qr_code: string;
   qr_code_base64: string;
 };
-
-const GoogleIcon = () => (
-    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.58 2.6-5.82 2.6-4.42 0-8.03-3.64-8.03-8.15s3.61-8.15 8.03-8.15c2.45 0 4.14.95 5.25 2.02l2.49-2.49C18.47 1.45 15.48 0 12.48 0 5.6 0 0 5.6 0 12.5S5.6 25 12.48 25c3.34 0 6.08-1.11 8.16-3.25 2.16-2.16 2.89-5.18 2.89-8.47 0-.69-.07-1.35-.19-1.99z"/></svg>
-);
 
 function CheckoutForm() {
   const router = useRouter();
@@ -85,45 +78,11 @@ function CheckoutForm() {
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   
   // Auth state
-  const [activeView, setActiveView] = useState<'login' | 'register' | 'complete-google-signup'>('login');
-  const [googleUser, setGoogleUser] = useState<User | null>(null);
-  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
-
-  const handleGoogleSignIn = async () => {
-    setIsGoogleSignInLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        const additionalInfo = getAdditionalUserInfo(result);
-
-        if (additionalInfo?.isNewUser) {
-            setGoogleUser(user);
-            setActiveView('complete-google-signup');
-        } else {
-            toast({ title: 'Login bem-sucedido!' });
-            // onAuthStateChanged will handle the UI update
-        }
-    } catch (error) {
-        if (error instanceof FirebaseError && (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request')) {
-          // User closed the popup, do nothing.
-        } else {
-          console.error("Google Sign-In error:", error);
-          toast({
-              variant: "destructive",
-              title: 'Falha no login com Google',
-              description: (error as Error).message || "Ocorreu um erro ao tentar fazer login. Tente novamente.",
-          });
-        }
-    } finally {
-        setIsGoogleSignInLoading(false);
-    }
-  };
+  const [activeView, setActiveView] = useState<'login' | 'register'>('login');
 
   const handleFormCompletion = () => {
       // onAuthStateChanged will handle UI updates, just reset the view
       setActiveView('login');
-      setGoogleUser(null);
   };
 
   const planRef = useMemoFirebase(
@@ -433,20 +392,6 @@ function CheckoutForm() {
     );
   }
 
-  if (isGoogleSignInLoading) {
-    return (
-      <Card className="max-w-md mx-auto">
-        <CardHeader className="text-center">
-            <CardTitle>Aguarde...</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-4 py-8 min-h-[250px]">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-muted-foreground">Finalizando login com Google...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (!user) {
     return (
       <Card className="max-w-md mx-auto">
@@ -455,34 +400,18 @@ function CheckoutForm() {
             <CardDescription>Faça login ou cadastre-se para continuar a compra.</CardDescription>
         </CardHeader>
         <CardContent>
-           {activeView === 'complete-google-signup' && googleUser ? (
-              <div className="pt-4">
-                 <h3 className="font-semibold text-center">Concluir Cadastro</h3>
-                <CompleteGoogleSignupForm user={googleUser} onComplete={handleFormCompletion} />
-              </div>
-            ) : (
             <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'login' | 'register')} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Entrar</TabsTrigger>
                 <TabsTrigger value="register">Cadastrar</TabsTrigger>
               </TabsList>
               <TabsContent value="login" className="pt-4">
-                <LoginForm setOpen={handleFormCompletion} setActiveTab={setActiveView}>
-                   <div className="relative my-4">
-                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                      <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">OU</span></div>
-                  </div>
-                  <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn}>
-                      <GoogleIcon />
-                      Login com Google
-                  </Button>
-                </LoginForm>
+                <LoginForm setOpen={handleFormCompletion} setActiveTab={setActiveView} />
               </TabsContent>
               <TabsContent value="register" className="pt-4">
                 <SignupForm setOpen={handleFormCompletion} setActiveTab={setActiveView} />
               </TabsContent>
             </Tabs>
-          )}
         </CardContent>
       </Card>
     );
