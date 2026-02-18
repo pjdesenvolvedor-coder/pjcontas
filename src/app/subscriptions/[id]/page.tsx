@@ -32,20 +32,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AbandonedCartOffer } from '@/components/abandoned-cart-offer';
 
-type SubscriptionPageProps = {
-  params: {
-    id: string;
-  };
-};
-
 // This page is no longer linked from anywhere in the app, 
 // but is kept to prevent breaking old links.
 // It will now show details for a specific plan ID.
-export default function SubscriptionPage({ params }: SubscriptionPageProps) {
+export default function SubscriptionPage() {
+  const params = useParams();
   const firestore = useFirestore();
 
   const planRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'subscriptions', params.id) : null),
+    () => (firestore ? doc(firestore, 'subscriptions', params.id as string) : null),
     [firestore, params.id]
   );
   const { data: plan, isLoading } = useDoc<Plan>(planRef);
