@@ -15,8 +15,13 @@ import {
   PackageCheck,
   Percent,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
-export function SellerSidebar() {
+interface SellerSidebarProps {
+    unreadTicketsCount: number;
+}
+
+export function SellerSidebar({ unreadTicketsCount }: SellerSidebarProps) {
   const pathname = usePathname();
   const auth = useAuth();
   
@@ -24,17 +29,17 @@ export function SellerSidebar() {
     {
       group: 'MENU VENDEDOR',
       items: [
-        { href: '/seller', label: 'Meus anúncios', icon: Store },
-        { href: '#', label: 'Minhas vendas', icon: CreditCard, disabled: true },
-        { href: '/seller/tickets', label: 'Tickets', icon: LifeBuoy, disabled: false },
-        { href: '/seller/taxas', label: 'Taxas', icon: Percent, disabled: false },
+        { href: '/seller', label: 'Meus anúncios', icon: Store, count: 0 },
+        { href: '#', label: 'Minhas vendas', icon: CreditCard, disabled: true, count: 0 },
+        { href: '/seller/tickets', label: 'Tickets', icon: LifeBuoy, disabled: false, count: unreadTicketsCount },
+        { href: '/seller/taxas', label: 'Taxas', icon: Percent, disabled: false, count: 0 },
       ],
     },
     {
       group: 'MENU CLIENTE',
       items: [
-        { href: '/seller/compras', label: 'Minhas compras', icon: PackageCheck },
-        { href: '#', label: 'Notificações', icon: Bell, disabled: true },
+        { href: '/seller/compras', label: 'Minhas compras', icon: PackageCheck, count: 0 },
+        { href: '#', label: 'Notificações', icon: Bell, disabled: true, count: 0 },
       ],
     },
   ];
@@ -56,7 +61,7 @@ export function SellerSidebar() {
                   <Link
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      'flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                       pathname === item.href && !item.disabled
                         ? 'bg-secondary text-primary font-semibold'
                         : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
@@ -65,8 +70,15 @@ export function SellerSidebar() {
                     aria-disabled={item.disabled}
                     onClick={(e) => item.disabled && e.preventDefault()}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                    </div>
+                    {item.count > 0 && (
+                        <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                            {item.count}
+                        </Badge>
+                    )}
                   </Link>
                 </li>
               ))}
