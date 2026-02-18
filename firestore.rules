@@ -1,35 +1,5 @@
-/**
- * Core Philosophy:
- * This ruleset enforces a strict security model based on user ownership and data segregation.
- * User-specific data is stored in a private data tree, accessible only to the authenticated owner.
- * Global, non-sensitive data is stored in separate collections that are publicly readable but have client-side writes disabled,
- * ensuring that this shared data can only be managed through a trusted backend environment (e.g., using the Admin SDK).
- *
- * NOTE ON 'auth/operation-not-allowed' ERROR:
- * This error indicates that the sign-in method being used (e.g., Anonymous, Email/Password, Google) has not been
- * enabled in the Firebase Authentication > Sign-in method tab of your Firebase console. Please ensure that
- * the appropriate providers are enabled to resolve this specific error.
- *
- * Data Structure:
- * - /users/{userId}: Contains all data private to a single user. The {userId} MUST match the user's Firebase Auth UID.
- *   - /subscriptions: User's subscription records.
- *   - /paymentTransactions: User's payment history.
- *   - /preferences: User's app preferences.
- * - /streamingServices/{serviceId}: Global, publicly accessible information about streaming providers.
- *   - /subscriptionPlans: Publicly accessible details about specific plans for a service.
- *
- * Key Security Decisions:
- * - Strict User Data Isolation: A user can ONLY access documents under their own `/users/{userId}` path. There is no concept of shared or public user data.
- * - No User Listing: Listing documents in the top-level `/users` collection is explicitly forbidden to prevent enumeration of all application users.
- * - Public Data is Read-Only: The `/streamingServices` collection and its subcollections are readable by anyone (including unauthenticated users) to allow browsing, but all write operations from the client are disabled. This data must be managed by a secure backend process.
- * - Ownership is Enforced by Path: The primary mechanism for ensuring data ownership is the document's path, which contains the user's UID.
- *
- * Denormalization for Authorization:
- * To ensure fast and secure authorization checks, all user-owned documents (e.g., UserProfile, UserSubscription) contain a denormalized
- * `id` or `userId` field that must match the `{userId}` from the document path. This allows rules to validate ownership by looking
- * only at the document being written, avoiding slow and costly `get()` calls to other documents.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -37,150 +7,96 @@ service cloud.firestore {
     // Helper Functions
     // -------------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's UID matches the provided userId.
-     * This is the primary function for verifying document ownership.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks for ownership on an existing document. Used for update and delete operations.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    function getRole() {
+      // It's better to check for existence before accessing .data
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    /**
-     * Validates that the `id` field within a new UserProfile document
-     * matches the `userId` in the path, establishing the ownership link.
-     */
-    function isCreatingOwnProfile(userId) {
-      return isOwner(userId) && request.resource.data.id == userId;
+    function isAdmin() {
+      return isSignedIn() && getRole() == 'admin';
     }
 
-    /**
-     * Validates that the `userId` field within a new user-owned document
-     * matches the `userId` in the path, establishing the ownership link.
-     */
-    function isCreatingOwnSubcollectionDoc(userId) {
-      return isOwner(userId) && request.resource.data.userId == userId;
+    function isSeller() {
+      return isSignedIn() && getRole() == 'seller';
     }
-
-    /**
-     * Ensures the UserProfile's `id` field cannot be changed after creation.
-     */
-    function hasImmutableProfileId() {
-      return request.resource.data.id == resource.data.id;
+    
+    function isSellerOrAdmin() {
+        return isSeller() || isAdmin();
     }
-
-    /**
-     * Ensures a document's `userId` field cannot be changed after creation.
-     */
-    function hasImmutableUserId() {
-      return request.resource.data.userId == resource.data.userId;
+    
+    function isCreatingOwnSellerResource() {
+        return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+    }
+    
+    function isUpdatingOwnSellerResource() {
+        return isSignedIn() && resource.data.sellerId == request.auth.uid;
     }
 
     // -------------------------------------------------------------------------
-    // User Data Collections
+    // Collections
     // -------------------------------------------------------------------------
 
-    /**
-     * @description Manages user profile documents.
-     * @path /users/{userId}
-     * @allow A user (create)s their own profile document with a matching ID. `auth.uid: "user123", path: "/users/user123"`.
-     * @deny An anonymous user tries to read a profile. `auth.uid: null, path: "/users/user123"`.
-     * @deny A user tries to list all other users. `(list) /users`.
-     * @principle Restricts access to a user's own data tree and allows self-creation of a profile.
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Disallow listing all users for security.
-      allow create: if isCreatingOwnProfile(userId);
-      allow update: if isExistingOwner(userId) && hasImmutableProfileId();
-      allow delete: if isExistingOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    /**
-     * @description Manages a user's subscription records.
-     * @path /users/{userId}/subscriptions/{userSubscriptionId}
-     * @allow A user (reads) their own subscription. `auth.uid: "user123", path: "/users/user123/subscriptions/sub_abc"`.
-     * @deny A user tries to read another user's subscription. `auth.uid: "user456", path: "/users/user123/subscriptions/sub_abc"`.
-     * @principle Enforces document ownership within a user's private data tree.
-     */
-    match /users/{userId}/subscriptions/{userSubscriptionId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isCreatingOwnSubcollectionDoc(userId);
-      allow update: if isExistingOwner(userId) && hasImmutableUserId();
-      allow delete: if isExistingOwner(userId);
+    match /users/{userId}/userSubscriptions/{purchaseId} {
+        allow read, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update, delete: if false; // Immutable from client-side
     }
 
-    /**
-     * @description Manages a user's payment history.
-     * @path /users/{userId}/paymentTransactions/{transactionId}
-     * @allow A user (lists) all of their own payment transactions. `auth.uid: "user123", path: "/users/user123/paymentTransactions"`.
-     * @deny A user tries to create a payment transaction for another user. `auth.uid: "user456", (create) "/users/user123/paymentTransactions/tx_abc"`.
-     * @principle Enforces strict document ownership. For production, writes may be restricted to backend functions only.
-     */
-    match /users/{userId}/paymentTransactions/{transactionId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isCreatingOwnSubcollectionDoc(userId);
-      allow update: if isExistingOwner(userId) && hasImmutableUserId();
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Manages a user's preferences document.
-     * @path /users/{userId}/preferences/{preferenceId}
-     * @allow A user (updates) their own preferences document. `auth.uid: "user123", (update) "/users/user123/preferences/default"`.
-     * @deny An anonymous user tries to read any preferences. `auth.uid: null, path: "/users/user123/preferences/default"`.
-     * @principle Enforces document ownership for user settings and preferences.
-     */
-    match /users/{userId}/preferences/{preferenceId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isCreatingOwnSubcollectionDoc(userId);
-      allow update: if isExistingOwner(userId) && hasImmutableUserId();
-      allow delete: if isExistingOwner(userId);
-    }
-
-    // -------------------------------------------------------------------------
-    // Global Data Collections
-    // -------------------------------------------------------------------------
-
-    /**
-     * @description Global information about streaming services.
-     * @path /streamingServices/{serviceId}
-     * @allow Any user, signed in or not, (reads) a service's details. `(get) /streamingServices/netflix`.
-     * @deny Any client, signed in or not, tries to (create) a new service. `(create) /streamingServices/new_service`.
-     * @principle Allows public read access for global data while disabling all client-side writes for data integrity.
-     */
-    match /streamingServices/{serviceId} {
+    match /subscriptions/{subscriptionId} {
       allow get, list: if true;
-      allow create: if false; // Managed by backend admins only.
-      allow update: if false; // Managed by backend admins only.
-      allow delete: if false; // Managed by backend admins only.
+      allow create: if isSellerOrAdmin() && isCreatingOwnSellerResource();
+      allow update: if (isSellerOrAdmin() && isUpdatingOwnSellerResource()) || isAdmin();
+      allow delete: if (isSellerOrAdmin() && isUpdatingOwnSellerResource()) || isAdmin();
+    }
+    
+    match /subscriptions/{subscriptionId}/deliverables/{deliverableId} {
+        allow read, list, create, delete: if isSellerOrAdmin() && (get(/databases/$(database)/documents/subscriptions/$(subscriptionId)).data.sellerId == request.auth.uid);
+        allow update: if false;
     }
 
-    /**
-     * @description Details of subscription plans for a given service.
-     * @path /streamingServices/{serviceId}/subscriptionPlans/{planId}
-     * @allow Any user, signed in or not, (lists) all plans for a service. `(list) /streamingServices/netflix/subscriptionPlans`.
-     * @deny Any client tries to (update) a subscription plan. `(update) /streamingServices/netflix/subscriptionPlans/premium`.
-     * @principle Allows public read access for global data while disabling all client-side writes for data integrity.
-     */
-    match /streamingServices/{serviceId}/subscriptionPlans/{planId} {
+    match /tickets/{ticketId} {
+        allow get: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+        allow list: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+        allow update: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+        allow delete: if false;
+    }
+    
+    match /tickets/{ticketId}/messages/{messageId} {
+        allow get, list: if isSignedIn() && (get(/databases/$(database)/documents/tickets/$(ticketId)).data.customerId == request.auth.uid || get(/databases/$(database)/documents/tickets/$(ticketId)).data.sellerId == request.auth.uid);
+        allow create: if isSignedIn() && (request.resource.data.senderId == request.auth.uid || request.resource.data.senderId == 'system');
+        allow update, delete: if false;
+    }
+    
+    match /configs/{configId} {
       allow get, list: if true;
-      allow create: if false; // Managed by backend admins only.
-      allow update: if false; // Managed by backend admins only.
-      allow delete: if false; // Managed by backend admins only.
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /coupons/{couponId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /pending_whatsapp_messages/{messageId} {
+        allow create: if isSignedIn();
+        allow read, list, update, delete: if isAdmin();
     }
   }
 }
