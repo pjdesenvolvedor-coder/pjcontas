@@ -25,6 +25,7 @@ export function TicketNotificationListener() {
     const router = useRouter();
     const { toast } = useToast();
     const previousTicketsRef = useRef<Map<string, Ticket>>(new Map());
+    const hasInitializedRef = useRef(false); // Tracks if the listener has run at least once with data
 
     const customerTicketsQuery = useMemoFirebase(
         () => user ? query(collection(firestore, 'tickets'), where('customerId', '==', user.uid)) : null,
@@ -44,15 +45,27 @@ export function TicketNotificationListener() {
 
     useEffect(() => {
         if (!user) {
+            // Reset on logout
             previousTicketsRef.current = new Map();
+            hasInitializedRef.current = false;
             return;
         }
 
         if (isCustomerLoading || isSellerLoading) {
-            return; // Wait until both queries are done loading
+            return; // Wait for data to be loaded
         }
 
         const currentTicketsMap = new Map(allTickets.map(t => [t.id, t]));
+
+        // If this is the first time we've received data after a page load/login,
+        // we populate the initial state and don't show any notifications.
+        // This prevents spamming the user with toasts for all existing unread messages.
+        if (!hasInitializedRef.current) {
+            previousTicketsRef.current = currentTicketsMap;
+            hasInitializedRef.current = true;
+            return;
+        }
+
         const previousTicketsMap = previousTicketsRef.current;
 
         currentTicketsMap.forEach((newTicket) => {
@@ -62,17 +75,30 @@ export function TicketNotificationListener() {
             const isSeller = newTicket.sellerId === user.uid;
 
             let hasNewMessage = false;
-            if (isCustomer) {
-                if (!oldTicket && newTicket.unreadByCustomerCount > 0) hasNewMessage = true;
-                if (oldTicket && newTicket.unreadByCustomerCount > (oldTicket.unreadByCustomerCount || 0)) hasNewMessage = true;
-            } else if (isSeller) {
-                if (!oldTicket && newTicket.unreadBySellerCount > 0) hasNewMessage = true;
-                if (oldTicket && newTicket.unreadBySellerCount > (oldTicket.unreadBySellerCount || 0)) hasNewMessage = true;
+            
+            // A new ticket that we haven't seen before has arrived.
+            if (!oldTicket) {
+                if (isCustomer && (newTicket.unreadByCustomerCount || 0) > 0) {
+                    hasNewMessage = true;
+                }
+                if (isSeller && (newTicket.unreadBySellerCount || 0) > 0) {
+                    hasNewMessage = true;
+                }
+            } 
+            // An existing ticket has been updated.
+            else {
+                if (isCustomer && newTicket.unreadByCustomerCount > (oldTicket.unreadByCustomerCount || 0)) {
+                    hasNewMessage = true;
+                }
+                if (isSeller && newTicket.unreadBySellerCount > (oldTicket.unreadBySellerCount || 0)) {
+                    hasNewMessage = true;
+                }
             }
 
             if (hasNewMessage) {
                 const ticketUrl = isCustomer ? `/meus-tickets/${newTicket.id}` : `/seller/tickets/${newTicket.id}`;
                 
+                // Don't show toast if user is already on the relevant ticket page
                 if (pathname === ticketUrl) {
                     return;
                 }
@@ -94,7 +120,9 @@ export function TicketNotificationListener() {
             }
         });
 
+        // Update the reference for the next comparison
         previousTicketsRef.current = currentTicketsMap;
+
     }, [allTickets, user, pathname, toast, router, isCustomerLoading, isSellerLoading]);
 
     return null;
