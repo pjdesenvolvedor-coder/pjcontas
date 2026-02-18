@@ -7,6 +7,9 @@ service cloud.firestore {
     // Helper Functions
     // -------------------------------------------------------------------------
 
+    // NOTA sobre "auth/operation-not-allowed": Este erro indica que o método
+    // de login (ex: Email/Senha, Google) não está habilitado nas configurações
+    // de Autenticação do projeto no console do Firebase.
     function isSignedIn() {
       return request.auth != null;
     }
