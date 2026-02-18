@@ -1,369 +1,290 @@
 {
   "entities": {
-    "User": {
+    "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
+      "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user of the StreamShare application.",
+      "description": "Stores non-sensitive user profile information, linked to an external authentication system.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user entity."
+          "description": "Unique identifier for the UserProfile entity."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
+          "description": "User's primary email address for communication. Not used for authentication.",
           "format": "email"
         },
         "firstName": {
           "type": "string",
-          "description": "The user's name."
+          "description": "The user's first name."
         },
-        "phoneNumber": {
+        "lastName": {
           "type": "string",
-          "description": "The user's contact phone number."
-        },
-        "photoURL": {
-          "type": "string",
-          "description": "URL of the user's profile picture.",
-          "format": "uri"
-        },
-        "sellerUsername": {
-          "type": "string",
-          "description": "The seller's public display name in the marketplace."
-        },
-        "whatsappApiToken": {
-          "type": "string",
-          "description": "API Token for the WhatsApp service integration."
-        },
-        "lastSeen": {
-          "type": "string",
-          "description": "The last time the user was seen online.",
-          "format": "date-time"
+          "description": "The user's last name."
         },
         "registrationDate": {
           "type": "string",
-          "description": "Date and time the user registered.",
+          "description": "The date and time when the user registered.",
           "format": "date-time"
         },
-        "role": {
+        "profileImageUrl": {
           "type": "string",
-          "description": "The role of the user.",
-          "enum": [
-            "admin",
-            "customer",
-            "seller"
-          ]
+          "description": "URL to the user's profile picture.",
+          "format": "uri"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "The user's preferred language for the application interface."
+        },
+        "country": {
+          "type": "string",
+          "description": "The user's country of residence."
         }
       },
       "required": [
         "id",
         "email",
         "firstName",
-        "registrationDate",
-        "role"
+        "lastName",
+        "registrationDate"
       ]
     },
-    "Subscription": {
+    "StreamingService": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subscription",
+      "title": "StreamingService",
       "type": "object",
-      "description": "Represents a purchasable subscription plan, created by a seller.",
+      "description": "Represents a streaming service provider (e.g., Netflix, Disney+, HBO Max).",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the subscription entity."
+          "description": "Unique identifier for the StreamingService entity."
         },
         "name": {
           "type": "string",
-          "description": "Name of the subscription plan (e.g., Premium)."
+          "description": "The official name of the streaming service."
         },
         "description": {
           "type": "string",
-          "description": "Detailed description of the subscription plan."
+          "description": "A brief description of the streaming service."
         },
-        "price": {
-          "type": "number",
-          "description": "Monthly price of the subscription plan."
-        },
-        "sellerId": {
+        "logoUrl": {
           "type": "string",
-          "description": "Reference to the User (seller) who created this plan."
+          "description": "URL to the official logo of the streaming service.",
+          "format": "uri"
         },
-        "features": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "A list of features included in the plan."
-        },
-        "accountModel": {
+        "websiteUrl": {
           "type": "string",
-          "description": "The model of the account being sold.",
-          "enum": [
-            "Capturada",
-            "Acesso Total"
-          ]
-        },
-        "isBoosted": {
-          "type": "boolean",
-          "description": "Indicates if the subscription listing is boosted by the seller."
+          "description": "URL to the official website of the streaming service.",
+          "format": "uri"
         }
       },
       "required": [
         "id",
         "name",
+        "description",
+        "logoUrl",
+        "websiteUrl"
+      ]
+    },
+    "SubscriptionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubscriptionPlan",
+      "type": "object",
+      "description": "Defines a specific subscription plan offered by a streaming service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubscriptionPlan entity."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the StreamingService this plan belongs to. (Relationship: StreamingService 1:N SubscriptionPlan)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the subscription plan (e.g., 'Basic', 'Standard', 'Premium')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the plan's features and benefits."
+        },
+        "price": {
+          "type": "number",
+          "description": "The monthly or annual price of the subscription plan."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency in which the subscription price is denominated (e.g., 'USD', 'BRL')."
+        },
+        "userLimit": {
+          "type": "number",
+          "description": "The maximum number of simultaneous users allowed for this plan."
+        },
+        "features": {
+          "type": "array",
+          "description": "A list of key features included in this plan (e.g., 'HD Quality', '4K Ultra HD', 'Downloadable Content').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the subscription plan is currently active and available for purchase."
+        }
+      },
+      "required": [
+        "id",
+        "serviceId",
+        "name",
+        "description",
         "price",
-        "sellerId",
-        "features",
-        "accountModel"
+        "currency",
+        "userLimit",
+        "isActive"
       ]
     },
     "UserSubscription": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserSubscription",
       "type": "object",
-      "description": "Represents the association between a customer and a subscription plan they purchased.",
+      "description": "Records a user's active or historical subscription to a specific plan.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user subscription entity."
+          "description": "Unique identifier for the UserSubscription entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User (customer). (Relationship: User 1:N UserSubscription)"
+          "description": "Reference to the UserProfile who owns this subscription. (Relationship: UserProfile 1:N UserSubscription)"
         },
-        "subscriptionId": {
+        "planId": {
           "type": "string",
-          "description": "Reference to Subscription plan. (Relationship: Subscription 1:N UserSubscription)"
+          "description": "Reference to the SubscriptionPlan this user is subscribed to. (Relationship: SubscriptionPlan 1:N UserSubscription)"
         },
         "startDate": {
           "type": "string",
-          "description": "Date when the user's subscription started.",
+          "description": "The date and time when the subscription became active.",
           "format": "date-time"
         },
         "endDate": {
           "type": "string",
-          "description": "Date when the user's subscription ends.",
+          "description": "The date and time when the subscription is scheduled to end or has ended.",
           "format": "date-time"
         },
-        "paymentMethod": {
+        "status": {
           "type": "string",
-          "description": "Payment method used for the subscription."
+          "description": "The current status of the subscription (e.g., 'active', 'cancelled', 'paused', 'expired')."
+        },
+        "autoRenew": {
+          "type": "boolean",
+          "description": "Indicates whether the subscription is set to automatically renew."
         }
       },
       "required": [
         "id",
         "userId",
-        "subscriptionId",
+        "planId",
         "startDate",
-        "endDate"
-      ]
-    },
-    "Deliverable": {
-      "title": "Deliverable",
-      "description": "Represents an individual, sellable instance of a subscription account (e.g., login credentials).",
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the deliverable item."
-        },
-        "subscriptionId": {
-          "type": "string",
-          "description": "Reference to the Subscription this item belongs to."
-        },
-        "sellerId": {
-          "type": "string",
-          "description": "Reference to the User (seller) who owns this item."
-        },
-        "content": {
-          "type": "string",
-          "description": "The actual content to be delivered to the buyer (e.g., 'user:pass')."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the deliverable item.",
-          "enum": [
-            "available",
-            "sold"
-          ]
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "subscriptionId",
-        "sellerId",
-        "content",
         "status",
-        "createdAt"
+        "autoRenew"
       ]
     },
-    "Ticket": {
-      "title": "Ticket",
-      "description": "Represents a support ticket and chat conversation between a customer and a seller regarding a specific purchase.",
+    "PaymentTransaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentTransaction",
       "type": "object",
+      "description": "Logs individual payment transactions made by users for their subscriptions.",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Unique identifier for the PaymentTransaction entity."
         },
         "userSubscriptionId": {
           "type": "string",
-          "description": "Reference to the UserSubscription this ticket is for."
+          "description": "Reference to the UserSubscription this payment is for. (Relationship: UserSubscription 1:N PaymentTransaction)"
         },
-        "customerId": {
+        "userId": {
           "type": "string",
-          "description": "Reference to the User (customer)."
+          "description": "Reference to the UserProfile who made the payment. (Relationship: UserProfile 1:N PaymentTransaction)"
         },
-        "customerName": {
-          "type": "string",
-          "description": "Denormalized name of the customer for display."
-        },
-        "customerPhone": {
-          "type": "string",
-          "description": "Denormalized phone number of the customer for display."
-        },
-        "sellerId": {
-          "type": "string",
-          "description": "Reference to the User (seller)."
-        },
-        "sellerName": {
-          "type": "string",
-          "description": "Denormalized name of the seller for display."
-        },
-        "subscriptionId": {
-          "type": "string",
-          "description": "Reference to the Subscription plan purchased."
-        },
-        "planName": {
-          "type": "string",
-          "description": "Denormalized name of the plan for display."
-        },
-        "price": {
+        "amount": {
           "type": "number",
-          "description": "The final price of the sale associated with this ticket."
+          "description": "The amount of the payment."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the payment (e.g., 'USD', 'BRL')."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The date and time when the payment transaction occurred.",
+          "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The current status of the ticket.",
-          "enum": [
-            "open",
-            "closed"
-          ]
+          "description": "The status of the transaction (e.g., 'completed', 'failed', 'pending')."
         },
-        "createdAt": {
+        "gatewayTransactionId": {
           "type": "string",
-          "format": "date-time"
-        },
-        "lastMessageAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "lastMessageText": {
-          "type": "string"
-        },
-        "unreadBySellerCount": {
-          "type": "number",
-          "description": "Count of unread messages for the seller."
-        },
-        "unreadByCustomerCount": {
-          "type": "number",
-          "description": "Count of unread messages for the customer."
+          "description": "The unique identifier provided by the payment gateway for this transaction."
         }
       },
       "required": [
         "id",
         "userSubscriptionId",
-        "customerId",
-        "sellerId",
-        "subscriptionId",
-        "status",
-        "createdAt",
-        "price"
+        "userId",
+        "amount",
+        "currency",
+        "transactionDate",
+        "status"
       ]
     },
-    "ChatMessage": {
-      "title": "ChatMessage",
-      "description": "Represents a single message within a support ticket.",
+    "UserPreference": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPreference",
       "type": "object",
+      "description": "Stores user preferences for content genres or service providers to aid in subscription recommendations.",
       "properties": {
         "id": {
-          "type": "string"
-        },
-        "ticketId": {
           "type": "string",
-          "description": "Reference to the parent Ticket."
+          "description": "Unique identifier for the UserPreference entity."
         },
-        "senderId": {
+        "userId": {
           "type": "string",
-          "description": "Reference to the User who sent the message."
+          "description": "Reference to the UserProfile these preferences belong to. (Relationship: UserProfile 1:N UserPreference)"
         },
-        "senderName": {
-          "type": "string",
-          "description": "Denormalized name of the sender for display."
+        "genrePreferences": {
+          "type": "array",
+          "description": "A list of genres the user prefers (e.g., 'Action', 'Comedy', 'Drama').",
+          "items": {
+            "type": "string"
+          }
         },
-        "text": {
-          "type": "string",
-          "description": "The content of the message."
+        "streamingServicePreferences": {
+          "type": "array",
+          "description": "References to StreamingServices the user explicitly prefers. (Relationship: UserProfile N:N StreamingService via preferences)",
+          "items": {
+            "type": "string"
+          }
         },
-        "timestamp": {
+        "lastUpdated": {
           "type": "string",
+          "description": "The date and time when the preferences were last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "ticketId",
-        "senderId",
-        "text",
-        "timestamp"
-      ]
-    },
-    "Coupon": {
-      "title": "Coupon",
-      "description": "Represents a discount coupon that can be applied at checkout.",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The coupon code that users will enter. This is also the document ID."
-        },
-        "discountPercentage": {
-          "type": "number",
-          "description": "The discount percentage (e.g., 10 for 10%)."
-        },
-        "usageLimit": {
-          "type": "number",
-          "description": "The maximum number of times this coupon can be used. A value of 0 means unlimited."
-        },
-        "usageCount": {
-          "type": "number",
-          "description": "The number of times this coupon has been used."
-        },
-        "subscriptionId": {
-          "type": "string",
-          "description": "If set, this coupon is only valid for the specified subscription plan ID."
-        },
-        "subscriptionName": {
-          "type": "string",
-          "description": "Denormalized name of the subscription plan this coupon is for."
-        }
-      },
-      "required": [
-        "name",
-        "discountPercentage"
+        "userId",
+        "lastUpdated"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
@@ -371,128 +292,112 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "User",
+          "entityName": "UserProfile",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile information (customers, sellers, and admins). Path-based ownership ensures only the authenticated user can access their own data, while admins have elevated privileges.",
+          "description": "Stores non-sensitive user profile information. Document ID MUST be the `request.auth.uid`. Includes denormalized 'id' matching `userId` for authorization independence, ensuring only the authenticated user can read/write their own profile.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user."
+              "description": "The unique identifier of the user, corresponding to Firebase Authentication UID."
             }
           ]
         }
       },
       {
-        "path": "/subscriptions/{subscriptionId}",
+        "path": "/streamingServices/{serviceId}",
         "definition": {
-          "entityName": "Subscription",
+          "entityName": "StreamingService",
           "schema": {
-            "$ref": "#/backend/entities/Subscription"
+            "$ref": "#/backend/entities/StreamingService"
           },
-          "description": "Stores all available subscription plans created by sellers. Publicly readable, but sellers can only manage their own plans.",
+          "description": "Stores global information about streaming service providers. Publicly readable by all authenticated and unauthenticated users. Write access restricted to administrators, ensuring data integrity.",
           "params": [
             {
-              "name": "subscriptionId",
-              "description": "The unique identifier of the subscription plan."
+              "name": "serviceId",
+              "description": "The unique identifier for the streaming service."
             }
           ]
         }
       },
       {
-        "path": "/users/{userId}/userSubscriptions/{userSubscriptionId}",
+        "path": "/streamingServices/{serviceId}/subscriptionPlans/{planId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Defines specific subscription plans offered by a streaming service. Publicly readable. Write access restricted to administrators. The 'serviceId' is part of the path, and the document contains 'serviceId' for explicit linkage.",
+          "params": [
+            {
+              "name": "serviceId",
+              "description": "The unique identifier for the parent streaming service."
+            },
+            {
+              "name": "planId",
+              "description": "The unique identifier for the subscription plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/subscriptions/{userSubscriptionId}",
         "definition": {
           "entityName": "UserSubscription",
           "schema": {
             "$ref": "#/backend/entities/UserSubscription"
           },
-          "description": "Stores the subscriptions a customer has purchased. Path-based ownership ensures only the customer can access their own purchase history.",
+          "description": "Records a user's active or historical subscription. Only readable/writable by the owning user. Includes denormalized `userId` matching the path for authorization independence.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user."
+              "description": "The unique identifier of the user (Firebase Authentication UID)."
             },
             {
               "name": "userSubscriptionId",
-              "description": "The unique identifier of the user subscription."
+              "description": "The unique identifier for the user's subscription record."
             }
           ]
         }
       },
       {
-        "path": "/subscriptions/{subscriptionId}/deliverables/{deliverableId}",
+        "path": "/users/{userId}/paymentTransactions/{transactionId}",
         "definition": {
-          "entityName": "Deliverable",
+          "entityName": "PaymentTransaction",
           "schema": {
-            "$ref": "#/backend/entities/Deliverable"
+            "$ref": "#/backend/entities/PaymentTransaction"
           },
-          "description": "Stores the individual, sellable items (e.g., account credentials) for a specific subscription plan. Only the seller who owns the parent subscription can manage these items.",
+          "description": "Logs individual payment transactions made by users for their subscriptions. Only readable by the owning user (write access typically via secure backend functions). Includes denormalized `userId` matching the path for authorization independence.",
           "params": [
             {
-              "name": "subscriptionId",
-              "description": "The unique identifier of the subscription plan."
+              "name": "userId",
+              "description": "The unique identifier of the user (Firebase Authentication UID)."
             },
             {
-              "name": "deliverableId",
-              "description": "The unique identifier of the deliverable item."
+              "name": "transactionId",
+              "description": "The unique identifier for the payment transaction."
             }
           ]
         }
       },
       {
-        "path": "/tickets/{ticketId}",
+        "path": "/users/{userId}/preferences",
         "definition": {
-          "entityName": "Ticket",
+          "entityName": "UserPreference",
           "schema": {
-            "$ref": "#/backend/entities/Ticket"
+            "$ref": "#/backend/entities/UserPreference"
           },
-          "description": "Stores all support tickets. Access is restricted to the customer and seller involved.",
+          "description": "Stores user preferences for content genres or service providers. This is a subcollection with a single document (document ID can be a static value like 'default'). Only readable/writable by the owning user. Includes denormalized `userId` matching the path for authorization independence.",
           "params": [
             {
-              "name": "ticketId",
-              "description": "The unique identifier of the ticket."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/tickets/{ticketId}/messages/{messageId}",
-        "definition": {
-          "entityName": "ChatMessage",
-          "schema": {
-            "$ref": "#/backend/entities/ChatMessage"
-          },
-          "description": "Stores all messages for a specific ticket. Access is restricted to the customer and seller.",
-          "params": [
-            {
-              "name": "ticketId",
-              "description": "The unique identifier of the ticket."
-            },
-            {
-              "name": "messageId",
-              "description": "The unique identifier of the message."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/coupons/{couponId}",
-        "definition": {
-          "entityName": "Coupon",
-          "schema": {
-            "$ref": "#/backend/entities/Coupon"
-          },
-          "description": "Stores all available discount coupons. Publicly readable, but only writable by admins.",
-          "params": [
-            {
-              "name": "couponId",
-              "description": "The unique identifier of the coupon, often the coupon name itself."
+              "name": "userId",
+              "description": "The unique identifier of the user (Firebase Authentication UID)."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed for a marketplace model. It separates Users, Services (streaming providers), and Subscriptions (plans sold by sellers). Users can be customers, sellers, or admins, determined by their role. The `/services` collection is a catalog managed by admins. The `/subscriptions` collection is a global pool of all plans offered by all sellers. Security rules ensure that sellers can only manage their own subscriptions. Customers purchase subscriptions, which are recorded in the `/users/{userId}/userSubscriptions` subcollection, ensuring private and scalable purchase histories. The `/tickets` collection manages post-purchase communication, with access restricted to the buyer and seller of that transaction. This maintains Authorization Independence, as rules are based on user roles and document ownership (`sellerId`, `userId`, `customerId`)."
+    "reasoning": "The recommended Firestore structure for StreamShare prioritizes security, scalability, and debuggability by strictly adhering to the core design principles. The primary strategy for Authorization Independence is implemented by ensuring that all documents requiring user-specific access control (UserProfile, UserSubscription, PaymentTransaction, UserPreference) are stored under a top-level `/users/{userId}` collection. The `userId` in the path segment directly corresponds to the `request.auth.uid` and is also explicitly stored as `userId` within the respective document. This denormalization eliminates the need for `get()` calls in security rules to check parent document ownership, simplifying rules and enabling atomic operations.\n\nFor globally accessible data (StreamingService, SubscriptionPlan), dedicated root-level collections are used. These collections inherently have a homogeneous security posture (public read, admin write), making their rules straightforward. Subscription plans are nested under streaming services (`/streamingServices/{serviceId}/subscriptionPlans/{planId}`) for logical organization, but their read access is independent of any specific user's attributes.\n\nQAPs (Queries are not Filters) are addressed by this structure through strict segregation. User-specific data is always scoped under `/users/{userId}/...`, allowing clients to query their own data securely and efficiently using `request.auth.uid` as the `userId` wildcard. For example, a user can list all their subscriptions by querying `/users/{request.auth.uid}/subscriptions`. Global data, like streaming services and subscription plans, can be listed by anyone without security filters, as they are universally readable. This clear separation ensures that security rules do not become complex filters that can be bypassed, but rather act as explicit access gates based on structural ownership or global permissions."
   }
 }

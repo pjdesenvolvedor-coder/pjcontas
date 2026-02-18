@@ -8,60 +8,82 @@ import {
   CollectionReference,
   DocumentReference,
   SetOptions,
-  WithFieldValue,
-  UpdateData,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
-function handleError(error: any, path: string, operation: 'write' | 'create' | 'update' | 'delete', requestResourceData?: any) {
-  const permissionError = new FirestorePermissionError({
-    path: path,
-    operation: operation,
-    requestResourceData: requestResourceData,
-  });
-  errorEmitter.emit('permission-error', permissionError);
-  // Re-throw the original error to allow the caller to handle it
-  throw error;
-}
+import {FirestorePermissionError} from '@/firebase/errors';
 
 /**
- * Performs a setDoc operation. Returns a promise that resolves on completion.
- * Throws an error on failure, which can be caught by the caller.
+ * Initiates a setDoc operation for a document reference.
+ * Does NOT await the write operation internally.
  */
-export function setDocument(docRef: DocumentReference, data: WithFieldValue<any>, options: SetOptions) {
-  return setDoc(docRef, data, options).catch(error => {
-    const op = options.merge ? 'update' : 'create';
-    handleError(error, docRef.path, op, data);
-  });
+export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
+  setDoc(docRef, data, options).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write', // or 'create'/'update' based on options
+        requestResourceData: data,
+      })
+    )
+  })
+  // Execution continues immediately
 }
 
-/**
- * Performs an addDoc operation. Returns a promise that resolves with the new DocumentReference.
- * Throws an error on failure.
- */
-export function addDocument(colRef: CollectionReference, data: WithFieldValue<any>) {
-  return addDoc(colRef, data).catch(error => 
-    handleError(error, colRef.path, 'create', data)
-  );
-}
 
 /**
- * Performs an updateDoc operation. Returns a promise that resolves on completion.
- * Throws an error on failure.
+ * Initiates an addDoc operation for a collection reference.
+ * Does NOT await the write operation internally.
+ * Returns the Promise for the new doc ref, but typically not awaited by caller.
  */
-export function updateDocument(docRef: DocumentReference, data: UpdateData<any>) {
-  return updateDoc(docRef, data).catch(error => 
-    handleError(error, docRef.path, 'update', data)
-  );
+export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
+  const promise = addDoc(colRef, data)
+    .catch(error => {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: colRef.path,
+          operation: 'create',
+          requestResourceData: data,
+        })
+      )
+    });
+  return promise;
 }
 
+
 /**
- * Performs a deleteDoc operation. Returns a promise that resolves on completion.
- * Throws an error on failure.
+ * Initiates an updateDoc operation for a document reference.
+ * Does NOT await the write operation internally.
  */
-export function deleteDocument(docRef: DocumentReference) {
-  return deleteDoc(docRef).catch(error => 
-    handleError(error, docRef.path, 'delete')
-  );
+export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
+  updateDoc(docRef, data)
+    .catch(error => {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: data,
+        })
+      )
+    });
+}
+
+
+/**
+ * Initiates a deleteDoc operation for a document reference.
+ * Does NOT await the write operation internally.
+ */
+export function deleteDocumentNonBlocking(docRef: DocumentReference) {
+  deleteDoc(docRef)
+    .catch(error => {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        })
+      )
+    });
 }
