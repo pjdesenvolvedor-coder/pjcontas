@@ -20,6 +20,9 @@
  *
  * ## Structural Segregation
  * The design uses separate top-level collections for user-private data (`/users`) and global-public data (`/streamingServices`). This segregation simplifies rules, enhances security, and improves query performance by ensuring that queries do not need to filter between public and private documents within the same collection.
+ *
+ * ## Common Errors
+ * - **auth/operation-not-allowed**: This error indicates that the sign-in method (e.g., Email/Password, Google) has not been enabled in the Firebase console. Go to the "Authentication" section of your Firebase project and ensure the desired sign-in providers are enabled.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -112,6 +115,18 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
+    
+    match /tickets/{ticketId} {
+      allow get, list, create, update: if isSignedIn();
+    }
+    
+    match /tickets/{ticketId}/messages/{messageId} {
+       allow get, list, create: if isSignedIn();
+    }
+    
+    match /pending_whatsapp_messages/{messageId} {
+        allow get, list, create, delete: if isSignedIn();
+    }
 
     // --------------------------------
     // Global Data Collections
@@ -143,6 +158,25 @@ service cloud.firestore {
       allow create: if false; // Admin-only operation via backend
       allow update: if false; // Admin-only operation via backend
       allow delete: if false; // Admin-only operation via backend
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow get, list: if true;
+      allow create, update, delete: if isSignedIn();
+    }
+
+    match /subscriptions/{subscriptionId}/deliverables/{deliverableId} {
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    match /configs/{configId} {
+      allow get, list: if true;
+      allow create, update, delete: if isSignedIn();
+    }
+
+    match /coupons/{couponId} {
+      allow get, list: if true;
+      allow create, update, delete: if isSignedIn();
     }
   }
 }
