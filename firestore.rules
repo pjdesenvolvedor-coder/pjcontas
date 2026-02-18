@@ -1,105 +1,148 @@
+/**
+ * # Firestore Security Rules
+ *
+ * ## Core Philosophy
+ * This ruleset enforces a strict user-ownership model combined with publicly readable global data. The primary goal is to ensure that users can only access and modify their own private information, while shared application data remains open for reading but protected from unauthorized modification.
+ *
+ * ## Data Structure
+ * The data is organized into two main categories:
+ * 1.  User-Private Data: All information specific to a user (profile, subscriptions, payments, preferences) is nested under the `/users/{userId}` path, where `{userId}` corresponds to the user's Firebase Authentication UID. This structure provides a secure, queryable sandbox for each user's data.
+ * 2.  Global Public Data: Information that is the same for all users, such as the list of available streaming services and their subscription plans, is stored in a top-level `/streamingServices` collection.
+ *
+ * ## Key Security Decisions
+ * - **Strict Ownership**: A user has complete control over their documents within `/users/{userId}`, but no access to any other user's data.
+ * - **No User Enumeration**: Listing the top-level `/users` collection is explicitly forbidden to protect user privacy.
+ * - **Public Read-Only Global Data**: The `/streamingServices` collection and its subcollections are readable by anyone (including unauthenticated users) to allow the app to display service offerings. All client-side write operations to this collection are disabled to ensure data integrity; modifications must be made through a trusted server environment (e.g., using the Admin SDK).
+ * - **Protected Financial Data**: All client-side writes to `/users/{userId}/paymentTransactions` are disabled. This data is considered sensitive and should only be created or modified by a secure backend process.
+ *
+ * ## Denormalization for Authorization
+ * To create simple and performant rules, user-specific documents (like UserSubscription and UserPreference) contain a `userId` field. This allows security rules to validate ownership by checking a field on the document itself, avoiding slow and costly `get()` calls to parent documents.
+ *
+ * ## Structural Segregation
+ * The design uses separate top-level collections for user-private data (`/users`) and global-public data (`/streamingServices`). This segregation simplifies rules, enhances security, and improves query performance by ensuring that queries do not need to filter between public and private documents within the same collection.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // -------------------------------------------------------------------------
+    // --------------------------------
     // Helper Functions
-    // -------------------------------------------------------------------------
+    // --------------------------------
 
-    // NOTA sobre "auth/operation-not-allowed": Este erro indica que o método
-    // de login (ex: Email/Senha, Google) não está habilitado nas configurações
-    // de Autenticação do projeto no console do Firebase.
+    /**
+     * Checks if a user is authenticated.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * Checks if the currently authenticated user is the owner of a document,
+     * identified by the userId provided from the path.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function getRole() {
-      // It's better to check for existence before accessing .data
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    /**
+     * Checks if a document exists and if the authenticated user is the owner.
+     * Used for secure update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() && getRole() == 'admin';
-    }
+    // --------------------------------
+    // User Data Collections
+    // --------------------------------
 
-    function isSeller() {
-      return isSignedIn() && getRole() == 'seller';
-    }
-    
-    function isSellerOrAdmin() {
-        return isSeller() || isAdmin();
-    }
-    
-    function isCreatingOwnSellerResource() {
-        return isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-    }
-    
-    function isUpdatingOwnSellerResource() {
-        return isSignedIn() && resource.data.sellerId == request.auth.uid;
-    }
-
-    // -------------------------------------------------------------------------
-    // Collections
-    // -------------------------------------------------------------------------
-
+    /**
+     * @description Controls access to a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document for the first time.
+     * @deny (get) An authenticated user trying to read another user's profile.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if request.auth.uid == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow get: if isOwner(userId);
+      allow list: if false; // Prevent user enumeration
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
-    match /users/{userId}/userSubscriptions/{purchaseId} {
-        allow read, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if false; // Immutable from client-side
+    /**
+     * @description Secures a user's list of subscriptions to streaming services.
+     * @path /users/{userId}/subscriptions/{userSubscriptionId}
+     * @allow (list) An authenticated user listing their own subscriptions.
+     * @deny (get) An authenticated user trying to read a subscription of another user.
+     * @principle Enforces document ownership within a user-specific subcollection.
+     */
+    match /users/{userId}/subscriptions/{userSubscriptionId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
-    match /subscriptions/{subscriptionId} {
-      allow get, list: if true;
-      allow create: if isSellerOrAdmin() && isCreatingOwnSellerResource();
-      allow update: if (isSellerOrAdmin() && isUpdatingOwnSellerResource()) || isAdmin();
-      allow delete: if (isSellerOrAdmin() && isUpdatingOwnSellerResource()) || isAdmin();
-    }
-    
-    match /subscriptions/{subscriptionId}/deliverables/{deliverableId} {
-        allow read, list, create, delete: if isSellerOrAdmin() && (get(/databases/$(database)/documents/subscriptions/$(subscriptionId)).data.sellerId == request.auth.uid);
-        allow update: if false;
+    /**
+     * @description Secures a user's payment history. Reads are owner-only; all writes are disabled from the client.
+     * @path /users/{userId}/paymentTransactions/{transactionId}
+     * @allow (get) An authenticated user viewing one of their own past transactions.
+     * @deny (create) Any user, including the owner, trying to create a payment record from the client.
+     * @principle Protects sensitive financial data by disallowing client-side modifications. Writes must be performed by a trusted backend.
+     */
+    match /users/{userId}/paymentTransactions/{transactionId} {
+      allow get, list: if isOwner(userId);
+      allow create: if false; // Must be created by a backend service
+      allow update: if false; // Transactions should be immutable from the client
+      allow delete: if false; // Transactions should not be deletable by users
     }
 
-    match /tickets/{ticketId} {
-        allow get: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
-        allow list: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
-        allow update: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
-        allow delete: if false;
+    /**
+     * @description Secures a user's application preferences document.
+     * @path /users/{userId}/preferences/{preferenceId}
+     * @allow (update) An authenticated user updating their own preferences.
+     * @deny (get) An authenticated user trying to read the preferences of another user.
+     * @principle Enforces document ownership for a user-specific configuration document.
+     */
+    match /users/{userId}/preferences/{preferenceId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
-    
-    match /tickets/{ticketId}/messages/{messageId} {
-        allow get, list: if isSignedIn() && (get(/databases/$(database)/documents/tickets/$(ticketId)).data.customerId == request.auth.uid || get(/databases/$(database)/documents/tickets/$(ticketId)).data.sellerId == request.auth.uid);
-        allow create: if isSignedIn() && (request.resource.data.senderId == request.auth.uid || request.resource.data.senderId == 'system');
-        allow update, delete: if false;
-    }
-    
-    match /configs/{configId} {
+
+    // --------------------------------
+    // Global Data Collections
+    // --------------------------------
+
+    /**
+     * @description Controls access to the publicly readable list of streaming services.
+     * @path /streamingServices/{serviceId}
+     * @allow (get) Any user, authenticated or not, reading a streaming service's details.
+     * @deny (create) Any user trying to add a new streaming service from the client.
+     * @principle Provides public read access but disables all client writes to maintain data integrity. Data must be managed by administrators via a backend.
+     */
+    match /streamingServices/{serviceId} {
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow create: if false; // Admin-only operation via backend
+      allow update: if false; // Admin-only operation via backend
+      allow delete: if false; // Admin-only operation via backend
     }
-    
-    match /coupons/{couponId} {
+
+    /**
+     * @description Controls access to the publicly readable subscription plans for a given service.
+     * @path /streamingServices/{serviceId}/subscriptionPlans/{planId}
+     * @allow (list) Any user, authenticated or not, listing the plans for a service.
+     * @deny (update) Any user trying to change the price of a subscription plan from the client.
+     * @principle Provides public read access but disables all client writes to maintain data integrity. Data must be managed by administrators via a backend.
+     */
+    match /streamingServices/{serviceId}/subscriptionPlans/{planId} {
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    match /pending_whatsapp_messages/{messageId} {
-        allow create: if isSignedIn();
-        allow read, list, update, delete: if isAdmin();
+      allow create: if false; // Admin-only operation via backend
+      allow update: if false; // Admin-only operation via backend
+      allow delete: if false; // Admin-only operation via backend
     }
   }
 }
