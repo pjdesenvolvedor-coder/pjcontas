@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
@@ -95,6 +96,10 @@ export function AuthDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="p-0 sm:max-w-[425px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Autenticação</DialogTitle>
+            <DialogDescription>Faça login ou cadastre-se para continuar.</DialogDescription>
+          </DialogHeader>
           {isGoogleSignInLoading ? (
             <div className="flex flex-col items-center justify-center gap-4 p-6 min-h-[250px]">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
