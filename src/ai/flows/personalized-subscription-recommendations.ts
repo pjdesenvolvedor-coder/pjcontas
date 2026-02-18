@@ -14,8 +14,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SubscriptionRecommendationInputSchema = z.object({
-  viewingHistory: z.string().describe('A detailed history of the user\u0027s viewing habits, including genres, titles, and frequency.'),
-  preferences: z.string().describe('The user\u0027s stated preferences for streaming content, such as preferred genres, actors, and directors.'),
+  viewingHistory: z.string().describe('A detailed history of the user\'s viewing habits, including genres, titles, and frequency.'),
+  preferences: z.string().describe('The user\'s stated preferences for streaming content, such as preferred genres, actors, and directors.'),
 });
 export type SubscriptionRecommendationInput = z.infer<typeof SubscriptionRecommendationInputSchema>;
 
@@ -24,7 +24,7 @@ const SubscriptionRecommendationOutputSchema = z.object({
     z.object({
       subscriptionName: z.string().describe('The name of the subscription plan.'),
       planDetails: z.string().describe('Details of the recommended subscription plan, including price and features.'),
-      reason: z.string().describe('The reason why this subscription is recommended based on the user\u0s27s viewing history and preferences.'),
+      reason: z.string().describe('The reason why this subscription is recommended based on the user\'s viewing history and preferences.'),
     })
   ).describe('A list of recommended subscription plans.'),
 });
