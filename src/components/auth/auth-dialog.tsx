@@ -35,10 +35,10 @@ export function AuthDialog() {
             </TabsList>
             <div className="p-6 bg-card rounded-b-lg">
                 <TabsContent value="login">
-                    <LoginForm setOpen={setOpen} />
+                    <LoginForm setOpen={setOpen} setActiveTab={setActiveTab} />
                 </TabsContent>
                 <TabsContent value="register">
-                    <SignupForm setOpen={setOpen} />
+                    <SignupForm setOpen={setOpen} setActiveTab={setActiveTab} />
                 </TabsContent>
             </div>
           </Tabs>

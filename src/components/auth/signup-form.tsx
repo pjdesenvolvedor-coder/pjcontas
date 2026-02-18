@@ -31,9 +31,10 @@ const formSchema = z.object({
 
 interface SignupFormProps {
   setOpen?: (open: boolean) => void;
+  setActiveTab?: (tab: string) => void;
 }
 
-export function SignupForm({ setOpen }: SignupFormProps) {
+export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -187,6 +188,19 @@ export function SignupForm({ setOpen }: SignupFormProps) {
           {formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Criar Conta
         </Button>
+        {setActiveTab && (
+          <div className="text-center text-sm text-muted-foreground pt-2">
+            Já tem uma conta?{' '}
+            <Button
+              type="button"
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => setActiveTab('login')}
+            >
+              Entrar agora
+            </Button>
+          </div>
+        )}
       </form>
     </Form>
   );

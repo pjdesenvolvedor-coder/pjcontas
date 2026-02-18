@@ -74,6 +74,7 @@ function CheckoutForm() {
   const [isGeneratingPix, setIsGeneratingPix] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
+  const [authTab, setAuthTab] = useState('login');
 
   const planRef = useMemoFirebase(
     () => (firestore && planId ? doc(firestore, 'subscriptions', planId) : null),
@@ -209,7 +210,6 @@ function CheckoutForm() {
           senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
           text: 'Olá! Obrigado pela sua compra. No momento, estou sem estoque para este item, mas vou repor o mais rápido possível. Por favor, aguarde.',
           timestamp: new Date().toISOString(),
-          type: 'text' as const,
         };
         await addDocument(chatMessagesCollection, stockOutMessage);
         
@@ -233,7 +233,6 @@ function CheckoutForm() {
           senderName: plan.sellerUsername || plan.sellerName || 'Vendedor',
           text: `Obrigado pela sua compra! Aqui estão os detalhes do seu acesso:\n\n\'\'\'${deliverableData.content}\'\'\'`,
           timestamp: new Date().toISOString(),
-          type: 'text' as const,
         };
         await addDocument(chatMessagesCollection, deliveryMessage);
         
@@ -392,16 +391,16 @@ function CheckoutForm() {
             <CardDescription>Faça login ou cadastre-se para continuar a compra.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={authTab} onValueChange={setAuthTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="register">Cadastrar</TabsTrigger>
             </TabsList>
             <TabsContent value="login" className="pt-4">
-              <LoginForm />
+              <LoginForm setActiveTab={setAuthTab} />
             </TabsContent>
             <TabsContent value="register" className="pt-4">
-              <SignupForm />
+              <SignupForm setActiveTab={setAuthTab} />
             </TabsContent>
           </Tabs>
         </CardContent>
