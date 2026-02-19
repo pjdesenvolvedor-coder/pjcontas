@@ -19,18 +19,37 @@ import {
   Smartphone,
   MessageSquare,
   Ticket as CouponIcon,
+  Wifi,
+  WifiOff,
+  Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useWhatsappStatus, type WhatsappStatus } from '@/hooks/use-whatsapp-status';
 
 interface SellerSidebarProps {
     unreadTicketsCount: number;
     isAdmin: boolean;
 }
 
+function WhatsappStatusIndicator({ status }: { status: WhatsappStatus }) {
+    if (status === 'connected') {
+        return <Wifi className="h-4 w-4 text-green-500" title="WhatsApp Conectado" />;
+    }
+    if (status === 'disconnected') {
+        return <WifiOff className="h-4 w-4 text-destructive" title="WhatsApp Desconectado" />;
+    }
+    if (status === 'error') {
+        return <WifiOff className="h-4 w-4 text-yellow-500" title="Erro ao verificar status do WhatsApp" />;
+    }
+    return <Loader2 className="h-4 w-4 animate-spin" title="Verificando status..." />;
+}
+
+
 export function SellerSidebar({ unreadTicketsCount, isAdmin }: SellerSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const auth = useAuth();
+  const whatsappStatus = useWhatsappStatus();
   
   const menuItems = [
     {
@@ -112,11 +131,14 @@ export function SellerSidebar({ unreadTicketsCount, isAdmin }: SellerSidebarProp
                             <item.icon className="h-4 w-4" />
                             <span>{item.label}</span>
                         </div>
-                        {item.count > 0 && (
-                            <Badge variant="destructive" className="h-5 px-1.5 text-xs">
-                                {item.count}
-                            </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {item.label === 'WhatsApp' && isAdmin && <WhatsappStatusIndicator status={whatsappStatus} />}
+                          {item.count > 0 && (
+                              <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                                  {item.count}
+                              </Badge>
+                          )}
+                        </div>
                     </Link>
                     </li>
                 );
