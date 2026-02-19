@@ -401,11 +401,20 @@ function CheckoutForm() {
                 <TabsTrigger value="register">Cadastrar</TabsTrigger>
               </TabsList>
               <TabsContent value="login" className="pt-4">
-                <LoginForm setActiveTab={setActiveView} />
-              </TabsContent>
-              <TabsContent value="register" className="pt-4">
-                <SignupForm setActiveTab={setActiveView} />
-              </TabsContent>
+  <LoginForm
+    setActiveTab={(tab) =>
+      setActiveView(tab as "login" | "register")
+    }
+  />
+</TabsContent>
+
+<TabsContent value="register" className="pt-4">
+  <SignupForm
+    setActiveTab={(tab) =>
+      setActiveView(tab as "login" | "register")
+    }
+  />
+</TabsContent>
             </Tabs>
         </CardContent>
       </Card>
