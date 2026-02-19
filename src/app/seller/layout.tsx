@@ -5,7 +5,7 @@ import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@
 import { doc, collection, query, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile, Ticket } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, Suspense } from 'react';
 
 export default function SellerLayout({
   children,
@@ -53,7 +53,7 @@ export default function SellerLayout({
       <div className="flex min-h-[calc(100vh-4rem)] bg-background text-foreground">
         <SellerSidebar unreadTicketsCount={unreadTicketsCount} isAdmin={isAdmin} />
         <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
-          {children}
+          <Suspense>{children}</Suspense>
         </main>
       </div>
     );
