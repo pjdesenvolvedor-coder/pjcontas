@@ -17,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, collection, setDoc, addDoc } from 'firebase/firestore';
-import { FirebaseError } from 'firebase/app';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
@@ -99,10 +98,10 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
         
         setOpen?.(false);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Signup error:", error);
         let description = "Ocorreu um erro inesperado. Tente novamente.";
-        if (error instanceof FirebaseError) {
+        if (error && typeof error === 'object' && 'code' in error) {
             switch (error.code) {
                 case 'auth/email-already-in-use':
                     description = 'Este endereço de email já está em uso.';
