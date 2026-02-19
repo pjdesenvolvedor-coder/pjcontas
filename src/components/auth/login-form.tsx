@@ -28,7 +28,7 @@ const formSchema = z.object({
 
 interface LoginFormProps {
   setOpen?: (open: boolean) => void;
-  setActiveTab?: (tab: string) => void;
+  setActiveTab?: (tab: 'login' | 'register') => void;
 }
 
 export function LoginForm({ setOpen, setActiveTab }: LoginFormProps) {

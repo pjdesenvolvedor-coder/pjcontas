@@ -80,11 +80,6 @@ function CheckoutForm() {
   // Auth state
   const [activeView, setActiveView] = useState<'login' | 'register'>('login');
 
-  const handleFormCompletion = () => {
-      // onAuthStateChanged will handle UI updates, just reset the view
-      setActiveView('login');
-  };
-
   const planRef = useMemoFirebase(
     () => (firestore && planId ? doc(firestore, 'subscriptions', planId) : null),
     [firestore, planId]
@@ -406,10 +401,10 @@ function CheckoutForm() {
                 <TabsTrigger value="register">Cadastrar</TabsTrigger>
               </TabsList>
               <TabsContent value="login" className="pt-4">
-                <LoginForm setOpen={handleFormCompletion} setActiveTab={setActiveView} />
+                <LoginForm setActiveTab={setActiveView} />
               </TabsContent>
               <TabsContent value="register" className="pt-4">
-                <SignupForm setOpen={handleFormCompletion} setActiveTab={setActiveView} />
+                <SignupForm setActiveTab={setActiveView} />
               </TabsContent>
             </Tabs>
         </CardContent>
