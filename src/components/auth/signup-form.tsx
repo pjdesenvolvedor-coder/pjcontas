@@ -59,7 +59,7 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
         const displayName = values.firstName;
         const formattedPhoneNumber = values.phoneNumber.replace(/\D/g, '');
 
-        const promises = [];
+        const promises: Promise<any>[] = [];
 
         // 1. Update user profile in Auth
         promises.push(updateProfile(newUser, { displayName }));
