@@ -51,7 +51,7 @@ export function WhatsAppMessageDaemon() {
                     if (messageTemplate) {
                         finalMessage = messageTemplate
                             .replace(/{vendedor}/g, msg.data.sellerName || '')
-                            .replace(/{produto}/g, msg.data.serviceName || '')
+                            .replace(/{produto}/g, msg.data.planName || '')
                             .replace(/{plano}/g, msg.data.planName || '')
                             .replace(/{comprador}/g, msg.data.customerName || '')
                             .replace(/{valor}/g, (msg.data.price || 0).toFixed(2));
@@ -63,7 +63,7 @@ export function WhatsAppMessageDaemon() {
                     if (messageTemplate) {
                         finalMessage = messageTemplate
                             .replace(/{cliente}/g, msg.data.customerName || '')
-                            .replace(/{produto}/g, msg.data.serviceName || '')
+                            .replace(/{produto}/g, msg.data.planName || '')
                             .replace(/{plano}/g, msg.data.planName || '')
                             .replace(/{acesso}/g, msg.data.deliverableContent || '');
                     }

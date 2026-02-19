@@ -194,6 +194,7 @@ export function WhatsappMessageManager() {
                     <p className="text-xs text-muted-foreground">Variáveis disponíveis:</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                         <Badge variant="outline">{'{vendedor}'}</Badge>
+                        <Badge variant="outline">{'{produto}'}</Badge>
                         <Badge variant="outline">{'{plano}'}</Badge>
                         <Badge variant="outline">{'{comprador}'}</Badge>
                         <Badge variant="outline">{'{valor}'}</Badge>
@@ -218,6 +219,7 @@ export function WhatsappMessageManager() {
                     <p className="text-xs text-muted-foreground">Variáveis disponíveis:</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                         <Badge variant="outline">{'{cliente}'}</Badge>
+                        <Badge variant="outline">{'{produto}'}</Badge>
                         <Badge variant="outline">{'{plano}'}</Badge>
                         <Badge variant="outline">{'{acesso}'}</Badge>
                     </div>
