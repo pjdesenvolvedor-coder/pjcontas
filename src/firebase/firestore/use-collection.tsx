@@ -52,8 +52,14 @@ export interface InternalQuery extends Query<DocumentData> {
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
 export function useCollection<T = any>(
-    memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    memoizedTargetRefOrQuery: (CollectionReference<DocumentData> | Query<DocumentData>)  | null | undefined,
 ): UseCollectionResult<T> {
+  // This runtime check is important for developer experience to prevent infinite loops.
+  // It throws an error if the query/reference object is not created with useMemoFirebase.
+  if (memoizedTargetRefOrQuery && !(memoizedTargetRefOrQuery as any).__memo) {
+    throw new Error('A query/reference passed to useCollection was not memoized with useMemoFirebase. This will cause performance issues.');
+  }
+
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
 
@@ -107,8 +113,6 @@ export function useCollection<T = any>(
 
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
-  if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
-  }
+  
   return { data, isLoading, error };
 }
