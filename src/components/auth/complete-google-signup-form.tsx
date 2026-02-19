@@ -46,6 +46,7 @@ export function CompleteGoogleSignupForm({ user, onComplete }: CompleteGoogleSig
 
     try {
         const formattedPhoneNumber = values.phoneNumber.replace(/\D/g, '');
+        const promises = [];
 
         const userRef = doc(firestore, 'users', user.uid);
         const userData = {
@@ -57,12 +58,11 @@ export function CompleteGoogleSignupForm({ user, onComplete }: CompleteGoogleSig
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        const userDocPromise = setDoc(userRef, userData, { merge: false });
+        promises.push(setDoc(userRef, userData, { merge: false }));
 
-        let welcomeMessagePromise = Promise.resolve();
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            welcomeMessagePromise = addDoc(pendingMessagesRef, {
+            promises.push(addDoc(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),
@@ -70,10 +70,10 @@ export function CompleteGoogleSignupForm({ user, onComplete }: CompleteGoogleSig
                     customerName: user.displayName,
                     customerEmail: user.email,
                 }
-            });
+            }));
         }
         
-        await Promise.all([userDocPromise, welcomeMessagePromise]);
+        await Promise.all(promises);
 
         toast({
             title: 'Cadastro Concluído!',

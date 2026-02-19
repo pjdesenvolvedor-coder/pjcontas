@@ -59,8 +59,10 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
         const displayName = values.firstName;
         const formattedPhoneNumber = values.phoneNumber.replace(/\D/g, '');
 
+        const promises = [];
+
         // 1. Update user profile in Auth
-        const profileUpdatePromise = updateProfile(newUser, { displayName });
+        promises.push(updateProfile(newUser, { displayName }));
 
         // 2. Create user document in Firestore
         const userRef = doc(firestore, 'users', newUser.uid);
@@ -72,13 +74,12 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
             registrationDate: new Date().toISOString(),
             role: 'customer',
         };
-        const userDocPromise = setDoc(userRef, userData, { merge: false });
+        promises.push(setDoc(userRef, userData, { merge: false }));
         
         // 3. Queue welcome message
-        let welcomeMessagePromise = Promise.resolve();
         if (formattedPhoneNumber) {
             const pendingMessagesRef = collection(firestore, 'pending_whatsapp_messages');
-            welcomeMessagePromise = addDoc(pendingMessagesRef, {
+            promises.push(addDoc(pendingMessagesRef, {
                 type: 'welcome',
                 recipientPhoneNumber: formattedPhoneNumber,
                 createdAt: new Date().toISOString(),
@@ -86,10 +87,10 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
                     customerName: values.firstName,
                     customerEmail: values.email,
                 }
-            });
+            }));
         }
         
-        await Promise.all([profileUpdatePromise, userDocPromise, welcomeMessagePromise]);
+        await Promise.all(promises);
 
         toast({
             title: 'Conta Criada!',
