@@ -31,7 +31,7 @@ const formSchema = z.object({
 
 interface SignupFormProps {
   setOpen?: (open: boolean) => void;
-  setActiveTab?: (tab: string) => void;
+  setActiveTab?: (tab: 'login' | 'register') => void;
 }
 
 export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
@@ -59,7 +59,7 @@ export function SignupForm({ setOpen, setActiveTab }: SignupFormProps) {
         const displayName = values.firstName;
         const formattedPhoneNumber = values.phoneNumber.replace(/\D/g, '');
 
-        const promises = [];
+        const promises: Promise<any>[] = [];
 
         // 1. Update user profile in Auth
         promises.push(updateProfile(newUser, { displayName }));
