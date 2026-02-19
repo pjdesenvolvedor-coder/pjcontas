@@ -67,8 +67,7 @@ export default function SellerTicketsPage() {
                   return (
                   <TableRow key={ticket.id}>
                     <TableCell>
-                      <div className="font-medium">{ticket.serviceName}</div>
-                      <div className="text-sm text-muted-foreground">{ticket.planName}</div>
+                      <div className="font-medium">{ticket.planName}</div>
                     </TableCell>
                     <TableCell className="max-w-xs">
                         <div className="flex items-center gap-2">
